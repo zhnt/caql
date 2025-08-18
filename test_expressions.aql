@@ -1,0 +1,31 @@
+# AQL Expression Test File
+# Basic arithmetic
+2 + 3
+5 * 4
+10 - 3
+20 / 4
+
+# Parentheses
+(2 + 3) * 4
+2 + (3 * 4)
+
+# Bitwise operations
+15 & 7
+8 | 4
+10 ^ 3
+
+# Shift operations
+5 << 2
+20 >> 2
+
+# Power
+2 ** 3
+3 ** 2
+
+# Unary operations
+-42
+~15
+
+# Complex expressions
+(5 + 3) * 2 - 1
+2 ** 3 + 4 * 5

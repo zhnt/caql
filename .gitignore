@@ -1,0 +1,53 @@
+# AQL C语言项目的gitignore
+
+# 编译输出
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+
+# 构建目录
+/build/
+/bin/
+/dist/
+
+# 可执行文件
+aql
+caql
+
+# 测试文件
+*.test
+test_*
+!test_expressions.aql
+
+# 临时文件
+lua548/
+
+# IDE文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS生成的文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 日志文件
+*.log
+
+# 环境变量文件
+.env
+.env.local
+
+# 临时文件
+tmp/
+temp/ 
