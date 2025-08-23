@@ -8,6 +8,8 @@
 #define avm_h
 
 #include <float.h>
+
+#include "aconf.h"
 #include "aobject.h"
 #include "astate.h"
 
@@ -283,11 +285,7 @@ AQL_API aql_Integer aqlV_shiftl(aql_Integer x, aql_Integer y);
 
 /* }================================================================ */
 
-/*
-** Forward declarations for closure types
-*/
-typedef struct CClosure CClosure;
-typedef struct LClosure LClosure;
+/* Forward declarations already defined in aobject.h */
 
 /*
 ** {==================================================================
@@ -353,7 +351,8 @@ typedef struct Table {
   Node *lastfree;  /* any free position is before this position */
   struct Table *metatable;
   GCObject *gclist;
-} Table;
+/* Table already defined in aobject.h */
+}Table;
 
 /*
 ** Macros to manipulate keys inserted in nodes

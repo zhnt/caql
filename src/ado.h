@@ -8,11 +8,13 @@
 #define ado_h
 
 #include <setjmp.h>
+
+#include "aconf.h"
 #include "aobject.h"
 #include "astate.h"
 #include "agc.h"
 
-/* Forward declarations */
+/* Forward declarations to avoid circular dependency */
 typedef struct Zio ZIO;
 
 /*

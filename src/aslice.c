@@ -5,6 +5,7 @@
 */
 
 #include "aslice.h"
+#include "acontainer.h"  /* 添加统一容器头文件 */
 #include "amem.h"
 #include "agc.h"
 #include "astring.h"
@@ -31,46 +32,34 @@ static const TValue *aql_index2addr(aql_State *L, int idx) {
 #define SLICE_GROWTH_FACTOR(cap) ((cap) + (cap) / 2)
 
 /*
-** Create a new slice with specified data type
+** Create a new slice with specified data type - 使用统一容器基类
 */
 AQL_API Slice *aqlS_new(aql_State *L, DataType dtype) {
   return aqlS_newcap(L, dtype, DEFAULT_SLICE_CAPACITY);
 }
 
 /*
-** Create a new slice with specified capacity
+** Create a new slice with specified capacity - 使用统一容器基类
 */
 AQL_API Slice *aqlS_newcap(aql_State *L, DataType dtype, size_t capacity) {
-  Slice *slice = (Slice*)aqlM_newobject(L, AQL_TSLICE, sizeof(Slice));
-  if (slice == NULL) return NULL;
+  /* 使用统一容器创建函数 */
+  AQL_ContainerBase *base = acontainer_new(L, CONTAINER_SLICE, dtype, capacity);
+  if (base == NULL) return NULL;
   
-  slice->dtype = dtype;
-  slice->length = 0;
-  slice->capacity = capacity;
+  /* 切片初始长度为0 */
+  base->length = 0;
   
-  if (capacity > 0) {
-    slice->data = (TValue*)aqlM_newvector(L, capacity, TValue);
-    if (slice->data == NULL) {
-      aqlM_freemem(L, slice, sizeof(Slice));
-      return NULL;
-    }
-  } else {
-    slice->data = NULL;
-  }
-  
-  return slice;
+  return (Slice*)base;
 }
 
 /*
-** Free a slice and its data
+** Free a slice and its data - 使用统一容器销毁
 */
 AQL_API void aqlS_free(aql_State *L, Slice *slice) {
   if (slice == NULL) return;
   
-  if (slice->data != NULL) {
-    aqlM_freearray(L, slice->data, slice->capacity);
-  }
-  aqlM_freemem(L, slice, sizeof(Slice));
+  /* 使用统一容器销毁函数 */
+  acontainer_destroy(L, (AQL_ContainerBase*)slice);
 }
 
 /*

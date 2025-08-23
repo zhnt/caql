@@ -12,6 +12,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <limits.h>
+#include <stdlib.h>
 
 /* Include core AQL headers */
 #include "aql.h"
@@ -28,10 +29,14 @@ static const char *const aql_tokens [] = {
     "async", "await", "yield", "coroutine",
     "array", "slice", "dict", "vector",
     "int", "float", "string", "bool",
-    "const", "var", "type", "generic",
+    "const", "var", "let", "type", "generic",
+    "elif", 
     
     /* AI-specific keywords (Phase 2) */
     "ai", "intent", "workflow", "parallel",
+    
+    /* Math keywords */
+    "div",  /* integer division */
     
     /* operators */
     "//", "..", "...", "==", ">=", "<=", "~=", "<<", ">>", "::",
@@ -42,272 +47,123 @@ static const char *const aql_tokens [] = {
     "<eof>", "<number>", "<integer>", "<name>", "<string>"
 };
 
-const char *const aqlX_tokens[] = {
-    "and", "break", "do", "else", "elseif", "end", "false", "for",
-    "function", "goto", "if", "in", "local", "nil", "not", "or",
-    "repeat", "return", "then", "true", "until", "while",
-    
-    /* AQL specific keywords */
-    "class", "interface", "struct", "import", "as",
-    "async", "await", "yield", "coroutine",
-    "array", "slice", "dict", "vector",
-    "int", "float", "string", "bool",
-    "const", "var", "type", "generic",
-    
-    /* AI-specific keywords (Phase 2) */
-    "ai", "intent", "workflow", "parallel",
-    
-    /* operators */
-    "//", "..", "...", "==", ">=", "<=", "~=", "<<", ">>", "::",
-    
-    /* AQL specific operators */
-    "->", "|", "?", "??", "+=", "-=", "*=", "/=", "&=", "|=", "^=",
-    
-    "<eof>", "<number>", "<integer>", "<name>", "<string>"
-};
 
-#define save_and_next(ls) (save(ls, ls->current), next(ls))
-
-/* Keywords hashtable - extern declaration is in alex.h */
-const TString *aqlX_keywords[NUM_RESERVED];
-
-/* Operator precedence table for AQL */
-const OpPriority aqlX_priority[] = {
-  {10, 10}, {10, 10},           /* '+' '-' */
-  {11, 11}, {11, 11},           /* '*' '%' */
-  {14, 13},                     /* '^' (right associative) */
-  {11, 11}, {11, 11},           /* '/' '//' */
-  {6, 6}, {4, 4}, {5, 5},       /* '&' '|' '~' */
-  {7, 7}, {7, 7},               /* '<<' '>>' */
-  {9, 8},                       /* '..' (right associative) */
-  {3, 3}, {3, 3}, {3, 3},       /* '==' '~=' '<' */
-  {3, 3}, {3, 3}, {3, 3},       /* '<=' '>' '>=' */
-  {2, 2},                       /* 'and' */
-  {1, 1},                       /* 'or' */
-  {5, 4},                       /* '|>' (pipe operator) */
-  {8, 8},                       /* '??' (null coalescing) */
-};
 
 /* Helper macros and definitions */
 #define EOZ (-1)
 #define MAX_INT INT_MAX
-/* Note: UTF8BUFFSZ, UCHAR_MAX, cast_byte, cast_num are now defined in aconf.h */
+#define MAX_SIZE SIZE_MAX
+#define cast_char(c) ((char)(c))
 
-/* Note: zgetc is defined as a macro in azio.h */
-
-/* Placeholder function declarations for missing dependencies */
-static void next(LexState *ls) {
-  ls->current = zgetc(ls->z);
-}
-
-static void save(LexState *ls, int c) {
-  /* Simplified buffer save - would need proper buffer implementation */
-  /* This is a placeholder */
-  (void)ls; (void)c;
-}
-
-/* Forward declarations for functions defined later in this file */
-static int read_numeral(LexState *ls, SemInfo *seminfo);
-
-/* Additional helper functions and missing function implementations */
-
-static void aqlC_checkGC(aql_State *L) {
-  /* Placeholder - would need proper GC implementation */
-  (void)L;
-}
-
-static void aqlD_throw(aql_State *L, int errcode) {
-  /* Placeholder - would need proper error throwing */
-  (void)L; (void)errcode;
-}
-
-static char *aqlG_addinfo(aql_State *L, const char *msg, TString *src, int line) {
-  /* Placeholder - would need proper error formatting */
-  (void)L; (void)src; (void)line;
-  return (char*)msg;
-}
-
-static void *aqlH_set(aql_State *L, void *h, void *key) {
-  /* Placeholder - would need proper hashtable implementation */
-  (void)L; (void)h; (void)key;
-  return NULL;
-}
-
-/* Note: aqlZ_resetbuffer, aqlZ_resizebuffer are defined as macros in azio.h */
-/* Note: aqlZ_buffremove, aqlZ_buffer, aqlZ_bufflen are defined in azio.h */
-
-/* Note: aqlO_pushfstring, aqlO_hexavalue, aqlO_utf8esc, aqlO_str2num,
-   aqlG_addinfo, aqlD_throw are now properly implemented above or in other modules */
-
-/* Note: Object access macros are now properly defined in aobject.h */
-
-/* Constants */
-#define AQL_ENV "_ENV"
-#define AQL_MINBUFFER 32
-#define esccheck(ls,c,msg) if (!(c)) aqlX_lexerror(ls, msg, 0)
+#define next(ls)	(ls->current = zgetc(ls->z))
+#define currIsNewline(ls)	(ls->current == '\n' || ls->current == '\r')
 
 /* Forward declarations */
-static int read_numeral(LexState *ls, SemInfo *seminfo);
 static void inclinenumber(LexState *ls);
-
-/* Additional needed type definitions are now in forward declarations */
-
-/* Note: Character classification macros are now in aconf.h */
+static void save_and_next(LexState *ls);
+static void save(LexState *ls, int c);
+static int check_next1(LexState *ls, int c);
+static void read_string(LexState *ls, int del, SemInfo *seminfo);
+static int read_numeral(LexState *ls, SemInfo *seminfo);
+static int isreserved(TString *ts);
 
 /*
-** Character classification macros
+** =======================================================
+** LEXICAL ANALYZER
+** =======================================================
 */
-#define currIsNewline(ls)   (ls->current == '\n' || ls->current == '\r')
 
 static void inclinenumber(LexState *ls) {
   int old = ls->current;
   aql_assert(currIsNewline(ls));
-  next(ls);  /* skip `\n' or `\r' */
+  next(ls);  /* skip '\n' or '\r' */
   if (currIsNewline(ls) && ls->current != old)
-    next(ls);  /* skip `\n\r' or `\r\n' */
+    next(ls);  /* skip '\n\r' or '\r\n' */
   if (++ls->linenumber >= MAX_INT)
-    aqlX_syntaxerror(ls, "chunk has too many lines");
+    aqlX_lexerror(ls, "chunk has too many lines", 0);
 }
 
-/*
-** Initialize the keyword hashtable
-*/
-void aqlX_init(aql_State *L) {
-  int i;
-  /* Note: Environment name creation would be done in a real implementation */
-  for (i = 0; i < NUM_RESERVED; i++) {
-    TString *ts = aqlStr_newlstr(L, aql_tokens[i], strlen(aql_tokens[i]));
-    /* Note: aqlC_fix and ts->extra would be set in a real implementation */
-    aqlX_keywords[i] = ts;
+static void save(LexState *ls, int c) {
+  printf("[DEBUG] save: entry, c='%c' (%d)\n", 
+         (c >= 32 && c < 127) ? c : '?', c);
+  fflush(stdout);
+  
+  Mbuffer *b = ls->buff;
+  printf("[DEBUG] save: buffer=%p\n", (void*)b);
+  fflush(stdout);
+  
+  if (!b) {
+    printf("[DEBUG] save: ERROR - buffer is NULL!\n");
+    fflush(stdout);
+    return;
   }
-}
-
-/*
-** Create a new string and anchor it in the scanner to avoid GC
-*/
-TString *aqlX_newstring(LexState *ls, const char *str, size_t l) {
-  aql_State *L = ls->L;
-  TString *ts = aqlStr_newlstr(L, str, l);  /* create new string */
-  /* Note: In a real implementation, this would:
-     1. Anchor the string in the hash table to avoid GC
-     2. Check if string already exists
-     3. Manage the stack properly
-  */
-  UNUSED(L); /* Suppress unused warning for now */
-  return ts;
-}
-
-/*
-** saves current character and reads next one
-** Note: save_and_next is defined as a macro above
-*/
-
-/*
-** skip a sequence of characters equal to 'c'
-*/
-static int skip_sep(LexState *ls) {
-  int count = 0;
-  int s = ls->current;
-  aql_assert(s == '[' || s == ']');
-  save_and_next(ls);
-  while (ls->current == '=') {
-    save_and_next(ls);
-    count++;
+  
+  if (!b->buffer) {
+    printf("[DEBUG] save: buffer->buffer is NULL, initializing...\n");
+    fflush(stdout);
+    /* Initialize buffer using AQL's buffer system */
+    aqlZ_resizebuffer(ls->L, b, 32);
+    printf("[DEBUG] save: buffer initialized with size %zu\n", b->buffsize);
+    fflush(stdout);
   }
-  return (ls->current == s) ? count : (-count) - 1;
-}
-
-/*
-** Read a long string or long comment
-*/
-static void read_long_string(LexState *ls, SemInfo *seminfo, int sep) {
-  int line = ls->linenumber;  /* initial line (for error messages) */
-  save_and_next(ls);  /* skip 2nd '[' */
-  if (currIsNewline(ls))  /* string starts with a newline? */
-    inclinenumber(ls);  /* skip it */
-  for (;;) {
-    switch (ls->current) {
-      case EOZ: {  /* error */
-        const char *what = (seminfo ? "string" : "comment");
-        const char *msg = aqlO_pushfstring(ls->L,
-                     "unfinished long %s (starting at line %d)", what, line);
-        aqlX_lexerror(ls, msg, TK_EOS);
-        break;  /* to avoid warnings */
-      }
-      case ']': {
-        if (skip_sep(ls) == sep) {
-          save_and_next(ls);  /* skip 2nd ']' */
-          goto endloop;
-        }
-        break;
-      }
-      case '\n': case '\r': {
-        save(ls, '\n');
-        inclinenumber(ls);
-        if (!seminfo) aqlZ_resetbuffer(ls->buff);  /* avoid wasting space */
-        break;
-      }
-      default: {
-        if (seminfo) save_and_next(ls);
-        else next(ls);
-      }
+  
+  printf("[DEBUG] save: bufflen=%zu, sizebuffer=%zu\n", 
+         aqlZ_bufflen(b), aqlZ_sizebuffer(b));
+  fflush(stdout);
+  
+  if (aqlZ_bufflen(b) + 1 > aqlZ_sizebuffer(b)) {
+    printf("[DEBUG] save: resizing buffer\n");
+    fflush(stdout);
+    size_t newsize;
+    if (aqlZ_sizebuffer(b) >= MAX_SIZE/2) {
+      printf("[DEBUG] save: ERROR - buffer too large!\n");
+      fflush(stdout);
+      aqlX_lexerror(ls, "lexical element too long", 0);
     }
-  } endloop:
-  if (seminfo)
-    seminfo->ts = aqlX_newstring(ls, aqlZ_buffer(ls->buff) + 2 + sep,
-                                aqlZ_bufflen(ls->buff) - 2*(2 + sep));
-}
-
-/*
-** escape sequences
-*/
-static int gethexa(LexState *ls) {
-  save_and_next(ls);
-  esccheck(ls, aqlX_isxdigit(ls->current), "hexadecimal digit expected");
-  return aqlO_hexavalue(ls->current);
-}
-
-static int readhexaesc(LexState *ls) {
-  int r = gethexa(ls);
-  r = (r << 4) + gethexa(ls);
-  aqlZ_buffremove(ls->buff, 2);  /* remove saved chars from buffer */
-  return r;
-}
-
-static unsigned long readutf8esc(LexState *ls) {
-  unsigned long r;
-  int i = 4;  /* chars to be removed: '\', 'u', '{', and first digit */
-  save_and_next(ls);  /* skip 'u' */
-  esccheck(ls, ls->current == '{', "missing '{'");
-  r = gethexa(ls);  /* must have at least one digit */
-  while ((save_and_next(ls)), lisxdigit(ls->current)) {
-    i++;
-    esccheck(ls, r <= (0x10FFFFu >> 4), "UTF-8 value too large");
-    r = (r << 4) + aqlO_hexavalue(ls->current);
+    newsize = aqlZ_sizebuffer(b) * 2;
+    printf("[DEBUG] save: resizing from %zu to %zu\n", aqlZ_sizebuffer(b), newsize);
+    fflush(stdout);
+    aqlZ_resizebuffer(ls->L, b, newsize);
+    printf("[DEBUG] save: resize completed\n");
+    fflush(stdout);
   }
-  esccheck(ls, ls->current == '}', "missing '}'");
-  next(ls);  /* skip '}' */
-  aqlZ_buffremove(ls->buff, i);  /* remove saved chars from buffer */
-  return r;
+  
+  printf("[DEBUG] save: storing character at index %zu\n", aqlZ_bufflen(b));
+  fflush(stdout);
+  b->buffer[aqlZ_bufflen(b)++] = cast_char(c);
+  
+  printf("[DEBUG] save: completed\n");
+  fflush(stdout);
 }
 
-static void utf8esc(LexState *ls) {
-  char buff[UTF8BUFFSZ];
-  int n = aqlO_utf8esc(buff, readutf8esc(ls));
-  for (; n > 0; n--)  /* add 'buff' to string */
-    save(ls, buff[UTF8BUFFSZ - n]);
+static void save_and_next(LexState *ls) {
+  printf("[DEBUG] save_and_next: entry, current='%c' (%d)\n", 
+         (ls->current >= 32 && ls->current < 127) ? ls->current : '?', ls->current);
+  fflush(stdout);
+  
+  printf("[DEBUG] save_and_next: calling save\n");
+  fflush(stdout);
+  save(ls, ls->current);
+  
+  printf("[DEBUG] save_and_next: calling next\n");
+  fflush(stdout);
+  next(ls);
+  
+  printf("[DEBUG] save_and_next: after next, current='%c' (%d)\n", 
+         (ls->current >= 32 && ls->current < 127) ? ls->current : '?', ls->current);
+  fflush(stdout);
 }
 
-static int readdecesc(LexState *ls) {
-  int i;
-  int r = 0;  /* result accumulator */
-  for (i = 0; i < 3 && aqlX_isdigit(ls->current); i++) {  /* read up to 3 digits */
-    r = 10*r + ls->current - '0';
-    save_and_next(ls);
+static int check_next1(LexState *ls, int c) {
+  if (ls->current == c) {
+    next(ls);
+    return 1;
   }
-  esccheck(ls, r <= UCHAR_MAX, "decimal escape too large");
-  aqlZ_buffremove(ls->buff, i);  /* remove read digits from buffer */
-  return r;
+  else return 0;
+}
+
+int aqlX_check_next1(LexState *ls, int c) {
+  return check_next1(ls, c);
 }
 
 static void read_string(LexState *ls, int del, SemInfo *seminfo) {
@@ -332,25 +188,22 @@ static void read_string(LexState *ls, int del, SemInfo *seminfo) {
           case 'r': c = '\r'; goto read_save;
           case 't': c = '\t'; goto read_save;
           case 'v': c = '\v'; goto read_save;
-          case 'x': c = readhexaesc(ls); goto read_save;
-          case 'u': utf8esc(ls);  goto no_save;
           case '\n': case '\r':
             inclinenumber(ls); c = '\n'; goto only_save;
           case '\\': case '\"': case '\'':
             c = ls->current; goto read_save;
           case EOZ: goto no_save;  /* will raise an error next loop */
-          case 'z': {  /* zap following span of spaces */
-            aqlZ_buffremove(ls->buff, 1);  /* remove '\\' */
-            next(ls);  /* skip the 'z' */
-            while (aqlX_isspace(ls->current)) {
-              if (currIsNewline(ls)) inclinenumber(ls);
-              else next(ls);
-            }
-            goto no_save;
-          }
           default: {
-            esccheck(ls, aqlX_isdigit(ls->current), "invalid escape sequence");
-            c = readdecesc(ls);  /* digital escape \ddd */
+            if (!isdigit(ls->current))
+              aqlX_lexerror(ls, "invalid escape sequence", TK_STRING_LITERAL);
+            c = 0;
+            int i;
+            for (i = 0; i < 3 && isdigit(ls->current); i++) {
+              c = 10*c + (ls->current - '0');
+              save_and_next(ls);
+            }
+            if (c > UCHAR_MAX)
+              aqlX_lexerror(ls, "escape sequence too large", TK_STRING_LITERAL);
             goto only_save;
           }
         }
@@ -358,7 +211,6 @@ static void read_string(LexState *ls, int del, SemInfo *seminfo) {
          next(ls);
          /* go through */
        only_save:
-         aqlZ_buffremove(ls->buff, 1);  /* remove '\\' */
          save(ls, c);
          /* go through */
        no_save: break;
@@ -369,74 +221,85 @@ static void read_string(LexState *ls, int del, SemInfo *seminfo) {
   }
   save_and_next(ls);  /* skip delimiter */
   seminfo->ts = aqlX_newstring(ls, aqlZ_buffer(ls->buff) + 1,
-                              aqlZ_bufflen(ls->buff) - 2);
+                                   aqlZ_bufflen(ls->buff) - 2);
 }
 
-/* AQL extension: interpolated strings */
-static int read_interpolated_string(LexState *ls, SemInfo *seminfo) {
-  /* Implementation for string interpolation like "Hello ${name}" */
-  /* This is a simplified version - full implementation would be more complex */
-  save_and_next(ls);  /* skip opening quote */
-  while (ls->current != '"' && ls->current != EOZ) {
-    if (ls->current == '$' && ls->lookahead.token == '{') {
-      /* Handle interpolation expression */
-      /* For now, just treat as regular string */
-      save_and_next(ls);
-    } else {
-      save_and_next(ls);
-    }
-  }
-  if (ls->current == EOZ) {
-    aqlX_lexerror(ls, "unfinished interpolated string", TK_EOS);
-  }
-  save_and_next(ls);  /* skip closing quote */
-  seminfo->ts = aqlX_newstring(ls, aqlZ_buffer(ls->buff) + 1,
-                              aqlZ_bufflen(ls->buff) - 2);
-  return TK_STRING_LITERAL;
-}
-
-/* AQL extension: raw strings */
-static void read_raw_string(LexState *ls, SemInfo *seminfo) {
-  /* Raw strings r"..." or r'...' - no escape processing */
-  int del = ls->current;  /* delimiter */
-  save_and_next(ls);  /* skip 'r' */
-  save_and_next(ls);  /* skip delimiter */
-  while (ls->current != del) {
-    switch (ls->current) {
-      case EOZ:
-        aqlX_lexerror(ls, "unfinished raw string", TK_EOS);
-        break;
-      case '\n':
-      case '\r':
-        save(ls, '\n');
-        inclinenumber(ls);
-        break;
-      default:
-        save_and_next(ls);
-    }
-  }
-  save_and_next(ls);  /* skip delimiter */
-  seminfo->ts = aqlX_newstring(ls, aqlZ_buffer(ls->buff) + 2,
-                              aqlZ_bufflen(ls->buff) - 3);
+static int read_numeral(LexState *ls, SemInfo *seminfo) {
+  printf("[DEBUG] read_numeral: entry\n");
+  fflush(stdout);
+  
+  /* Simple integer parsing for now */
+  aql_Integer value = 0;
+  do {
+    printf("[DEBUG] read_numeral: processing digit '%c'\n", ls->current);
+    fflush(stdout);
+    
+    value = value * 10 + (ls->current - '0');
+    
+    printf("[DEBUG] read_numeral: calling save_and_next\n");
+    fflush(stdout);
+    save_and_next(ls);
+    
+    printf("[DEBUG] read_numeral: after save_and_next, current='%c' (%d)\n", 
+           (ls->current >= 32 && ls->current < 127) ? ls->current : '?', ls->current);
+    fflush(stdout);
+  } while (isdigit(ls->current));
+  
+  printf("[DEBUG] read_numeral: final value = %ld\n", (long)value);
+  fflush(stdout);
+  
+  seminfo->i = value;
+  return TK_INT;
 }
 
 static int isreserved(TString *ts) {
-  (void)ts;  /* Placeholder implementation */
-  /* const char *str = getstr(ts);
-  for (int i = 0; i < NUM_RESERVED; i++) {
-    if (strcmp(str, aql_tokens[i]) == 0)
-      return i + FIRST_RESERVED;
+  const char *s = getstr(ts);
+  
+  printf("[DEBUG] isreserved: checking '%s'\n", s);
+  fflush(stdout);
+  
+  /* Check for mathematical keywords */
+  if (strcmp(s, "div") == 0) {
+    printf("[DEBUG] isreserved: found 'div', returning TK_DIV_KW = %d\n", TK_DIV_KW);
+    fflush(stdout);
+    return TK_DIV_KW;
   }
-  */
-  return TK_NAME;
+  
+  /* Check for basic keywords that we need */
+  if (strcmp(s, "let") == 0) return TK_LET;
+  if (strcmp(s, "const") == 0) return TK_CONST;
+  if (strcmp(s, "var") == 0) return TK_VAR;
+  
+  printf("[DEBUG] isreserved: '%s' not reserved, returning 0\n", s);
+  fflush(stdout);
+  
+  /* For now, return 0 for other keywords */
+  return 0;  /* not reserved */
 }
 
 /*
-** main scanner function
+** =======================================================
+** MAIN LEXICAL ANALYZER
+** =======================================================
 */
-static int llex(LexState *ls, SemInfo *seminfo) {
+
+static int aql_lex(LexState *ls, SemInfo *seminfo) {
+  printf("[DEBUG] aql_lex: entry, current='%c' (%d)\n", 
+         (ls->current >= 32 && ls->current < 127) ? ls->current : '?', ls->current);
+  fflush(stdout);
+  
+  printf("[DEBUG] aql_lex: calling aqlZ_resetbuffer\n");
+  fflush(stdout);
   aqlZ_resetbuffer(ls->buff);
+  
+  printf("[DEBUG] aql_lex: entering main loop\n");
+  fflush(stdout);
+  
   for (;;) {
+    printf("[DEBUG] aql_lex: switch on current='%c' (%d)\n", 
+           (ls->current >= 32 && ls->current < 127) ? ls->current : '?', ls->current);
+    fflush(stdout);
+    
     switch (ls->current) {
       case '\n': case '\r': {  /* line breaks */
         inclinenumber(ls);
@@ -446,146 +309,122 @@ static int llex(LexState *ls, SemInfo *seminfo) {
         next(ls);
         break;
       }
-      case '/': {  /* '/' or '//' or block comment */
+      
+      /* Numbers */
+      case '0': case '1': case '2': case '3': case '4':
+      case '5': case '6': case '7': case '8': case '9': {
+        printf("[DEBUG] aql_lex: processing number, calling read_numeral\n");
+        fflush(stdout);
+        return read_numeral(ls, seminfo);
+      }
+      
+      /* Arithmetic operators */
+      case '+': {
         next(ls);
-        if (ls->current == '/') {  /* line comment */
+        return TK_PLUS;
+      }
+      case '-': {
+        next(ls);
+        if (ls->current == '-') {  /* '--' comment */
           next(ls);
+          /* Skip comment until end of line */
           while (!currIsNewline(ls) && ls->current != EOZ)
-            next(ls);  /* skip until end of line (or end of file) */
-          break;
+            next(ls);
+          break;  /* continue loop to skip whitespace */
         }
-        else if (ls->current == '*') {  /* block comment */
-          next(ls);
-          while (ls->current != EOZ) {
-            if (ls->current == '*') {
-              next(ls);
-              if (ls->current == '/') {
-                next(ls);
-                break;  /* end of comment */
-              }
-            } else if (currIsNewline(ls)) {
-              inclinenumber(ls);
-            } else {
-              next(ls);
-            }
-          }
-          break;
-        }
-        else if (ls->current == '=') {  /* '/=' */
-          next(ls);
-          return TK_DIVEQ;
-        }
-        else return '/';
+        return TK_MINUS;
       }
-      case '[': {  /* long string or simply '[' */
-        int sep = skip_sep(ls);
-        aqlZ_resetbuffer(ls->buff);  /* 'skip_sep' may dirty the buffer */
-        if (sep >= 0) {
-          read_long_string(ls, seminfo, sep);
-          return TK_STRING_LITERAL;
-        }
-        else if (sep != -1)  /* '[=...' missing second bracket */
-          aqlX_lexerror(ls, "invalid long string delimiter", TK_STRING_LITERAL);
-        return '[';
+      case '*': {
+        next(ls);
+        return TK_MUL;
       }
+      case '/': {
+        next(ls);
+        return TK_DIV;
+      }
+      case '%': {
+        next(ls);
+        return TK_MOD;
+      }
+      
+      /* Parentheses */
+      case '(': {
+        next(ls);
+        return TK_LPAREN;
+      }
+      case ')': {
+        next(ls);
+        return TK_RPAREN;
+      }
+      
+      /* Comparison operators */
       case '=': {
         next(ls);
-        if (aqlX_check_next1(ls, '=')) return TK_EQ;   /* '==' */
-        else return '=';
-      }
-      case '<': {
-        next(ls);
-        if (aqlX_check_next1(ls, '=')) return TK_LE;   /* '<=' */
-        else if (aqlX_check_next1(ls, '<')) return TK_SHL;  /* '<<' */
-        else return '<';
+        if (check_next1(ls, '=')) return TK_EQ;  /* '==' */
+        else return TK_ASSIGN;  /* '=' */
       }
       case '>': {
         next(ls);
-        if (aqlX_check_next1(ls, '=')) return TK_GE;   /* '>=' */
-        else if (aqlX_check_next1(ls, '>')) return TK_SHR;  /* '>>' */
-        else return '>';
+        if (check_next1(ls, '=')) return TK_GE;  /* '>=' */
+        else if (check_next1(ls, '>')) return TK_SHR;  /* '>>' */
+        else return TK_GT;  /* '>' */
+      }
+      case '<': {
+        next(ls);
+        if (check_next1(ls, '=')) return TK_LE;  /* '<=' */
+        else if (check_next1(ls, '<')) return TK_SHL;  /* '<<' */
+        else return TK_LT;  /* '<' */
+      }
+      case '!': {
+        next(ls);
+        if (check_next1(ls, '=')) return TK_NE;  /* '!=' */
+        else return TK_LNOT;  /* '!' */
+      }
+      
+      /* Logical operators */
+      case '&': {
+        next(ls);
+        if (check_next1(ls, '&')) return TK_LAND;  /* '&&' */
+        else return TK_BAND;  /* '&' */
+      }
+      case '|': {
+        next(ls);
+        if (check_next1(ls, '|')) return TK_LOR;  /* '||' */
+        else return TK_BOR;  /* '|' */
+      }
+      case '^': {
+        next(ls);
+        return TK_BXOR;  /* '^' */
       }
       case '~': {
         next(ls);
-        if (aqlX_check_next1(ls, '=')) return TK_NE;   /* '~=' */
-        else return '~';
+        return TK_BNOT;  /* '~' */
+      }
+      
+      /* Ternary operators */
+      case '?': {
+        next(ls);
+        if (check_next1(ls, '?')) return TK_NULLCOAL;  /* '??' */
+        else return TK_QUESTION;  /* '?' */
       }
       case ':': {
         next(ls);
-        if (aqlX_check_next1(ls, ':')) return TK_DBCOLON;   /* '::' */
-        else return ':';
+        if (check_next1(ls, ':')) return TK_DBCOLON;  /* '::' */
+        else return TK_COLON;  /* ':' */
       }
-      case '"': case '\'': {  /* short literal strings */
+      
+      /* Strings */
+      case '"': case '\'': {
         read_string(ls, ls->current, seminfo);
-        return TK_STRING_LITERAL;
+        return TK_STRING;
       }
-      case '.': {  /* '.', '..', '...', or number */
-        save_and_next(ls);
-        if (aqlX_check_next1(ls, '.')) {
-          if (aqlX_check_next1(ls, '.'))
-            return TK_DOTS;   /* '...' */
-          else return TK_CONCAT;   /* '..' */
-        }
-        else if (!aqlX_isdigit(ls->current)) return '.';
-        else return read_numeral(ls, seminfo);
-      }
-      case '0': case '1': case '2': case '3': case '4':
-      case '5': case '6': case '7': case '8': case '9': {
-        return read_numeral(ls, seminfo);
-      }
+      
+      /* End of input */
       case EOZ: {
         return TK_EOS;
       }
       
-      /* AQL specific operators */
-      case '-': {
-        next(ls);
-        if (aqlX_check_next1(ls, '>')) return TK_ARROW;  /* '->' */
-        else if (aqlX_check_next1(ls, '=')) return TK_MINUSEQ;  /* '-=' */
-        else return '-';
-      }
-      case '+': {
-        next(ls);
-        if (aqlX_check_next1(ls, '=')) return TK_PLUSEQ;  /* '+=' */
-        else return '+';
-      }
-      case '*': {
-        next(ls);
-        if (aqlX_check_next1(ls, '=')) return TK_MULEQ;  /* '*=' */
-        else return '*';
-      }
-      case '%': {
-        next(ls);
-        return '%';
-      }
-      case '^': {
-        next(ls);
-        if (aqlX_check_next1(ls, '=')) return TK_XOREQ;  /* '^=' */
-        else return '^';
-      }
-      case '&': {
-        next(ls);
-        if (aqlX_check_next1(ls, '=')) return TK_ANDEQ;  /* '&=' */
-        else return '&';
-      }
-      case '|': {
-        next(ls);
-        if (aqlX_check_next1(ls, '=')) return TK_OREQ;  /* '|=' */
-        else if (aqlX_check_next1(ls, '>')) return TK_PIPE;  /* '|>' (pipe) */
-        else return TK_PIPE;  /* single '|' */
-      }
-      case '?': {
-        next(ls);
-        if (aqlX_check_next1(ls, '?')) return TK_NULLCOAL;  /* '??' */
-        else return TK_QUESTION;  /* '?' */
-      }
-      case 'r': {  /* potential raw string */
-        if ((ls->current == '"' || ls->current == '\'')) {
-          read_raw_string(ls, seminfo);
-          return TK_STRING_LITERAL;
-        }
-        /* fall through to identifier case */
-      }
+      /* Default: identifiers or single-char tokens */
       default: {
         if (aqlX_isalpha(ls->current)) {  /* identifier or reserved word? */
           TString *ts;
@@ -601,7 +440,7 @@ static int llex(LexState *ls, SemInfo *seminfo) {
             return TK_NAME;
           }
         }
-        else {  /* single-char tokens ('+', '*', '%', '{', '}', ...) */
+        else {  /* single-char tokens */
           int c = ls->current;
           next(ls);
           return c;
@@ -612,83 +451,34 @@ static int llex(LexState *ls, SemInfo *seminfo) {
 }
 
 /*
-** check whether current char is in given set (with length 2)
+** =======================================================
+** INTERFACE FUNCTIONS
+** =======================================================
 */
-int aqlX_check_next2(LexState *ls, const char *set) {
-  aql_assert(set[2] == '\0');
-  if (ls->current == set[0] || ls->current == set[1]) {
-    save_and_next(ls);
-    return 1;
-  }
-  else return 0;
-}
 
-/*
-** check whether current char is 'c'; if so, skip it
-*/
-int aqlX_check_next1(LexState *ls, int c) {
-  if (ls->current == c) {
-    next(ls);
-    return 1;
-  }
-  else return 0;
-}
-
-/*
-** Read numeral and return corresponding token
-*/
-static int read_numeral(LexState *ls, SemInfo *seminfo) {
-  TValue obj;
-  const char *expo = "Ee";
-  int first = ls->current;
-  aql_assert(aqlX_isdigit(ls->current));
-  save_and_next(ls);
-  if (first == '0' && aqlX_check_next2(ls, "xX"))  /* hexadecimal? */
-    expo = "Pp";
-  for (;;) {
-    if (aqlX_check_next2(ls, expo))  /* exponent part? */
-      aqlX_check_next2(ls, "-+");  /* optional exponent sign */
-    else if (aqlX_isxdigit(ls->current))
-      save_and_next(ls);
-    else if (ls->current == '.')
-      save_and_next(ls);
-    else break;
-  }
-  if (aqlX_isalpha(ls->current))  /* is numeral touching a letter? */
-    save_and_next(ls);  /* force an error */
-  save(ls, '\0');
-  if (aqlO_str2num(aqlZ_buffer(ls->buff), &obj) == 0)  /* format error? */
-    aqlX_lexerror(ls, "malformed number", TK_FLT);
-  if (ttisinteger(&obj)) {
-    seminfo->i = ivalue(&obj);
-    return TK_INT_LITERAL;
-  }
-  else {
-    aql_assert(ttisfloat(&obj));
-    seminfo->r = fltvalue(&obj);
-    return TK_FLT;
-  }
-}
-
-/*
-** next token
-*/
 void aqlX_next(LexState *ls) {
+  printf("[DEBUG] aqlX_next: entry\n");
+  fflush(stdout);
+  
   ls->lastline = ls->linenumber;
   if (ls->lookahead.token != TK_EOS) {  /* is there a look-ahead token? */
+    printf("[DEBUG] aqlX_next: using lookahead token\n");
+    fflush(stdout);
     ls->t = ls->lookahead;  /* use this one */
     ls->lookahead.token = TK_EOS;  /* and discharge it */
   }
-  else
-    ls->t.token = llex(ls, &ls->t.seminfo);  /* read next token */
+  else {
+    printf("[DEBUG] aqlX_next: calling aql_lex\n");
+    fflush(stdout);
+    ls->t.token = aql_lex(ls, &ls->t.seminfo);  /* read next token */
+    printf("[DEBUG] aqlX_next: aql_lex returned token %d\n", ls->t.token);
+    fflush(stdout);
+  }
 }
 
-/*
-** look ahead one token
-*/
 int aqlX_lookahead(LexState *ls) {
   aql_assert(ls->lookahead.token == TK_EOS);
-  ls->lookahead.token = llex(ls, &ls->lookahead.seminfo);
+  ls->lookahead.token = aql_lex(ls, &ls->lookahead.seminfo);
   return ls->lookahead.token;
 }
 
@@ -697,6 +487,10 @@ int aqlX_lookahead(LexState *ls) {
 */
 void aqlX_setinput(aql_State *L, LexState *ls, ZIO *z, TString *source,
                    int firstchar) {
+  printf("[DEBUG] aqlX_setinput: entry, firstchar='%c' (%d)\n", 
+         (firstchar >= 32 && firstchar < 127) ? firstchar : '?', firstchar);
+  fflush(stdout);
+  
   ls->t.token = 0;
   ls->L = L;
   ls->current = firstchar;
@@ -706,8 +500,11 @@ void aqlX_setinput(aql_State *L, LexState *ls, ZIO *z, TString *source,
   ls->linenumber = 1;
   ls->lastline = 1;
   ls->source = source;
-  ls->envn = aqlStr_newlstr(L, AQL_ENV, strlen(AQL_ENV));  /* get env name */
-  aqlZ_resizebuffer(ls->L, ls->buff, AQL_MINBUFFER);  /* initialize buffer */
+  ls->envn = aqlStr_newlstr(L, "_ENV", strlen("_ENV"));  /* get env name */
+  aqlZ_resizebuffer(ls->L, ls->buff, 32);  /* initialize buffer */
+  
+  printf("[DEBUG] aqlX_setinput: completed\n");
+  fflush(stdout);
 }
 
 /*
@@ -732,17 +529,19 @@ const char *aqlX_token2str(LexState *ls, int token) {
 /*
 ** Lexical error
 */
-void aqlX_lexerror(LexState *ls, const char *msg, int token) {
-  msg = aqlG_addinfo(ls->L, msg, ls->source, ls->linenumber);
+l_noret aqlX_lexerror(LexState *ls, const char *msg, int token) {
+  /* Simplified error handling - would need proper implementation */
   if (token)
-    aqlO_pushfstring(ls->L, "%s near %s", msg, aqlX_token2str(ls, token));
-  aqlD_throw(ls->L, AQL_ERRSYNTAX);
+    printf("Lexical error: %s near %s at line %d\n", msg, aqlX_token2str(ls, token), ls->linenumber);
+  else
+    printf("Lexical error: %s at line %d\n", msg, ls->linenumber);
+  exit(1);  /* For now, just exit */
 }
 
 /*
 ** Syntax error
 */
-void aqlX_syntaxerror(LexState *ls, const char *msg) {
+l_noret aqlX_syntaxerror(LexState *ls, const char *msg) {
   aqlX_lexerror(ls, msg, ls->t.token);
 }
 
@@ -761,12 +560,16 @@ int aqlX_utf8_decode(const char *s, int *cp) {
     *cp = ((c & 0x1F) << 6) | (s[1] & 0x3F);
     return 2;
   } else if (c < 0xF0) {
-    if ((s[1] & 0xC0) != 0x80 || (s[2] & 0xC0) != 0x80) return 0;
+    if ((s[1] & 0xC0) != 0x80) return 0;
+    if ((s[2] & 0xC0) != 0x80) return 0;
     *cp = ((c & 0x0F) << 12) | ((s[1] & 0x3F) << 6) | (s[2] & 0x3F);
     return 3;
   } else if (c < 0xF5) {
-    if ((s[1] & 0xC0) != 0x80 || (s[2] & 0xC0) != 0x80 || (s[3] & 0xC0) != 0x80) return 0;
-    *cp = ((c & 0x07) << 18) | ((s[1] & 0x3F) << 12) | ((s[2] & 0x3F) << 6) | (s[3] & 0x3F);
+    if ((s[1] & 0xC0) != 0x80) return 0;
+    if ((s[2] & 0xC0) != 0x80) return 0;
+    if ((s[3] & 0xC0) != 0x80) return 0;
+    *cp = ((c & 0x07) << 18) | ((s[1] & 0x3F) << 12) | 
+          ((s[2] & 0x3F) << 6) | (s[3] & 0x3F);
     return 4;
   }
   return 0;  /* invalid */
@@ -774,125 +577,34 @@ int aqlX_utf8_decode(const char *s, int *cp) {
 
 int aqlX_utf8_encode(int cp, char *s) {
   if (cp < 0x80) {
-    s[0] = cp;
+    s[0] = (char)cp;
     return 1;
   } else if (cp < 0x800) {
-    s[0] = 0xC0 | (cp >> 6);
-    s[1] = 0x80 | (cp & 0x3F);
+    s[0] = (char)(0xC0 | (cp >> 6));
+    s[1] = (char)(0x80 | (cp & 0x3F));
     return 2;
   } else if (cp < 0x10000) {
-    s[0] = 0xE0 | (cp >> 12);
-    s[1] = 0x80 | ((cp >> 6) & 0x3F);
-    s[2] = 0x80 | (cp & 0x3F);
+    s[0] = (char)(0xE0 | (cp >> 12));
+    s[1] = (char)(0x80 | ((cp >> 6) & 0x3F));
+    s[2] = (char)(0x80 | (cp & 0x3F));
     return 3;
   } else if (cp < 0x110000) {
-    s[0] = 0xF0 | (cp >> 18);
-    s[1] = 0x80 | ((cp >> 12) & 0x3F);
-    s[2] = 0x80 | ((cp >> 6) & 0x3F);
-    s[3] = 0x80 | (cp & 0x3F);
+    s[0] = (char)(0xF0 | (cp >> 18));
+    s[1] = (char)(0x80 | ((cp >> 12) & 0x3F));
+    s[2] = (char)(0x80 | ((cp >> 6) & 0x3F));
+    s[3] = (char)(0x80 | (cp & 0x3F));
     return 4;
   }
-  return 0;  /* invalid */
-}
-
-int aqlX_utf8_validate(const char *s, size_t len) {
-  size_t i = 0;
-  while (i < len) {
-    int cp;
-    int bytes = aqlX_utf8_decode(s + i, &cp);
-    if (bytes == 0) return 0;  /* invalid */
-    i += bytes;
-  }
-  return 1;  /* valid */
-}
-
-int aqlX_is_identifier_start(int cp) {
-  return (cp >= 'a' && cp <= 'z') || (cp >= 'A' && cp <= 'Z') || cp == '_' ||
-         (cp >= 0x80);  /* simplified: allow all non-ASCII as identifier start */
-}
-
-int aqlX_is_identifier_cont(int cp) {
-  return aqlX_is_identifier_start(cp) || (cp >= '0' && cp <= '9');
+  return 0;  /* invalid code point */
 }
 
 /*
-** AQL-specific lexical features
+** Character classification functions are defined as macros in alex.h
 */
-
-/* Type annotation parsing for AQL */
-int aqlX_read_type_annotation(LexState *ls) {
-  /* Parse type annotations like ": int" or ": array<float, 10>" */
-  /* This is a simplified implementation */
-  if (ls->current == ':' && ls->lookahead.token != ':') {
-    next(ls);  /* skip ':' */
-    /* Skip whitespace */
-    while (aqlX_isspace(ls->current)) next(ls);
-    /* Read type name */
-    if (aqlX_isalpha(ls->current)) {
-      do {
-        save_and_next(ls);
-      } while (aqlX_isalnum(ls->current));
-      return TK_TYPEANNOT;
-    }
-  }
-  return 0;  /* no type annotation */
-}
-
-/* Generic type parsing */
-int aqlX_parse_generic_params(LexState *ls) {
-  /* Parse generic parameters like "<T>" or "<K, V>" */
-  if (ls->current == '<') {
-    int depth = 1;
-    next(ls);
-    while (depth > 0 && ls->current != EOZ) {
-      if (ls->current == '<') depth++;
-      else if (ls->current == '>') depth--;
-      next(ls);
-    }
-    return 1;  /* parsed generic params */
-  }
-  return 0;  /* no generic params */
-}
 
 /*
-** Position tracking for better error messages
+** String creation function
 */
-void aqlX_savepos(LexState *ls, SourcePos *pos) {
-  pos->line = ls->linenumber;
-  pos->column = 0;  /* simplified - would need more complex tracking */
-  pos->offset = 0;  /* simplified */
+TString *aqlX_newstring(LexState *ls, const char *str, size_t l) {
+  return aqlStr_newlstr(ls->L, str, l);
 }
-
-void aqlX_setpos(LexState *ls, const SourcePos *pos) {
-  ls->linenumber = pos->line;
-  /* More complex position restoration would be needed for full implementation */
-}
-
-const char *aqlX_getline(LexState *ls, int line) {
-  /* Get source line for error reporting - simplified implementation */
-  (void)ls; (void)line;
-  return "source line";  /* placeholder */
-}
-
-/*
-** Debug support
-*/
-#if defined(AQL_DEBUG_LEX)
-void aqlX_debug_token(LexState *ls, const char *msg) {
-  printf("LEX DEBUG: %s - Token: %s, Line: %d\n", 
-         msg, aqlX_token2str(ls, ls->t.token), ls->linenumber);
-}
-
-void aqlX_dump_tokens(LexState *ls) {
-  printf("=== TOKEN DUMP ===\n");
-  Token saved = ls->t;
-  aqlX_next(ls);
-  while (ls->t.token != TK_EOS) {
-    printf("Token: %s, Line: %d\n", 
-           aqlX_token2str(ls, ls->t.token), ls->linenumber);
-    aqlX_next(ls);
-  }
-  ls->t = saved;  /* restore */
-  printf("=== END DUMP ===\n");
-}
-#endif

@@ -94,12 +94,7 @@ void aqlG_runerror (aql_State *L, const char *fmt, ...) {
      and throw a runtime error */
 }
 
-TString *aqlStr_newlstr (aql_State *L, const char *str, size_t l) {
-  /* Placeholder - simplified string creation */
-  UNUSED(L); UNUSED(str); UNUSED(l);
-  /* In a real implementation, this would create a new TString */
-  return NULL;
-}
+/* aqlStr_newlstr 现在在 astring.c 中实现 */
 
 /*
 ** Additional VM support functions (placeholders)

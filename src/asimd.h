@@ -4,8 +4,8 @@
 ** See Copyright Notice in aql.h
 */
 
-#ifndef ai_simd_h
-#define ai_simd_h
+#ifndef asimd_h
+#define asimd_h
 
 #include "aconf.h"
 #include "aobject.h"
@@ -318,4 +318,4 @@ AQL_API void aqlSIMD_sum_f32(const float *data, size_t count);
 
 #endif /* AQL_USE_SIMD */
 
-#endif /* ai_simd_h */ 
+#endif /* asimd_h */ 

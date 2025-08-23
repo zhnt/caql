@@ -7,15 +7,19 @@
 #define avm_c
 #define AQL_CORE
 
-#include "aql.h"
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <string.h>
 #include <math.h>
+#include <setjmp.h>
 
+#include "aconf.h"
+#include "aql.h"
 #include "aopcodes.h"
 #include "avm.h"
+#include "azio.h"
 #include "ado.h"
 #include "agc.h"
 #include "amem.h"

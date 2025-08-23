@@ -345,4 +345,27 @@ AQL_API const char *const aql_opnames[NUM_OPCODES+1];  /* opcode names */
 #define getBMode(op) ((aql_opmode[op] >> 3) & 1)
 #define getCMode(op) ((aql_opmode[op] >> 4) & 1)
 
+/*
+** Instruction creation macros
+*/
+#define CREATE_ABC(o,a,b,c) \
+  ((cast(Instruction, o)<<POS_OP) \
+  | (cast(Instruction, a)<<POS_A) \
+  | (cast(Instruction, b)<<POS_B) \
+  | (cast(Instruction, c)<<POS_C))
+
+#define CREATE_ABx(o,a,bc) \
+  ((cast(Instruction, o)<<POS_OP) \
+  | (cast(Instruction, a)<<POS_A) \
+  | (cast(Instruction, bc)<<POS_Bx))
+
+#define CREATE_Ax(o,a) \
+  ((cast(Instruction, o)<<POS_OP) \
+  | (cast(Instruction, a)<<POS_Ax))
+
+#define CREATE_AsBx(o,a,bc) \
+  ((cast(Instruction, o)<<POS_OP) \
+  | (cast(Instruction, a)<<POS_A) \
+  | (cast(Instruction, (bc)+OFFSET_sBx)<<POS_Bx))
+
 #endif /* aopcodes_h */ 

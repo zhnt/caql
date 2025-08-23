@@ -7,6 +7,15 @@
 #ifndef aconf_h
 #define aconf_h
 
+/* JIT Configuration */
+#ifndef AQL_USE_JIT
+#define AQL_USE_JIT 1
+#endif
+
+#ifndef AQL_JIT_NATIVE
+#define AQL_JIT_NATIVE 1
+#endif
+
 #include "alimits.h"
 
 /*
@@ -23,7 +32,7 @@
 
 #else				/* }{ */
 
-#define AQL_API		extern
+#define AQL_API extern
 
 #endif				/* } */
 

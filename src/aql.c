@@ -18,7 +18,8 @@
 /*
 ** Simple allocator used by AQL internally
 */
-static void *l_alloc(void *ud, void *ptr, size_t osize, size_t nsize) {
+__attribute__((unused))
+static void *aql_alloc(void *ud, void *ptr, size_t osize, size_t nsize) {
     (void)ud; (void)osize;  /* not used */
     if (nsize == 0) {
         free(ptr);
@@ -45,18 +46,6 @@ static int tointeger(const TValue *obj, aql_Integer *p) {
 
 static int ttypenv(const TValue *o) {
     return ttype(o);
-}
-
-static int tonumber(const TValue *obj, aql_Number *n) {
-    if (ttisfloat(obj)) {
-        *n = fltvalue(obj);
-        return 1;
-    }
-    else if (ttisinteger(obj)) {
-        *n = cast_num(ivalue(obj));
-        return 1;
-    }
-    return 0;
 }
 
 /*
@@ -152,19 +141,6 @@ AQL_API aql_Integer aql_tointegerx(aql_State *L, int idx, int *pisnum) {
 }
 
 /*
-** Convert to number
-*/
-AQL_API aql_Number aql_tonumberx(aql_State *L, int idx, int *pisnum) {
-    aql_Number res = 0;
-    const TValue *o = index2value(L, idx);
-    int isnum = tonumber(o, &res);
-    if (pisnum) *pisnum = isnum;
-    return res;
-}
-
-/* aql_tonumber is defined as a macro in aql.h */
-
-/*
 ** Convert to userdata
 */
 AQL_API void *aql_touserdata(aql_State *L, int idx) {
@@ -195,22 +171,6 @@ AQL_API int aql_type(aql_State *L, int idx) {
     return (o != &G(L)->nilvalue ? ttypenv(o) : AQL_TNONE);
 }
 
-/*
-** Check if value is integer
-*/
-AQL_API int aql_isinteger(aql_State *L, int idx) {
-    const TValue *o = index2value(L, idx);
-    return ttisinteger(o);
-}
-
-/*
-** Check if value is number (integer or float)
-*/
-AQL_API int aql_isnumber(aql_State *L, int idx) {
-    const TValue *o = index2value(L, idx);
-    return (ttisinteger(o) || ttisfloat(o));
-}
-
 /* aql_tostring is defined as a macro in aql.h */
 
 /*
@@ -236,92 +196,93 @@ AQL_API const char *aql_pushstring(aql_State *L, const char *s) {
 
 /* l_isfalse is defined as a macro in aobject.h */
 
-/* These functions are implemented in aobject.c */
+/* All object utility functions are implemented in aobject.c to avoid duplicates */
 
-/* Parser placeholder */
-AQL_API void aqlZ_fill(aql_State *L, int n) {
-    /* No-op placeholder */
-}
+/* String creation placeholders - implemented in aobject.c */
+
+/* Parser placeholder - removed, now implemented in azio.c */
 
 /* VM Arithmetic implementation */
 AQL_API void aql_arith(aql_State *L, int op) {
-    StkId top = L->top;
-    const TValue *o1, *o2;
-    TValue res;
+    StkId o2 = L->top - 1;  /* second operand */
+    StkId o1 = L->top - 2;  /* first operand */
+    StkId res = o1;         /* result goes to first operand */
     
-    /* Check if we have enough operands */
-    if (op >= AQL_OPUNM) {  /* unary operations */
-        if (top <= L->ci->func + 1) {
-            aqlG_runerror(L, "attempt to perform arithmetic on empty stack");
-            return;
-        }
-        o1 = s2v(top - 1);
-        o2 = o1;  /* for unary operations, use same operand */
-    } else {  /* binary operations */
-        if (top <= L->ci->func + 2) {
-            aqlG_runerror(L, "attempt to perform arithmetic with insufficient operands");
-            return;
-        }
-        o1 = s2v(top - 2);  /* first operand */
-        o2 = s2v(top - 1);  /* second operand */
+    /* Check if we have enough operands on stack */
+    if (o1 < L->stack) {
+        fprintf(stderr, "AQL Error: not enough operands on stack for arithmetic\n");
+        return;
     }
     
-    /* Try raw arithmetic first */
-    if (aqlO_rawarith(L, op, o1, o2, &res)) {
-        if (op >= AQL_OPUNM) {  /* unary operation */
-            setobj2s(L, top - 1, &res);
-        } else {  /* binary operation */
-            L->top--;  /* remove second operand */
-            setobj2s(L, top - 2, &res);  /* store result in first operand position */
-        }
+    /* Perform the arithmetic operation using AQL's object system */
+    aqlO_arith(L, op, s2v(o1), s2v(o2), res);
+    
+    /* Pop the second operand (result is now in first operand position) */
+    L->top = o2;
+}
+
+/*
+** Missing AQL API functions
+*/
+AQL_API int aql_isinteger(aql_State *L, int idx) {
+    /* Basic type checking for integers */
+    if (!L || !L->top) return 0;
+    
+    StkId stk = L->top + idx;
+    if (stk < L->stack || stk >= L->top) return 0;
+    
+    TValue *o = s2v(stk);
+    /* Check if it's an integer type */
+    return ttisinteger(o);
+}
+
+AQL_API int aql_isnumber(aql_State *L, int idx) {
+    /* Basic type checking for numbers */
+    if (!L || !L->top) return 0;
+    
+    StkId stk = L->top + idx;
+    if (stk < L->stack || stk >= L->top) return 0;
+    
+    TValue *o = s2v(stk);
+    /* Check if it's a number type (integer or float) */
+    return ttisnumber(o);
+}
+
+AQL_API aql_Number aql_tonumberx(aql_State *L, int idx, int *pisnum) {
+    /* Convert to number with success flag */
+    if (!L || !L->top) {
+        if (pisnum) *pisnum = 0;
+        return 0;
+    }
+    
+    StkId stk = L->top + idx;
+    if (stk < L->stack || stk >= L->top) {
+        if (pisnum) *pisnum = 0;
+        return 0;
+    }
+    
+    TValue *o = s2v(stk);
+    if (ttisinteger(o)) {
+        if (pisnum) *pisnum = 1;
+        return cast_num(ivalue(o));
+    } else if (ttisfloat(o)) {
+        if (pisnum) *pisnum = 1;
+        return fltvalue(o);
     } else {
-        /* Raw arithmetic failed, try metamethods */
-        aqlT_trybinTM(L, o1, o2, L->top - 2, cast(TMS, op));
-        if (op < AQL_OPUNM) {  /* binary operation */
-            L->top--;  /* remove second operand */
-        }
+        if (pisnum) *pisnum = 0;
+        return 0;
     }
 }
 
 /*
-** Missing runtime functions for linking
+** Exception handling functions
 */
-
-/* GC barrier functions */
-AQL_API void aqlC_barrier_(aql_State *L, GCObject *o, GCObject *v) {
-    UNUSED(L); UNUSED(o); UNUSED(v);
-    /* GC barrier - placeholder */
+AQL_API l_noret aqlD_throw(aql_State *L, int errcode) {
+    /* Basic error throwing - for MVP, just exit */
+    fprintf(stderr, "AQL Error: Exception thrown with code %d\n", errcode);
+    exit(errcode);
 }
 
-AQL_API void aqlC_barrierback_(aql_State *L, GCObject *o) {
-    UNUSED(L); UNUSED(o);
-    /* GC backward barrier - placeholder */
-}
-
-/* Error handling */
-AQL_API void aqlD_throw(aql_State *L, int errcode) {
-    fprintf(stderr, "AQL Error: error code %d\n", errcode);
-    exit(1);  /* Simplified - just exit */
-}
-
-/* Function/upvalue management */
-AQL_API void aqlF_close(aql_State *L, StkId level) {
-    UNUSED(L); UNUSED(level);
-    /* Close upvalues - placeholder */
-}
-
-AQL_API UpVal *aqlF_newtbcupval(aql_State *L, StkId level) {
-    UNUSED(L); UNUSED(level);
-    /* Create new to-be-closed upvalue - placeholder */
-    return NULL;
-}
-
-/* Memory management */
-AQL_API void *aqlM_realloc(aql_State *L, void *block, size_t osize, size_t nsize) {
-    UNUSED(L); UNUSED(osize);
-    if (nsize == 0) {
-        free(block);
-        return NULL;
-    }
-    return realloc(block, nsize);
-} 
+/*
+** Function manipulation - moved to afunc.c
+*/ 

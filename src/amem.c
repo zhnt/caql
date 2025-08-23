@@ -4,6 +4,11 @@
 ** See Copyright Notice in aql.h
 */
 
+#include <stdlib.h>
+#include <string.h>
+#include <stddef.h>
+#include <setjmp.h>
+
 #include "amem.h"
 #include "ado.h"
 #include "aconf.h"
@@ -16,8 +21,6 @@
 #include "avector.h"
 #include "agc.h"
 
-#include <stdlib.h>
-#include <string.h>
 
 /* Temporary helper functions and macros for MVP */
 #define sizelstring(l) (sizeof(TString) + (l) + 1)
@@ -78,6 +81,13 @@ void *aqlM_realloc_(aql_State *L, void *block, size_t osize, size_t size) {
   aql_assert((size == 0) == (newblock == NULL));
   g->GCdebt = (g->GCdebt + size) - osize;
   return newblock;
+}
+
+/*
+** Wrapper function for API compatibility
+*/
+void *aqlM_realloc(aql_State *L, void *block, size_t oldsize, size_t size) {
+  return aqlM_realloc_(L, block, oldsize, size);
 }
 
 /*

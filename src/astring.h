@@ -9,9 +9,7 @@
 
 #include "aobject.h"
 
-/* Forward declarations to break circular dependency */
-typedef struct aql_State aql_State;
-typedef struct global_State global_State;
+/* Forward declarations already defined in aql.h and aobject.h */
 
 /*
 ** Hash for strings

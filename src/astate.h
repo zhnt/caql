@@ -98,6 +98,7 @@ struct aql_State {
   aql_byte status;
   aql_byte allowhook;
   unsigned short nci;  /* number of items in 'ci' list */
+  struct JIT_State *jit_state;  /* JIT compiler state */
 };
 
 #define G(L)	(L->l_G)
@@ -232,7 +233,7 @@ typedef struct global_State {
   TString *strcache[STRCACHE_N][STRCACHE_M];  /* cache for strings in API */
   aql_WarnFunction warnf;  /* warning function */
   void *ud_warn;         /* auxiliary data to 'warnf' */
-} global_State;
+} global_State; /* forward declaration, actual definition in aobject.h */
 
 /*
 ** Duplicate aql_State definition removed - already defined earlier in this file
@@ -248,10 +249,7 @@ typedef struct global_State {
 #define AQL_ERRMEM	4
 #define AQL_ERRERR	5
 
-typedef struct aql_Debug aql_Debug;  /* activation record */
-
-/* Functions to be called by the debugger in specific events */
-typedef void (*aql_Hook) (aql_State *L, aql_Debug *ar);
+/* aql_Debug and aql_Hook already defined in aql.h */
 
 AQL_API aql_State *(aql_newstate) (aql_Alloc f, void *ud);
 AQL_API void       (aql_close) (aql_State *L);

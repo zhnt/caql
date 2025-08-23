@@ -1,0 +1,54 @@
+-- fib_test.aql - JIT性能测试脚本
+print("=== AQL JIT性能测试 ===")
+
+-- 定义计算密集型函数
+function fibonacci(n)
+    if n < 2 then
+        return n
+    else
+        return fibonacci(n-1) + fibonacci(n-2)
+    end
+end
+
+function factorial(n)
+    if n <= 1 then
+        return 1
+    else
+        return n * factorial(n-1)
+    end
+end
+
+-- 测试函数
+function benchmark()
+    local iterations = 1000
+    local test_value = 20
+    
+    print("测试规模:", iterations, "次迭代")
+    print("测试函数: fibonacci(", test_value, ")")
+    
+    local start = os.clock()
+    for i = 1, iterations do
+        local result = fibonacci(test_value)
+        if i % 200 == 0 then
+            print("进度:", i, "/", iterations, "结果:", result)
+        end
+    end
+    local elapsed = os.clock() - start
+    
+    print("总耗时:", elapsed, "秒")
+    print("平均每次:", elapsed / iterations, "秒")
+    
+    -- 测试factorial
+    start = os.clock()
+    for i = 1, 100 do
+        local result = factorial(10)
+    end
+    elapsed = os.clock() - start
+    
+    print("factorial(10)测试:", elapsed, "秒")
+end
+
+-- 执行测试
+benchmark()
+
+print("=== 测试完成 ===")

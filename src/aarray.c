@@ -5,6 +5,7 @@
 */
 
 #include "aarray.h"
+#include "acontainer.h"  /* 添加统一容器头文件 */
 #include "amem.h"
 #include "agc.h"
 #include "astring.h"
@@ -29,30 +30,19 @@ static const TValue *aql_index2addr(aql_State *L, int idx) {
 ** Create a new array with specified data type and length
 */
 AQL_API Array *aqlA_new(aql_State *L, DataType dtype, size_t length) {
-  Array *arr = (Array*)aqlM_newobject(L, AQL_TARRAY, sizeof(Array));
-  if (arr == NULL) return NULL;
+  /* 使用统一容器创建函数 */
+  AQL_ContainerBase *base = acontainer_new(L, CONTAINER_ARRAY, dtype, length);
+  if (base == NULL) return NULL;
   
-  arr->dtype = dtype;
-  arr->length = length;
-  arr->capacity = length;
-  
-  /* Allocate data array */
-  if (length > 0) {
-    arr->data = (TValue*)aqlM_newvector(L, length, TValue);
-    if (arr->data == NULL) {
-      aqlM_freemem(L, arr, sizeof(Array));
-      return NULL;
-    }
-    
-    /* Initialize all elements to nil */
+  /* 初始化所有元素为nil */
+  if (length > 0 && base->data) {
+    TValue *data = (TValue*)base->data;
     for (size_t i = 0; i < length; i++) {
-      setnilvalue(&arr->data[i]);
+      setnilvalue(&data[i]);
     }
-  } else {
-    arr->data = NULL;
   }
   
-  return arr;
+  return (Array*)base;
 }
 
 /*
@@ -61,42 +51,32 @@ AQL_API Array *aqlA_new(aql_State *L, DataType dtype, size_t length) {
 AQL_API Array *aqlA_newbuffer(aql_State *L, DataType dtype, size_t length, size_t capacity) {
   if (capacity < length) capacity = length;
   
-  Array *arr = (Array*)aqlM_newobject(L, AQL_TARRAY, sizeof(Array));
-  if (arr == NULL) return NULL;
+  /* 使用统一容器创建函数 */
+  AQL_ContainerBase *base = acontainer_new(L, CONTAINER_ARRAY, dtype, capacity);
+  if (base == NULL) return NULL;
   
-  arr->dtype = dtype;
-  arr->length = length;
-  arr->capacity = capacity;
+  /* 设置实际长度 */
+  base->length = length;
   
-  /* Allocate data array */
-  if (capacity > 0) {
-    arr->data = (TValue*)aqlM_newvector(L, capacity, TValue);
-    if (arr->data == NULL) {
-      aqlM_freemem(L, arr, sizeof(Array));
-      return NULL;
-    }
-    
-    /* Initialize elements in range to nil */
+  /* 初始化有效元素为nil */
+  if (length > 0 && base->data) {
+    TValue *data = (TValue*)base->data;
     for (size_t i = 0; i < length; i++) {
-      setnilvalue(&arr->data[i]);
+      setnilvalue(&data[i]);
     }
-  } else {
-    arr->data = NULL;
   }
   
-  return arr;
+  return (Array*)base;
 }
 
 /*
-** Free an array and its data
+** Free an array and its data - 使用统一容器销毁
 */
 AQL_API void aqlA_free(aql_State *L, Array *arr) {
   if (arr == NULL) return;
   
-  if (arr->data != NULL) {
-    aqlM_freearray(L, arr->data, arr->capacity);
-  }
-  aqlM_freemem(L, arr, sizeof(Array));
+  /* 使用统一容器销毁函数 */
+  acontainer_destroy(L, (AQL_ContainerBase*)arr);
 }
 
 /*

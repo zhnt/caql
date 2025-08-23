@@ -1,0 +1,423 @@
+/*
+** acontainer.c - AQL统一容器基类实现
+** 消除90%的容器代码重复，提供统一接口
+*/
+
+#define acontainer_c
+#define AQL_CORE
+
+#include "acontainer.h"
+#include "amem.h"
+#include "aobject.h"
+#include <string.h>
+
+/*
+** 前向声明 - 各容器类型的具体实现
+*/
+static Container* array_create(aql_State *L, DataType dtype, size_t initial_size);
+static Container* slice_create(aql_State *L, DataType dtype, size_t initial_size);
+static Container* vector_create(aql_State *L, DataType dtype, size_t initial_size);
+static Container* dict_create(aql_State *L, DataType dtype, size_t initial_size);
+
+static void container_destroy(aql_State *L, Container *container);
+static const TValue* container_get(const Container *container, size_t index);
+static int container_set(Container *container, size_t index, const TValue *value);
+static size_t container_length(const Container *container);
+static int container_reserve(aql_State *L, Container *container, size_t capacity);
+static int container_resize(aql_State *L, Container *container, size_t new_size);
+static void container_shrink(aql_State *L, Container *container);
+static int container_push(aql_State *L, Container *container, const TValue *value);
+static int container_pop(Container *container, TValue *value);
+static int container_equal(const Container *a, const Container *b);
+static size_t container_hash(const Container *container);
+
+/*
+** 虚函数表定义 - 实现多态
+*/
+static const ContainerVTable array_vtable = {
+    array_create, container_destroy,
+    container_get, container_set, container_length,
+    container_reserve, container_resize, container_shrink,
+    NULL, NULL, NULL, NULL,  /* Array不支持push/pop/insert/remove */
+    NULL, NULL,              /* 批量操作暂未实现 */
+    container_equal, container_hash
+};
+
+static const ContainerVTable slice_vtable = {
+    slice_create, container_destroy,
+    container_get, container_set, container_length,
+    container_reserve, container_resize, container_shrink,
+    container_push, container_pop, NULL, NULL,  /* insert/remove暂未实现 */
+    NULL, NULL,              /* 批量操作暂未实现 */
+    container_equal, container_hash
+};
+
+static const ContainerVTable vector_vtable = {
+    vector_create, container_destroy,
+    container_get, container_set, container_length,
+    container_reserve, container_resize, container_shrink,
+    container_push, container_pop, NULL, NULL,  /* insert/remove暂未实现 */
+    NULL, NULL,              /* 批量操作暂未实现 */
+    container_equal, container_hash
+};
+
+static const ContainerVTable dict_vtable = {
+    dict_create, container_destroy,
+    container_get, container_set, container_length,
+    container_reserve, container_resize, container_shrink,
+    NULL, NULL, NULL, NULL,  /* Dict不支持索引操作 */
+    NULL, NULL,              /* 批量操作暂未实现 */
+    container_equal, container_hash
+};
+
+/*
+** 全局虚函数表数组
+*/
+const ContainerVTable* container_vtables[4] = {
+    &array_vtable,   /* CONTAINER_ARRAY */
+    &slice_vtable,   /* CONTAINER_SLICE */
+    &vector_vtable,  /* CONTAINER_VECTOR */
+    &dict_vtable     /* CONTAINER_DICT */
+};
+
+/*
+** 统一容器创建函数
+*/
+AQL_API Container *aqlC_new(aql_State *L, ContainerType ctype, DataType dtype, size_t initial_size) {
+    if (ctype >= 4) return NULL;
+    const ContainerVTable *vtable = container_vtables[ctype];
+    return vtable->create(L, dtype, initial_size);
+}
+
+/*
+** 统一容器销毁函数
+*/
+AQL_API void aqlC_free(aql_State *L, Container *container) {
+    if (container == NULL) return;
+    const ContainerVTable *vtable = container_vtables[container->ctype];
+    vtable->destroy(L, container);
+}
+
+/*
+** 统一访问操作
+*/
+AQL_API const TValue *aqlC_get(const Container *container, size_t index) {
+    if (container == NULL) return NULL;
+    const ContainerVTable *vtable = container_vtables[container->ctype];
+    return vtable->get(container, index);
+}
+
+AQL_API int aqlC_set(Container *container, size_t index, const TValue *value) {
+    if (container == NULL) return 0;
+    const ContainerVTable *vtable = container_vtables[container->ctype];
+    return vtable->set(container, index, value);
+}
+
+AQL_API size_t aqlC_length(const Container *container) {
+    if (container == NULL) return 0;
+    const ContainerVTable *vtable = container_vtables[container->ctype];
+    return vtable->length(container);
+}
+
+/*
+** 统一容量管理
+*/
+AQL_API int aqlC_reserve(aql_State *L, Container *container, size_t capacity) {
+    if (container == NULL) return 0;
+    const ContainerVTable *vtable = container_vtables[container->ctype];
+    return vtable->reserve ? vtable->reserve(L, container, capacity) : 0;
+}
+
+AQL_API int aqlC_resize(aql_State *L, Container *container, size_t new_size) {
+    if (container == NULL) return 0;
+    const ContainerVTable *vtable = container_vtables[container->ctype];
+    return vtable->resize ? vtable->resize(L, container, new_size) : 0;
+}
+
+/*
+** 统一元素操作
+*/
+AQL_API int aqlC_push(aql_State *L, Container *container, const TValue *value) {
+    if (container == NULL) return 0;
+    const ContainerVTable *vtable = container_vtables[container->ctype];
+    return vtable->push ? vtable->push(L, container, value) : 0;
+}
+
+AQL_API int aqlC_pop(Container *container, TValue *value) {
+    if (container == NULL) return 0;
+    const ContainerVTable *vtable = container_vtables[container->ctype];
+    return vtable->pop ? vtable->pop(container, value) : 0;
+}
+
+/*
+** 统一比较和哈希
+*/
+AQL_API int aqlC_equal(const Container *a, const Container *b) {
+    if (a == NULL || b == NULL) return 0;
+    if (a->ctype != b->ctype) return 0;
+    const ContainerVTable *vtable = container_vtables[a->ctype];
+    return vtable->equal(a, b);
+}
+
+AQL_API size_t aqlC_hash(const Container *container) {
+    if (container == NULL) return 0;
+    const ContainerVTable *vtable = container_vtables[container->ctype];
+    return vtable->hash(container);
+}
+
+/*
+** ============================================================================
+** 具体容器类型实现 - 消除重复代码
+** ============================================================================
+*/
+
+/*
+** 通用容器内存分配
+*/
+static Container* container_alloc(aql_State *L, ContainerType ctype, DataType dtype, 
+                                  size_t length, size_t capacity) {
+    Container *container = (Container*)aqlM_malloc_tagged(L, sizeof(Container), 0);
+    if (container == NULL) return NULL;
+    
+    /* 初始化公共字段 */
+    container->ctype = ctype;
+    container->dtype = dtype;
+    container->length = length;
+    container->capacity = capacity;
+    container->data = NULL;
+    
+    /* 分配数据内存 */
+    if (capacity > 0) {
+        container->data = aqlM_malloc_tagged(L, capacity * sizeof(TValue), 0);
+        if (container->data == NULL) {
+            aqlM_freemem(L, container, sizeof(Container));
+            return NULL;
+        }
+        
+        /* 初始化为nil */
+        TValue *data = (TValue*)container->data;
+        for (size_t i = 0; i < length; i++) {
+            setnilvalue(&data[i]);
+        }
+    }
+    
+    return container;
+}
+
+/*
+** Array创建 - 固定大小数组
+*/
+static Container* array_create(aql_State *L, DataType dtype, size_t initial_size) {
+    Container *container = container_alloc(L, CONTAINER_ARRAY, dtype, initial_size, initial_size);
+    if (container) {
+        /* Array特有初始化 */
+        /* 无需额外字段 */
+    }
+    return container;
+}
+
+/*
+** Slice创建 - 动态数组
+*/
+static Container* slice_create(aql_State *L, DataType dtype, size_t initial_size) {
+    size_t capacity = initial_size > 0 ? initial_size : 4;  /* 默认初始容量 */
+    Container *container = container_alloc(L, CONTAINER_SLICE, dtype, initial_size, capacity);
+    if (container) {
+        /* Slice特有初始化 */
+        container->ext.slice.growth_factor = 2;
+    }
+    return container;
+}
+
+/*
+** Vector创建 - SIMD优化向量
+*/
+static Container* vector_create(aql_State *L, DataType dtype, size_t initial_size) {
+    Container *container = container_alloc(L, CONTAINER_VECTOR, dtype, initial_size, initial_size);
+    if (container) {
+        /* Vector特有初始化 */
+        container->ext.vector.simd_width = 4;   /* 默认4元素SIMD */
+        container->ext.vector.alignment = 16;   /* 16字节对齐 */
+    }
+    return container;
+}
+
+/*
+** Dict创建 - 字典/哈希表
+*/
+static Container* dict_create(aql_State *L, DataType dtype, size_t initial_size) {
+    size_t bucket_count = initial_size > 0 ? initial_size : 16;  /* 默认16个桶 */
+    Container *container = container_alloc(L, CONTAINER_DICT, dtype, 0, bucket_count);
+    if (container) {
+        /* Dict特有初始化 */
+        container->ext.dict.bucket_count = bucket_count;
+        container->ext.dict.load_factor = 0.75;
+    }
+    return container;
+}
+
+/*
+** 统一销毁实现 - 消除重复
+*/
+static void container_destroy(aql_State *L, Container *container) {
+    if (container == NULL) return;
+    
+    if (container->data != NULL) {
+        aqlM_freemem(L, container->data, container->capacity * sizeof(TValue));
+    }
+    aqlM_freemem(L, container, sizeof(Container));
+}
+
+/*
+** 统一访问实现 - 消除重复
+*/
+static const TValue* container_get(const Container *container, size_t index) {
+    if (!aqlC_checkbounds(container, index)) return NULL;
+    TValue *data = (TValue*)container->data;
+    return &data[index];
+}
+
+static int container_set(Container *container, size_t index, const TValue *value) {
+    if (!aqlC_checkbounds(container, index) || value == NULL) return 0;
+    TValue *data = (TValue*)container->data;
+    setobj(NULL, &data[index], value);
+    return 1;
+}
+
+static size_t container_length(const Container *container) {
+    return container ? container->length : 0;
+}
+
+/*
+** 统一容量管理实现
+*/
+static int container_reserve(aql_State *L, Container *container, size_t capacity) {
+    if (container == NULL || capacity <= container->capacity) return 1;
+    
+    /* 重新分配内存 */
+    void *new_data = aqlM_realloc(L, container->data, 
+                                  container->capacity * sizeof(TValue),
+                                  capacity * sizeof(TValue));
+    if (new_data == NULL) return 0;
+    
+    container->data = new_data;
+    container->capacity = capacity;
+    return 1;
+}
+
+static int container_resize(aql_State *L, Container *container, size_t new_size) {
+    if (container == NULL) return 0;
+    
+    /* 确保容量足够 */
+    if (new_size > container->capacity) {
+        if (!container_reserve(L, container, new_size)) return 0;
+    }
+    
+    /* 如果扩大，初始化新元素为nil */
+    if (new_size > container->length) {
+        TValue *data = (TValue*)container->data;
+        for (size_t i = container->length; i < new_size; i++) {
+            setnilvalue(&data[i]);
+        }
+    }
+    
+    container->length = new_size;
+    return 1;
+}
+
+static void container_shrink(aql_State *L, Container *container) {
+    if (container == NULL || container->length >= container->capacity) return;
+    
+    /* 缩小到实际使用的大小 */
+    size_t new_capacity = container->length > 0 ? container->length : 1;
+    void *new_data = aqlM_realloc(L, container->data,
+                                  container->capacity * sizeof(TValue),
+                                  new_capacity * sizeof(TValue));
+    if (new_data) {
+        container->data = new_data;
+        container->capacity = new_capacity;
+    }
+}
+
+/*
+** 统一元素操作实现
+*/
+static int container_push(aql_State *L, Container *container, const TValue *value) {
+    if (container == NULL || value == NULL) return 0;
+    
+    /* 确保容量足够 */
+    if (container->length >= container->capacity) {
+        size_t growth_factor = (container->ctype == CONTAINER_SLICE) ? 
+                               container->ext.slice.growth_factor : 2;
+        size_t new_capacity = container->capacity * growth_factor;
+        if (!container_reserve(L, container, new_capacity)) return 0;
+    }
+    
+    /* 添加元素 */
+    TValue *data = (TValue*)container->data;
+    setobj(NULL, &data[container->length], value);
+    container->length++;
+    return 1;
+}
+
+static int container_pop(Container *container, TValue *value) {
+    if (container == NULL || container->length == 0) return 0;
+    
+    container->length--;
+    TValue *data = (TValue*)container->data;
+    if (value) {
+        setobj(NULL, value, &data[container->length]);
+    }
+    setnilvalue(&data[container->length]);  /* 清除原位置 */
+    return 1;
+}
+
+/*
+** 统一比较和哈希实现
+*/
+static int container_equal(const Container *a, const Container *b) {
+    if (a == b) return 1;
+    if (a->ctype != b->ctype || a->dtype != b->dtype || a->length != b->length) return 0;
+    
+    TValue *data_a = (TValue*)a->data;
+    TValue *data_b = (TValue*)b->data;
+    
+    for (size_t i = 0; i < a->length; i++) {
+        /* 简化的值比较 - TODO: 实现完整的TValue比较 */
+        if (ttype(&data_a[i]) != ttype(&data_b[i])) return 0;
+        
+        if (ttisinteger(&data_a[i])) {
+            if (ivalue(&data_a[i]) != ivalue(&data_b[i])) return 0;
+        } else if (ttisfloat(&data_a[i])) {
+            if (fltvalue(&data_a[i]) != fltvalue(&data_b[i])) return 0;
+        } else if (ttisnil(&data_a[i])) {
+            /* nil值都相等 */
+        } else {
+            /* 其他类型暂时认为不相等 */
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static size_t container_hash(const Container *container) {
+    if (container == NULL) return 0;
+    
+    size_t hash = 5381;  /* DJB2算法 */
+    hash = ((hash << 5) + hash) + container->ctype;
+    hash = ((hash << 5) + hash) + container->dtype;
+    hash = ((hash << 5) + hash) + container->length;
+    
+    TValue *data = (TValue*)container->data;
+    for (size_t i = 0; i < container->length && i < 16; i++) {  /* 限制哈希计算量 */
+        if (ttisinteger(&data[i])) {
+            hash = ((hash << 5) + hash) + (size_t)ivalue(&data[i]);
+        } else if (ttisfloat(&data[i])) {
+            union { double d; size_t s; } u;
+            u.d = fltvalue(&data[i]);
+            hash = ((hash << 5) + hash) + u.s;
+        }
+    }
+    
+    return hash;
+}

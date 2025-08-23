@@ -17,6 +17,8 @@
 #include "astate.h"
 #include "aobject.h"
 #include "amem.h"
+#include "afunc.h"
+#include "astring.h"
 
 /*
 ** thread state + extra space
@@ -48,7 +50,7 @@ void aqlD_errerr(aql_State *L);
 int aqlD_closeprotected(aql_State *L, ptrdiff_t level, int status);
 void aqlD_seterrorobj(aql_State *L, int errcode, StkId oldtop);
 void aqlD_reallocstack(aql_State *L, int newsize, int raiseerror);
-void aqlF_closeupval(aql_State *L, StkId level);
+/* aqlF_closeupval moved to afunc.c */
 void aqlC_freeallobjects(aql_State *L);
 void aqlai_userstateclose(aql_State *L);
 void aqlai_userstatethread(aql_State *L, aql_State *L1);
@@ -114,8 +116,8 @@ static unsigned int aqlai_makeseed (aql_State *L) {
 void aqlE_setdebt (global_State *g, l_mem debt) {
     l_mem tb = gettotalbytes(g);
     aql_assert(tb > 0);
-    if (debt < tb - MAX_LMEM)
-        debt = tb - MAX_LMEM;  /* will make 'totalbytes == MAX_LMEM' */
+    if (debt < (l_mem)(tb - MAX_LMEM))
+        debt = (l_mem)(tb - MAX_LMEM);  /* will make 'totalbytes == MAX_LMEM' */
     g->totalbytes = tb - debt;
     g->GCdebt = debt;
 }
@@ -241,6 +243,7 @@ static int f_aqlopen (aql_State *L, void *ud) {
     UNUSED(ud);
     stack_init(L, L);  /* init stack */
     init_registry(L, g);
+    aqlStr_init(L);  /* init string system */
     /* Skip subsystem initialization for MVP */
     g->gcemergency = 0;  /* allow gc */
     setnilvalue(&g->nilvalue);  /* now state is complete */
@@ -468,17 +471,9 @@ void aqlD_reallocstack(aql_State *L, int newsize, int raiseerror) {
     /* Stack reallocation - placeholder */
 }
 
-/* Upvalue closing */
-void aqlF_closeupval(aql_State *L, StkId level) {
-    UNUSED(L); UNUSED(level);
-    /* Upvalue closing - placeholder */
-}
+/* Upvalue closing - moved to afunc.c */
 
-/* GC functions */
-void aqlC_freeallobjects(aql_State *L) {
-    UNUSED(L);
-    /* Free all GC objects - placeholder */
-}
+/* GC functions - implemented in agc.c */
 
 /* User state functions */
 void aqlai_userstateclose(aql_State *L) {

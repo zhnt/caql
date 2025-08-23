@@ -7,7 +7,6 @@
 #ifndef amem_h
 #define amem_h
 
-#include <stddef.h>
 #include "aconf.h"
 
 /* Forward declaration to break circular dependency */
@@ -40,19 +39,19 @@ typedef struct aql_State aql_State;
   cast_charp(aqlM_realloc(L, (b), (on)*sizeof(char), (n)*sizeof(char)))
 
 #define aqlM_growvector(L,v,nelems,size,t,limit,e) \
-	((v)=cast(t*, aqlM_growaux(L,v,nelems,&(size),sizeof(t), \
+	((v)=cast(t*, aqlM_growaux_(L,v,nelems,&(size),sizeof(t), \
                          (limit),"" e "")))
 
 #define aqlM_reallocvector(L, v,oldn,n,t) \
    (cast(t*, aqlM_realloc(L, v, cast_sizet(oldn) * sizeof(t), \
                               cast_sizet(n) * sizeof(t))))
 
-AQL_API void *aqlM_realloc(aql_State *L, void *block, size_t oldsize, size_t size);
-AQL_API void *aqlM_saferealloc(aql_State *L, void *block, size_t oldsize, size_t size);
-AQL_API void *aqlM_growaux(aql_State *L, void *block, int nelems, int *size,
+AQL_API void *aqlM_realloc(struct aql_State *L, void *block, size_t oldsize, size_t size);
+AQL_API void *aqlM_saferealloc(struct aql_State *L, void *block, size_t oldsize, size_t size);
+AQL_API void *aqlM_growaux_(struct aql_State *L, void *block, int nelems, int *size,
                          int size_elem, int limit, const char *what);
-AQL_API void *aqlM_malloc_tagged(aql_State *L, size_t size, int tag);
-AQL_API void aqlM_checksize(aql_State *L, size_t size, const char *what);
+AQL_API void *aqlM_malloc_tagged(struct aql_State *L, size_t size, int tag);
+AQL_API void aqlM_checksize(struct aql_State *L, size_t size, const char *what);
 
 /* Note: aqlM_free and aqlM_malloc are macros defined above */
 
@@ -73,7 +72,7 @@ AQL_API void aqlM_checksize(aql_State *L, size_t size, const char *what);
 ** a valid pointer to a block with the requested size.)
 */
 
-typedef void * (*aql_Alloc) (void *ud, void *ptr, size_t osize, size_t nsize);
+typedef void *(*aql_Alloc)(void *ud, void *ptr, size_t osize, size_t nsize);
 
 /*
 ** Type for arrays of bytes  

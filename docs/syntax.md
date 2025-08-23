@@ -4,20 +4,44 @@
 
 ### 1.1 变量声明
 ```aql
--- 变量
-x = 10
-name = "AQL"
+-- 变量声明（完整语法）
+let x = 10                    -- 显式变量声明
+let name: string = "AQL"      -- 带类型注解
+let numbers: [int] = [1, 2, 3, 4, 5]  -- 数组类型
 
--- 常量
-const PI = 3.14159
+-- 类型推断语法糖（推荐）
+x := 10                       -- 推断为int
+name := "AQL"                 -- 推断为string
+numbers := [1, 2, 3, 4, 5]    -- 推断为[int]
+scores := {"Alice" = 95, "Bob" = 87}  -- 推断为dict<string,int>
 
--- 类型声明（Python风格）
-numbers: []int = [1, 2, 3, 4, 5]
-scores: dict<string, int> = {"Alice" = 95, "Bob" = 87}
-prices: []float = [10.5, 20.3, 15.7]
-name: string = "Alice"
-age: int = 25
-is_active: bool = true
+-- 常量声明
+const PI = 3.14159            -- 常量必须初始化
+const MAX_SIZE: int = 100     -- 常量带类型注解
+
+-- 多变量声明
+let a, b, c = 1, 2, 3         -- 多重赋值
+let x, y := 10, "hello"       -- 多重类型推断
+
+-- 未初始化变量（需要类型注解）
+let uninitialized: int
+
+-- 变量作用域示例
+let global_var = 100
+
+function example() {
+    let local_var = 200       -- 函数作用域变量
+    
+    if (true) {
+        let block_var = 300   -- 块级作用域变量
+    }
+    
+    -- 变量遮蔽
+    let global_var = 400      -- 遮蔽全局变量
+}
+
+-- 常量变量（不可重新赋值）
+const config = {debug = true, port = 8080}
 ```
 
 ### 1.2 数据类型

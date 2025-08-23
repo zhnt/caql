@@ -7,6 +7,7 @@
 #ifndef agc_h
 #define agc_h
 
+#include "aconf.h"
 #include "aobject.h"
 
 /*
@@ -87,7 +88,7 @@
 #define tofinalize(x)	testbit((x)->marked, FINALIZEDBIT)
 
 #define otherwhite(g)	((g)->currentwhite ^ WHITEBITS)
-#define isdeadm(ow,m)	(!((m) & bitmask(BLACK BIT)) && ((m) & (ow)))
+#define isdeadm(ow,m)	(!((m) & bitmask(BLACKBIT)) && ((m) & (ow)))
 #define isdead(g,v)	isdeadm(otherwhite(g), (v)->marked)
 
 #define changewhite(x)	((x)->marked ^= WHITEBITS)

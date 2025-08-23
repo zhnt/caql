@@ -402,10 +402,7 @@ AQL_API void (aql_closeslot) (aql_State *L, int idx);
 #define AQL_MASKLINE	(1 << AQL_HOOKLINE)
 #define AQL_MASKCOUNT	(1 << AQL_HOOKCOUNT)
 
-typedef struct aql_Debug aql_Debug;  /* activation record */
-
-/* Functions to be called by the debugger in specific events */
-/* aql_Hook is already defined earlier in this file */
+/* aql_Debug and aql_Hook already defined earlier in this file */
 
 AQL_API int (aql_getstack) (aql_State *L, int level, aql_Debug *ar);
 AQL_API int (aql_getinfo) (aql_State *L, const char *what, aql_Debug *ar);

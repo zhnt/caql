@@ -80,6 +80,12 @@ AQL_API void aqlZ_pushfstring(aql_State *L, Mbuffer *buff, const char *fmt, ...)
 AQL_API void aqlZ_pushvfstring(aql_State *L, Mbuffer *buff, const char *fmt, va_list argp);
 
 /*
+** String ZIO operations
+*/
+AQL_API void aqlZ_init_string(aql_State *L, ZIO *z, const char *s, size_t len);
+AQL_API void aqlZ_cleanup_string(aql_State *L, ZIO *z);
+
+/*
 ** File I/O integration
 */
 AQL_API int aqlZ_lookahead(ZIO *z);
@@ -101,7 +107,8 @@ typedef struct FileReaderData {
 
 typedef struct StringReaderData {
   const char *s;
-  size_t size;
+  size_t len;
+  size_t pos;
 } StringReaderData;
 
 AQL_API const char *aqlZ_file_reader(aql_State *L, void *data, size_t *size);

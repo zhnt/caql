@@ -35,20 +35,39 @@ enum RESERVED {
   TK_ASYNC, TK_AWAIT, TK_YIELD, TK_COROUTINE,
   TK_ARRAY, TK_SLICE, TK_DICT, TK_VECTOR,
   TK_INT, TK_FLOAT, TK_STRING, TK_BOOL,
-  TK_CONST, TK_VAR, TK_TYPE, TK_GENERIC,
+  TK_CONST, TK_VAR, TK_LET, TK_TYPE, TK_GENERIC,
+  TK_ELIF,
   
   /* AI-specific keywords (Phase 2) */
   TK_AI, TK_INTENT, TK_WORKFLOW, TK_PARALLEL,
   
+  /* Basic arithmetic operators */
+  TK_PLUS, TK_MINUS, TK_MUL, TK_DIV, TK_MOD, TK_POW,
+  TK_DIV_KW,  /* div - integer division keyword */
+  
+  /* Comparison operators */
+  TK_EQ, TK_NE, TK_LT, TK_GT, TK_LE, TK_GE,
+  
+  /* Logical operators */
+  TK_LAND, TK_LOR, TK_LNOT,  /* && || ! */
+  
+  /* Bitwise operators */
+  TK_BAND, TK_BOR, TK_BXOR, TK_BNOT,  /* & | ^ ~ */
+  TK_SHL, TK_SHR,  /* << >> */
+  
+  /* Punctuation */
+  TK_LPAREN, TK_RPAREN, TK_LBRACE, TK_RBRACE, TK_LBRACKET, TK_RBRACKET,
+  TK_SEMICOLON, TK_COMMA, TK_DOT, TK_COLON,
+  
+  /* Assignment operators */
+  TK_ASSIGN, TK_PLUSEQ, TK_MINUSEQ, TK_MULEQ, TK_DIVEQ,
+  
   /* other terminal symbols */
-  TK_IDIV, TK_CONCAT, TK_DOTS, TK_EQ, TK_GE, TK_LE, TK_NE,
-  TK_SHL, TK_SHR,
-  TK_DBCOLON, TK_EOS,
-  TK_FLT, TK_INT_LITERAL, TK_NAME, TK_STRING_LITERAL,
+  TK_IDIV, TK_CONCAT, TK_DOTS, TK_DBCOLON, TK_EOS,
+  TK_FLT, TK_INT_LITERAL, TK_NAME, TK_STRING_LITERAL, TK_STRING,
   
   /* AQL specific operators */
-  TK_ARROW, TK_PIPE, TK_QUESTION, TK_NULLCOAL,
-  TK_PLUSEQ, TK_MINUSEQ, TK_MULEQ, TK_DIVEQ,
+  TK_ARROW, TK_PIPE, TK_QUESTION, TK_NULLCOAL, TK_TERNARY,
   TK_ANDEQ, TK_OREQ, TK_XOREQ,
   
   /* Type annotations */
