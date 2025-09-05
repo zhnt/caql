@@ -1,0 +1,415 @@
+/*
+** $Id: ado.c $
+** Stack and Call structure of AQL
+** See Copyright Notice in aql.h
+*/
+
+#define ado_c
+#define AQL_CORE
+
+#include "aconf.h"
+
+#include <setjmp.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+#include "aql.h"
+
+#include "aapi.h"
+#include "adebug_internal.h"
+#include "ado.h"
+#include "afunc.h"
+#include "agc.h"
+#include "amem.h"
+#include "aobject.h"
+#include "aopcodes.h"
+#include "aparser.h"
+#include "astate.h"
+#include "astring.h"
+#include "acontainer.h"
+/* #include "avm.h" - removed to avoid conflicts */
+#include "azio.h"
+
+/* Forward declarations to avoid circular dependencies */
+AQL_API int aqlV_execute(aql_State *L, CallInfo *ci);
+
+#define errorstatus(s)	((s) > AQL_YIELD)
+
+/* maximum number of C calls */
+#ifndef AQL_MAXCCALLS
+#define AQL_MAXCCALLS		200
+#endif
+
+/*
+** {======================================================
+** Error-recovery functions
+** =======================================================
+*/
+
+/*
+** Set error object at the top of the stack
+*/
+AQL_API void aqlD_seterrorobj(aql_State *L, int errcode, StkId oldtop) {
+  switch (errcode) {
+    case AQL_ERRMEM: {  /* memory error? */
+      /* For now, just set a simple error message */
+      /* In full implementation, would use preregistered message */
+      setnilvalue(s2v(oldtop));
+      break;
+    }
+    case AQL_OK: {  /* special case only for closing upvalues */
+      setnilvalue(s2v(oldtop));  /* no error message */
+      break;
+    }
+    default: {
+      /* For other errors, set nil for now */
+      setnilvalue(s2v(oldtop));
+      break;
+    }
+  }
+  L->top = oldtop + 1;
+}
+
+/*
+** Throw an error
+*/
+AQL_API l_noret aqlD_throw(aql_State *L, int errcode) {
+  if (L->errorJmp) {  /* thread has an error handler? */
+    L->errorJmp->status = errcode;  /* set status */
+    longjmp(L->errorJmp->b, 1);  /* jump back */
+  } else {  /* thread has no error handler */
+    global_State *g = G(L);
+    /* errcode = aqlE_resetthread(L, errcode); */ /* close all upvalues - function not available yet */
+    if (g->panic) {  /* panic function? */
+      /* aql_unlock(L); */ /* function not available yet */
+      g->panic(L);  /* call panic function (last chance to jump out) */
+    }
+    /* Basic error throwing - for MVP, just exit */
+    fprintf(stderr, "AQL Error: Exception thrown with code %d\n", errcode);
+    exit(errcode);
+  }
+}
+
+/*
+** Run protected function
+*/
+struct CallS {  /* data to 'f_call' */
+  StkId func;
+  int nresults;
+};
+
+static void f_call(aql_State *L, void *ud) {
+  struct CallS *c = cast(struct CallS *, ud);
+  aqlD_callnoyield(L, c->func, c->nresults);
+}
+
+/*
+** Execute a protected call
+*/
+AQL_API int aqlD_pcall(aql_State *L, aql_CFunction func, void *u,
+                       ptrdiff_t oldtop, ptrdiff_t ef) {
+  int status;
+  CallInfo *old_ci = L->ci;
+  aql_byte old_allowhooks = L->allowhook;
+  ptrdiff_t old_errfunc = L->errfunc;
+  L->errfunc = ef;
+  status = aqlD_rawrunprotected(L, func, u);
+  if (l_unlikely(status != AQL_OK)) {  /* an error occurred? */
+    L->ci = old_ci;
+    L->allowhook = old_allowhooks;
+    L->errfunc = old_errfunc;
+    aqlD_seterrorobj(L, status, restorestack(L, oldtop));
+  }
+  return status;
+}
+
+/*
+** Execute a protected function
+*/
+AQL_API int aqlD_rawrunprotected(aql_State *L, Pfunc f, void *ud) {
+  int oldnCcalls = L->nCcalls;
+  struct aql_longjmp lj;
+  lj.status = AQL_OK;
+  lj.previous = L->errorJmp;  /* chain new error handler */
+  L->errorJmp = &lj;
+  if (setjmp(lj.b) == 0) {
+    (*f)(L, ud);
+  }
+  L->errorJmp = lj.previous;  /* restore old error handler */
+  L->nCcalls = oldnCcalls;
+  return lj.status;
+}
+
+/* }====================================================== */
+
+/*
+** {======================================================
+** Stack reallocation
+** =======================================================
+*/
+
+/*
+** Reallocate stack with new size
+*/
+void aqlD_reallocstack_impl(aql_State *L, int newsize, int raiseerror) {
+  StackValue *oldstack = L->stack;
+  int lim = stacksize(L);
+  aql_assert(newsize <= AQL_MAXSTACK || newsize == ERRORSTACKSIZE);
+  aql_assert(L->stack_last - L->stack == stacksize(L) - EXTRA_STACK);
+  aqlM_reallocvector(L, L->stack, stacksize(L), newsize, StackValue);
+  for (; lim < newsize; lim++)
+    setnilvalue(s2v(L->stack + lim)); /* erase new segment */
+  L->stack_last = L->stack + newsize - EXTRA_STACK;
+  if (L->ci != &L->base_ci)  /* not in base level? */
+    /* correctstack(L, oldstack); */ /* function not available yet */
+    (void)oldstack; /* avoid unused variable warning */
+}
+
+/*
+** Try to grow stack by at least 'n' elements
+*/
+AQL_API int aqlD_growstack(aql_State *L, int n, int raiseerror) {
+  int size = stacksize(L);
+  if (l_unlikely(size > AQL_MAXSTACK)) {
+    /* if stack is larger than maximum, thread is already using the
+       extra space reserved for errors, that is, thread is handling
+       a stack error; cannot grow further than that. */
+    aql_assert(stacksize(L) == ERRORSTACKSIZE);
+    if (raiseerror)
+      aqlD_throw(L, AQL_ERRERR);  /* error inside message handler */
+    return 0;  /* if not 'raiseerror', just signal it */
+  } else {
+    int newsize = 2 * size;  /* tentative new size */
+    int needed = cast_int(L->top - L->stack) + n;
+    if (newsize < needed)  /* but must respect what was asked for */
+      newsize = needed;
+    if (newsize > AQL_MAXSTACK)  /* cannot cross the limit */
+      newsize = AQL_MAXSTACK;
+    if (newsize < size)  /* overflow in 'newsize'? */
+      newsize = AQL_MAXSTACK;  /* assume maximum possible size */
+    aqlD_reallocstack_impl(L, newsize, raiseerror);
+    return 1;
+  }
+}
+
+/*
+** Shrink stack to its current top
+*/
+AQL_API void aqlD_shrinkstack(aql_State *L) {
+  int inuse = cast_int(L->top - L->stack);
+  int goodsize = inuse + (inuse / 8) + 2*EXTRA_STACK;
+  if (goodsize > AQL_MAXSTACK)
+    goodsize = AQL_MAXSTACK;  /* respect stack limit */
+  if (stacksize(L) > AQL_MAXSTACK)  /* had been handling stack overflow? */
+    /* aqlE_freeCI(L); */ /* free all CIs (list grew because of an error) - function not available yet */
+    (void)0; /* placeholder */
+  else
+    /* aqlE_shrinkCI(L); */ /* shrink list - function not available yet */
+    (void)0; /* placeholder */
+  /* if thread is currently not handling a stack overflow and its
+     good size is smaller than current size, shrink its stack */
+  if (inuse <= (AQL_MAXSTACK - EXTRA_STACK) &&
+      goodsize < stacksize(L))
+    aqlD_reallocstack_impl(L, goodsize, 0);  /* don't fail */
+  else  /* don't change stack */
+    condmovestack(L,,);  /* (change only for debugging) */
+}
+
+/*
+** Increment top
+*/
+AQL_API void aqlD_inctop(aql_State *L) {
+  aqlD_checkstack(L, 1);
+  L->top++;
+}
+
+/* }====================================================== */
+
+/*
+** {======================================================
+** Call and return functions
+** =======================================================
+*/
+
+/*
+** Post-call function (handles function return)
+*/
+AQL_API int aqlD_poscall(aql_State *L, CallInfo *ci, int nres) {
+  
+  /* For REPL execution, we want to return 1 to exit the VM loop */
+  /* In a full implementation, this would handle call frame restoration */
+  
+  /* Check if this is the main function (REPL execution) */
+  if (ci == &L->base_ci) {
+    return 1;  /* Exit VM execution */
+  }
+  
+  /* For nested calls, continue execution */
+  return 0;
+}
+
+/*
+** Prepare a tail call
+*/
+AQL_API int aqlD_pretailcall(aql_State *L, CallInfo *ci, StkId func, int narg1, int delta) {
+  /* Simplified implementation for MVP */
+  UNUSED(L); UNUSED(ci); UNUSED(func); UNUSED(narg1); UNUSED(delta);
+  return 0;  /* No tail call optimization for now */
+}
+
+/*
+** Call a function (without yielding)
+*/
+AQL_API void aqlD_callnoyield(aql_State *L, StkId func, int nResults) {
+  L->nCcalls++;
+  if (l_unlikely(L->nCcalls >= AQL_MAXCCALLS)) {
+    aqlD_throw(L, AQL_ERRERR);
+  }
+  if (!aqlD_precall(L, func, nResults)) {  /* is a AQL function? */
+    aqlV_execute(L, L->ci);  /* call it */
+  }
+  L->nCcalls--;
+}
+
+/*
+** Call a function
+*/
+AQL_API void aqlD_call(aql_State *L, StkId func, int nResults) {
+  aqlD_callnoyield(L, func, nResults);
+}
+
+/*
+** Prepare a function call
+*/
+AQL_API int aqlD_precall(aql_State *L, StkId func, int nResults) {
+  /* Simplified implementation - assume AQL function */
+  UNUSED(L); UNUSED(func); UNUSED(nResults);
+  return 0;  /* AQL function */
+}
+
+/* }====================================================== */
+
+/*
+** {======================================================
+** Protected compilation and execution
+** =======================================================
+*/
+
+struct CompileS {  /* data for protected compilation */
+  const char *code;
+  size_t len;
+  const char *name;
+};
+
+static void f_compile(aql_State *L, void *ud) {
+  struct CompileS *c = cast(struct CompileS *, ud);
+  
+  /* Create input stream */
+  struct Zio z;
+  aqlZ_init_string(L, &z, c->code, c->len);
+  
+  /* Compile using the main parser */
+  Mbuffer buff;
+  aqlZ_initbuffer(L, &buff);
+  
+  Dyndata dyd;
+  memset(&dyd, 0, sizeof(dyd));
+  
+  /* Parse and generate bytecode */
+  LClosure *cl = aqlY_parser(L, &z, &buff, &dyd, c->name, c->code[0]);
+  
+  aqlZ_freebuffer(L, &buff);
+  aqlZ_cleanup_string(L, &z);
+  
+  if (cl) {
+    /* Push compiled function onto stack */
+    setclLvalue2s(L, L->top, cl);
+    L->top++;
+    
+    /* Set up global environment as first upvalue (like Lua's _ENV) */
+    if (cl->nupvalues >= 1) {
+      /* First, ensure upvalues are initialized */
+      if (cl->upvals[0] == NULL) {
+        aqlF_initupvals(L, cl);
+      }
+      
+      /* Get global dict directly from global state */
+      const TValue *globals = &G(L)->l_globals;
+      if (ttisdict(globals)) {
+        /* Set global dict as first upvalue */
+        setobj(L, cl->upvals[0]->v.p, globals);
+      } else {
+        /* Set nil for now, will be created on first global variable access */
+        setnilvalue(cl->upvals[0]->v.p);
+      }
+    }
+  } else {
+    aqlD_throw(L, AQL_ERRSYNTAX);  /* Compilation failed */
+  }
+}
+
+/*
+** Protected compilation
+*/
+AQL_API int aqlD_protectedcompile(aql_State *L, const char *code, size_t len, const char *name) {
+  struct CompileS c;
+  c.code = code;
+  c.len = len;
+  c.name = name;
+  
+  return aqlD_rawrunprotected(L, f_compile, &c);
+}
+
+struct ExecuteS {  /* data for protected execution */
+  int nargs;
+  int nresults;
+};
+
+static void f_execute(aql_State *L, void *ud) {
+  struct ExecuteS *e = cast(struct ExecuteS *, ud);
+  
+  if (!L || L->top <= L->ci->func) {
+    aqlD_throw(L, AQL_ERRRUN);
+  }
+  
+  /* Check that we have a function on the stack */
+  if (L->top <= L->ci->func + 1) {
+    aqlD_throw(L, AQL_ERRRUN);
+  }
+  
+  TValue *func_val = s2v(L->top - 1);
+  if (!ttisclosure(func_val)) {
+    aqlD_throw(L, AQL_ERRRUN);
+  }
+  
+  /* Create a new call frame for the function */
+  CallInfo *ci = L->ci;
+  LClosure *cl = clLvalue(func_val);
+  
+  /* Set up the call frame */
+  ci->func = L->top - 1;  /* Function is at top - 1 */
+  ci->u.l.savedpc = cl->p->code;  /* Start at beginning of code */
+  
+  /* Adjust stack for function call */
+  L->top = ci->func + 1 + e->nargs;  /* func + args */
+  
+  /* Call the virtual machine */
+  int status = aqlV_execute(L, ci);
+  if (status != 1) {  /* execution failed? */
+    aqlD_throw(L, AQL_ERRRUN);
+  }
+}
+
+/*
+** Protected execution
+*/
+AQL_API int aqlD_protectedexecute(aql_State *L, int nargs, int nresults) {
+  struct ExecuteS e;
+  e.nargs = nargs;
+  e.nresults = nresults;
+  
+  return aqlD_rawrunprotected(L, f_execute, &e);
+}
+
+/* }====================================================== */

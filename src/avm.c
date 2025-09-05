@@ -16,10 +16,61 @@
 #include <setjmp.h>
 
 #include "aconf.h"
+#include "adebug_user.h"
+
+/* Debug build macro for conditional compilation */
+#ifdef AQL_DEBUG_BUILD
+#define AQL_DEBUG_BUILD_ONLY(code) do { code } while(0)
+#else
+#define AQL_DEBUG_BUILD_ONLY(code) do { } while(0)
+#endif
+
+/* Register tracking function - moved after includes */
+
 #include "aql.h"
 #include "aopcodes.h"
 #include "avm.h"
 #include "azio.h"
+
+/* Register tracking function */
+#ifdef AQL_DEBUG_BUILD
+static void debug_trace_registers(aql_State *L, StkId base, const Instruction *pc, const Proto *p) {
+  if (aql_debug_enabled && (aql_debug_flags & AQL_DEBUG_REG)) {
+    int active_regs = (int)(L->top - base);
+    int max_stack_size = p->maxstacksize;
+    int reg_count = (max_stack_size > 4) ? 4 : max_stack_size; /* Limit to 4 registers */
+    
+    /* Ensure we show at least the first register if maxstacksize > 0 */
+    if (reg_count == 0 && max_stack_size > 0) reg_count = 1;
+    
+    printf("📊 Register State (PC=%d, Active=%d, MaxStack=%d, L->top=%p, base=%p):\n", 
+           (int)(pc - p->code), active_regs, max_stack_size, (void*)L->top, (void*)base);
+    
+    for (int j = 0; j < reg_count; j++) {
+      printf("  R[%d]: ", j);
+      
+      /* Always try to read the register value, regardless of active_regs */
+      TValue *reg = s2v(base + j);
+      if (ttisnil(reg)) {
+        printf("nil\n");
+      } else if (ttisinteger(reg)) {
+        printf("%lld (integer)\n", (long long)ivalue(reg));
+      } else if (ttisfloat(reg)) {
+        printf("%.6g (float)\n", fltvalue(reg));
+      } else if (ttisboolean(reg)) {
+        printf("%s (boolean)\n", bvalue(reg) ? "true" : "false");
+      } else if (ttisstring(reg)) {
+        printf("\"%s\" (string)\n", getstr(tsvalue(reg)));
+      } else {
+        printf("<type %d> (raw=%d)\n", rawtt(reg), rawtt(reg));
+      }
+    }
+    printf("\n");
+  }
+}
+#else
+#define debug_trace_registers(L, base, pc, p) ((void)0)
+#endif
 #include "ado.h"
 #include "agc.h"
 #include "amem.h"
@@ -28,6 +79,9 @@
 #include "aarray.h"
 #include "aslice.h"
 #include "adict.h"
+
+/* Forward declaration for global dict access */
+extern Dict *get_globals_dict(aql_State *L);
 #include "avector.h"
 
 /* Missing function declarations */
@@ -78,20 +132,21 @@ static int aqlV_toboolean(const TValue *obj) {
 
 /* Arithmetic operations */
 #define ARITH_OP(op) do { \
-  arith_op(L, s2v(RA(i)), s2v(RB(i)), s2v(RC(i)), TM_##op); \
-  continue; \
+  AQL_DEBUG(AQL_DEBUG_VM, "ARITH_OP macro called for " #op); \
+   \
+  arith_op(L, s2v(RA(i)), vRKB(i), vRKC(i), TM_##op); \
+  AQL_DEBUG(AQL_DEBUG_VM, "ARITH_OP completed, result = %lld", (long long)ivalue(s2v(RA(i)))); \
+   \
 } while(0)
 
 #define ARITH_OP_K(op) do { \
   arith_op(L, s2v(RA(i)), s2v(RB(i)), k + GETARG_C(i), TM_##op); \
-  continue; \
 } while(0)
 
 #define ARITH_OP_I(op) do { \
   TValue kval; \
   setivalue(&kval, GETARG_C(i)); \
   arith_op(L, s2v(RA(i)), s2v(RB(i)), &kval, TM_##op); \
-  continue; \
 } while(0)
 
 /* Bitwise operations */
@@ -112,6 +167,17 @@ static int aqlV_toboolean(const TValue *obj) {
 /* Return operations */
 #define RET_OP(setup, a_arg, b_arg) do { \
   setup; \
+  \
+  /* Trace register state before return */ \
+  debug_trace_registers(L, base, pc, cl->p); \
+  \
+  /* Print execution completion if tracing is enabled */ \
+  AQL_DEBUG_BUILD_ONLY( \
+    if (trace_execution && (L->top > base)) { \
+      aqlD_print_execution_footer(s2v(base + (a_arg))); \
+    } \
+  ); \
+  \
   if (aqlD_poscall(L, ci, b_arg)) \
     return 1; \
   else { \
@@ -132,6 +198,9 @@ static int aqlV_compare_vector_fast (aql_State *L, const Vector *v1, const Vecto
 ** Arithmetic operations
 */
 static void arith_op (aql_State *L, TValue *ra, const TValue *rb, const TValue *rc, TMS op) {
+  AQL_DEBUG(AQL_DEBUG_VM, "arith_op function called with op=%d", op);
+  
+  
   TValue tempb, tempc;
   const TValue *b, *c;
   
@@ -144,7 +213,23 @@ static void arith_op (aql_State *L, TValue *ra, const TValue *rb, const TValue *
       case TM_ADD: res = intop(+, ib, ic); break;
       case TM_SUB: res = intop(-, ib, ic); break;
       case TM_MUL: res = intop(*, ib, ic); break;
+      case TM_DIV: {
+        /* Convert to float division for accurate results */
+        aql_Number nb = cast_num(ib);
+        aql_Number nc = cast_num(ic);
+        aql_Number fres = nb / nc;
+        setfltvalue(ra, fres);
+        return;  /* Skip setivalue below */
+      }
       case TM_MOD: res = aqlV_mod(L, ib, ic); break;
+      case TM_POW: {
+        /* Convert to float power for accurate results */
+        aql_Number nb = cast_num(ib);
+        aql_Number nc = cast_num(ic);
+        aql_Number fres = pow(nb, nc);
+        setfltvalue(ra, fres);
+        return;  /* Skip setivalue below */
+      }
       case TM_IDIV: res = aqlV_idiv(L, ib, ic); break;
       case TM_BAND: res = intop(&, ib, ic); break;
       case TM_BOR: res = intop(|, ib, ic); break;
@@ -264,14 +349,112 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
   pc = ci->u.l.savedpc;
   k = cl->p->k;
   
+  AQL_DEBUG(AQL_DEBUG_VM, "aqlV_execute: starting execution loop");
+  
+#ifdef AQL_DEBUG_BUILD
+  /* Initialize execution tracing if enabled */
+  int trace_execution = (aql_debug_enabled && (aql_debug_flags & AQL_DEBUG_VM));
+  int trace_registers = (aql_debug_enabled && (aql_debug_flags & AQL_DEBUG_REG));
+  
+  if (trace_execution) {
+    aqlD_print_execution_header();
+  }
+  
+  if (trace_registers) {
+    aqlD_print_register_header();
+  }
+  
+  /* For register change tracking */
+  TValue *prev_registers = NULL;
+  int max_registers = 32;  /* Initial estimate */
+  if (trace_registers) {
+    prev_registers = (TValue*)malloc(max_registers * sizeof(TValue));
+    /* Initialize previous registers to nil */
+    for (int i = 0; i < max_registers; i++) {
+      setnilvalue(&prev_registers[i]);
+    }
+  }
+#endif
+  
+  
   for (;;) {
     Instruction i = *pc++;
     StkId ra;
+    OpCode op = GET_OPCODE(i);
+    int current_pc = (int)(pc - cl->p->code - 1);  /* Calculate current PC */
+    
+    //AQL_DEBUG(AQL_DEBUG_VM, "aqlV_execute: executing instruction opcode=%d A=%d B=%d C=%d", 
+     //      op, GETARG_A(i), GETARG_B(i), GETARG_C(i));
+    
+#ifdef AQL_DEBUG_BUILD
+    /* Print execution trace if enabled */
+    if (trace_execution) {
+      AQL_VMState vm_state;
+      vm_state.pc = current_pc;
+      vm_state.opname = aql_opnames[op];
+      
+      /* Generate instruction description */
+      static char desc_buf[256];
+      switch (op) {
+        case OP_LOADI:
+          snprintf(desc_buf, sizeof(desc_buf), "LOADI R(%d) := %d", 
+                   GETARG_A(i), GETARG_sBx(i));
+          break;
+        case OP_LOADK:
+          snprintf(desc_buf, sizeof(desc_buf), "LOADK R(%d) := K(%d)", 
+                   GETARG_A(i), GETARG_Bx(i));
+          break;
+        case OP_ADD:
+          snprintf(desc_buf, sizeof(desc_buf), "ADD R(%d) := R(%d) + R(%d)", 
+                   GETARG_A(i), GETARG_B(i), GETARG_C(i));
+          break;
+        case OP_SUB:
+          snprintf(desc_buf, sizeof(desc_buf), "SUB R(%d) := R(%d) - R(%d)", 
+                   GETARG_A(i), GETARG_B(i), GETARG_C(i));
+          break;
+        case OP_MUL:
+          snprintf(desc_buf, sizeof(desc_buf), "MUL R(%d) := R(%d) * R(%d)", 
+                   GETARG_A(i), GETARG_B(i), GETARG_C(i));
+          break;
+        case OP_DIV:
+          snprintf(desc_buf, sizeof(desc_buf), "DIV R(%d) := R(%d) / R(%d)", 
+                   GETARG_A(i), GETARG_B(i), GETARG_C(i));
+          break;
+        case OP_RET_ONE:
+          snprintf(desc_buf, sizeof(desc_buf), "RET_ONE return R(%d)", GETARG_A(i));
+          break;
+        case OP_RET_VOID:
+          snprintf(desc_buf, sizeof(desc_buf), "RET_VOID return");
+          break;
+        case OP_MOVE:
+          snprintf(desc_buf, sizeof(desc_buf), "MOVE R(%d) := R(%d)", 
+                   GETARG_A(i), GETARG_B(i));
+          break;
+        default:
+          snprintf(desc_buf, sizeof(desc_buf), "%s A=%d B=%d C=%d", 
+                   aql_opnames[op], GETARG_A(i), GETARG_B(i), GETARG_C(i));
+          break;
+      }
+      vm_state.description = desc_buf;
+      
+      aqlD_print_vm_state(&vm_state);
+      
+      /* Print register states (first few registers) for execution trace */
+      int reg_count = (int)(L->top - base);
+      if (reg_count > 0 && trace_execution) {
+        aqlD_print_registers(s2v(base), reg_count);
+      }
+    }
+    
+#endif
+    
+    /* Enhanced register tracking - simplified approach */
+    int max_stack_size = cl->p->maxstacksize;
     
     aql_assert(base == ci->func + 1);
     aql_assert(base <= L->top && L->top <= L->stack_last);
     
-    switch (GET_OPCODE(i)) {
+    switch (op) {
       /* Base operations */
       case OP_MOVE: {
         setobj2s(L, RA(i), s2v(RB(i)));
@@ -330,20 +513,20 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       }
       
       /* Arithmetic operations */
-      case OP_ADD: ARITH_OP(ADD);
-      case OP_ADDK: ARITH_OP_K(ADD);
-      case OP_ADDI: ARITH_OP_I(ADD);
-      case OP_SUB: ARITH_OP(SUB);
-      case OP_SUBK: ARITH_OP_K(SUB);
-      case OP_SUBI: ARITH_OP_I(SUB);
-      case OP_MUL: ARITH_OP(MUL);
-      case OP_MULK: ARITH_OP_K(MUL);
-      case OP_MULI: ARITH_OP_I(MUL);
-      case OP_DIV: ARITH_OP(DIV);
-      case OP_DIVK: ARITH_OP_K(DIV);
-      case OP_DIVI: ARITH_OP_I(DIV);
-      case OP_MOD: ARITH_OP(MOD);
-      case OP_POW: ARITH_OP(POW);
+      case OP_ADD: ARITH_OP(ADD); continue;
+      case OP_ADDK: ARITH_OP_K(ADD); continue;
+      case OP_ADDI: ARITH_OP_I(ADD); continue;
+      case OP_SUB: ARITH_OP(SUB); continue;
+      case OP_SUBK: ARITH_OP_K(SUB); continue;
+      case OP_SUBI: ARITH_OP_I(SUB); continue;
+      case OP_MUL: ARITH_OP(MUL); continue;
+      case OP_MULK: ARITH_OP_K(MUL); continue;
+      case OP_MULI: ARITH_OP_I(MUL); continue;
+      case OP_DIV: ARITH_OP(DIV); continue;
+      case OP_DIVK: ARITH_OP_K(DIV); continue;
+      case OP_DIVI: ARITH_OP_I(DIV); continue;
+      case OP_MOD: ARITH_OP(MOD); continue;
+      case OP_POW: ARITH_OP(POW); continue;
       
       /* Unary operations */
       case OP_UNM: {
@@ -689,8 +872,75 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       
       /* Upvalue and table operations */
       case OP_GETTABUP: {
+        AQL_DEBUG(AQL_DEBUG_VM, "OP_GETTABUP: A=%d B=%d C=%d", GETARG_A(i), GETARG_B(i), GETARG_C(i));
+        AQL_DEBUG(AQL_DEBUG_VM, "OP_GETTABUP: cl=%p, cl->upvals=%p", (void*)cl, (void*)cl->upvals);
+        
+        
+        AQL_DEBUG(AQL_DEBUG_VM, "OP_GETTABUP: cl->nupvalues=%d", cl->nupvalues);
+        
+        
+        if (GETARG_B(i) >= cl->nupvalues) {
+          AQL_DEBUG(AQL_DEBUG_VM, "OP_GETTABUP: upval access out of bounds (%d >= %d), setting nil", GETARG_B(i), cl->nupvalues);
+          
+          setnilvalue(s2v(RA(i)));
+          continue;
+        }
+        
+        if (!cl->upvals[GETARG_B(i)]) {
+          AQL_DEBUG(AQL_DEBUG_VM, "OP_GETTABUP: upval[%d] is NULL, setting nil", GETARG_B(i));
+          
+          setnilvalue(s2v(RA(i)));
+          continue;
+        }
+        
         const TValue *upval = cl->upvals[GETARG_B(i)]->v.p;
         TValue *key = k + GETARG_C(i);
+        
+        AQL_DEBUG(AQL_DEBUG_VM, "OP_GETTABUP: upval type=%d, key type=%d", ttype(upval), ttype(key));
+        
+        
+        /* Check if upval is a dict (global environment) */
+        if (ttisdict(upval)) {
+          AQL_DEBUG(AQL_DEBUG_VM, "OP_GETTABUP: accessing global dict with key");
+          
+          const TValue *result = aqlD_get(dictvalue(upval), key);
+          if (result != NULL) {
+            setobj2s(L, RA(i), result);
+            AQL_DEBUG(AQL_DEBUG_VM, "OP_GETTABUP: found global variable, type=%d", ttype(result));
+            
+          } else {
+            setnilvalue(s2v(RA(i)));
+            AQL_DEBUG(AQL_DEBUG_VM, "OP_GETTABUP: global variable not found, setting nil");
+            
+          }
+          continue;
+        }
+        
+        /* If upval is nil, try to get/create global dict */
+        if (ttisnil(upval)) {
+          AQL_DEBUG(AQL_DEBUG_VM, "OP_GETTABUP: upval is nil, trying to get globals dict");
+          
+          
+          /* Get globals dict from global state */
+          Dict *globals_dict = get_globals_dict(L);
+          if (globals_dict) {
+            const TValue *result = aqlD_get(globals_dict, key);
+            if (result != NULL) {
+              setobj2s(L, RA(i), result);
+              AQL_DEBUG(AQL_DEBUG_VM, "OP_GETTABUP: found global variable in globals dict, type=%d", ttype(result));
+              
+            } else {
+              setnilvalue(s2v(RA(i)));
+              AQL_DEBUG(AQL_DEBUG_VM, "OP_GETTABUP: global variable not found in globals dict, setting nil");
+              
+            }
+          } else {
+            setnilvalue(s2v(RA(i)));
+            AQL_DEBUG(AQL_DEBUG_VM, "OP_GETTABUP: failed to get globals dict, setting nil");
+            
+          }
+          continue;
+        }
         
         if (ttisarray(upval)) {
           aql_Integer idx;
@@ -721,9 +971,44 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         continue;
       }
       case OP_SETTABUP: {
+        AQL_DEBUG(AQL_DEBUG_VM, "OP_SETTABUP: A=%d B=%d C=%d", GETARG_A(i), GETARG_B(i), GETARG_C(i));
+        
+        
         TValue *upval = cl->upvals[GETARG_A(i)]->v.p;
         TValue *key = k + GETARG_B(i);
         TValue *val = k + GETARG_C(i);
+        
+        AQL_DEBUG(AQL_DEBUG_VM, "OP_SETTABUP: upval type=%d, key type=%d, val type=%d", ttype(upval), ttype(key), ttype(val));
+        
+        
+        /* Check if upval is a dict (global environment) */
+        if (ttisdict(upval)) {
+          AQL_DEBUG(AQL_DEBUG_VM, "OP_SETTABUP: setting global variable in dict");
+          
+          aqlV_setdict(L, upval, key, val);
+          continue;
+        }
+        
+        /* If upval is nil, try to get/create global dict */
+        if (ttisnil(upval)) {
+          AQL_DEBUG(AQL_DEBUG_VM, "OP_SETTABUP: upval is nil, trying to get/create globals dict");
+          
+          
+          /* Get or create globals dict */
+          Dict *globals_dict = get_globals_dict(L);
+          if (globals_dict) {
+            AQL_DEBUG(AQL_DEBUG_VM, "OP_SETTABUP: setting global variable in globals dict");
+            
+            aqlD_set(L, globals_dict, key, val);
+            
+            /* Update the upvalue to point to the globals dict */
+            setdictvalue(L, upval, globals_dict);
+          } else {
+            AQL_DEBUG(AQL_DEBUG_VM, "OP_SETTABUP: failed to get/create globals dict");
+            
+          }
+          continue;
+        }
         
         if (ttisarray(upval)) {
           aql_Integer idx;
@@ -735,8 +1020,6 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
           if (tointeger(key, &idx)) {
             aqlV_setslice(L, upval, cast_int(idx), val);
           }
-        } else if (ttisdict(upval)) {
-          aqlV_setdict(L, upval, key, val);
         } else if (ttisvector(upval)) {
           aql_Integer idx;
           if (tointeger(key, &idx)) {
@@ -815,12 +1098,89 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         return 0;
       }
     }
+    
+    /* Trace register state after each instruction */
+    debug_trace_registers(L, base, pc, cl->p);
+    
+#ifdef AQL_DEBUG_BUILD
+    /* Print register state after instruction execution */
+    if (trace_registers) {
+      int current_reg_count = (int)(L->top - base);
+      if (current_reg_count > 0) {
+        /* Find which registers changed */
+        int changed_regs[32];  /* Max 32 changed registers to track */
+        int changed_count = 0;
+        
+        for (int j = 0; j < current_reg_count && j < max_registers && changed_count < 32; j++) {
+          TValue *current_reg = s2v(base + j);
+          TValue *prev_reg = &prev_registers[j];
+          
+          /* Check if register changed */
+          int changed = 0;
+          if (rawtt(current_reg) != rawtt(prev_reg)) {
+            changed = 1;
+          } else {
+            switch (rawtt(current_reg)) {
+              case AQL_TNIL:
+                /* nil values are always equal */
+                break;
+              case AQL_TBOOLEAN:
+                if (bvalue(current_reg) != bvalue(prev_reg)) {
+                  changed = 1;
+                }
+                break;
+              case AQL_TNUMBER:
+                if (ttisinteger(current_reg)) {
+                  if (!ttisinteger(prev_reg) || ivalue(current_reg) != ivalue(prev_reg)) {
+                    changed = 1;
+                  }
+                } else {
+                  if (ttisinteger(prev_reg) || fltvalue(current_reg) != fltvalue(prev_reg)) {
+                    changed = 1;
+                  }
+                }
+                break;
+              default:
+                /* For complex types, assume changed if pointers differ */
+                if (gcvalue(current_reg) != gcvalue(prev_reg)) {
+                  changed = 1;
+                }
+                break;
+            }
+          }
+          
+          if (changed) {
+            changed_regs[changed_count++] = j;
+          }
+        }
+        
+        /* Print register state with changes highlighted */
+        aqlD_print_register_state(s2v(base), current_reg_count, changed_regs, changed_count);
+        
+        /* Update previous register state for next iteration */
+        for (int j = 0; j < current_reg_count; j++) {
+          setobj(L, &prev_registers[j], s2v(base + j));
+        }
+      }
+    }
+#endif
+    
+    /* Trace register state after instruction execution */
+    debug_trace_registers(L, base, pc, cl->p);
+    
 newframe:
     cl = clLvalue(s2v(ci->func));
     base = ci->func + 1;
     pc = ci->u.l.savedpc;
     k = cl->p->k;
   }
+  
+#ifdef AQL_DEBUG_BUILD
+  /* Clean up register tracking memory */
+  if (prev_registers) {
+    free(prev_registers);
+  }
+#endif
 }
 
 /*

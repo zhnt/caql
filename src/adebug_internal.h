@@ -1,11 +1,19 @@
 /*
-** $Id: adebug.h $
-** Zero-cost debugging system for AQL
+** $Id: adebug_internal.h $
+** AQL Internal Development Debug System
+** 
+** Purpose: Internal debugging for AQL developers
+** - Compile-time debug levels (AQL_DEBUG_LEVEL)
+** - Performance profiling and memory tracking
+** - Variable and stack frame tracing
+** - Low-level VM state inspection
+** - Zero-cost in release builds
+** 
 ** See Copyright Notice in aql.h
 */
 
-#ifndef adebug_h
-#define adebug_h
+#ifndef adebug_internal_h
+#define adebug_internal_h
 
 #include "aconf.h"
 #include "aobject.h"
@@ -47,14 +55,14 @@
 #define AQL_PROFILE_START(name) \
     do { \
         if (AQL_DEBUG_LEVEL >= 1) { \
-            aqlD_profile_start(name); \
+            aqlD_internal_profile_start(name); \
         } \
     } while (0)
 
 #define AQL_PROFILE_END(name) \
     do { \
         if (AQL_DEBUG_LEVEL >= 1) { \
-            aqlD_profile_end(name); \
+            aqlD_internal_profile_end(name); \
         } \
     } while (0)
 
@@ -168,8 +176,8 @@ void aqlD_pop_frame(void);
 void aqlD_print_stack_trace(void);
 
 /* Performance profiling */
-void aqlD_profile_start(const char *name);
-void aqlD_profile_end(const char *name);
+void aqlD_internal_profile_start(const char *name);
+void aqlD_internal_profile_end(const char *name);
 void aqlD_print_profile(void);
 
 /* Execution tracing */
@@ -197,4 +205,4 @@ void aqlD_vm_state(aql_State *L);
 void aqlD_vm_stack(aql_State *L);
 void aqlD_vm_globals(aql_State *L);
 
-#endif /* adebug_h */
+#endif /* adebug_internal_h */

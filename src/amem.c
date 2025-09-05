@@ -211,7 +211,7 @@ void *aqlM_growaux_(aql_State *L, void *block, int nelems, int *size,
       newsize = MINSIZEARRAY;  /* minimum size */
   }
   aql_assert(newsize >= nelems + 1);
-  newblock = aqlM_reallocv(L, block, *size, newsize, size_elems);
+  newblock = aqlM_realloc(L, block, cast_sizet(*size) * size_elems, cast_sizet(newsize) * size_elems);
   *size = newsize;  /* update only when everything else is OK */
   return newblock;
 }

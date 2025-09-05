@@ -14,23 +14,290 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stdbool.h>
+#include <setjmp.h>
 
 #include "aql.h"
+#include "aapi.h"
+#include "acode.h"
 #include "acodegen.h"
-#include "adebug.h"
+#include "adebug_user.h"
 #include "ado.h"
+
+/* Forward declarations for token collection (from alex.c) */
+extern void start_token_collection(void);
+extern void finish_token_collection(void);
+
+#ifdef AQL_DEBUG_BUILD
+/* AST node collection for debug output */
+static AQL_ASTInfo *debug_ast_nodes = NULL;
+static int debug_ast_count = 0;
+static int debug_ast_capacity = 0;
+static int debug_collecting_ast = 0;
+
+/* Bytecode instruction collection for debug output */
+static AQL_InstrInfo *debug_bytecode = NULL;
+static int debug_bytecode_count = 0;
+static int debug_bytecode_capacity = 0;
+static int debug_collecting_bytecode = 0;
+
+/* AST collection functions */
+static void start_ast_collection(void) {
+    if (aql_debug_enabled && (aql_debug_flags & AQL_DEBUG_PARSE)) {
+        debug_collecting_ast = 1;
+        debug_ast_count = 0;
+        if (!debug_ast_nodes) {
+            debug_ast_capacity = 64;
+            debug_ast_nodes = malloc(debug_ast_capacity * sizeof(AQL_ASTInfo));
+        }
+    }
+}
+
+static void add_debug_ast_node(const char *type, const char *value, int line, int children_count) {
+    if (!debug_collecting_ast) return;
+    
+    if (debug_ast_count >= debug_ast_capacity) {
+        debug_ast_capacity *= 2;
+        debug_ast_nodes = realloc(debug_ast_nodes, debug_ast_capacity * sizeof(AQL_ASTInfo));
+    }
+    
+    AQL_ASTInfo *node = &debug_ast_nodes[debug_ast_count++];
+    node->type = type;
+    node->value = value ? strdup(value) : NULL;
+    node->line = line;
+    node->children_count = children_count;
+}
+
+static void finish_ast_collection(void) {
+    if (!debug_collecting_ast) return;
+    
+    aqlD_print_ast_header();
+    for (int i = 0; i < debug_ast_count; i++) {
+        aqlD_print_ast_node(&debug_ast_nodes[i], 0);
+        if (debug_ast_nodes[i].value) {
+            free((void*)debug_ast_nodes[i].value);
+        }
+    }
+    aqlD_print_ast_footer(debug_ast_count);
+    
+    debug_collecting_ast = 0;
+    debug_ast_count = 0;
+}
+
+/* Bytecode collection functions */
+static void start_bytecode_collection(void) {
+    if (aql_debug_enabled && (aql_debug_flags & AQL_DEBUG_CODE)) {
+        debug_collecting_bytecode = 1;
+        debug_bytecode_count = 0;
+        if (!debug_bytecode) {
+            debug_bytecode_capacity = 64;
+            debug_bytecode = malloc(debug_bytecode_capacity * sizeof(AQL_InstrInfo));
+        }
+    }
+}
+
+static void collect_bytecode_from_proto(Proto *proto) {
+    if (!debug_collecting_bytecode || !proto) return;
+    
+    /* Collect instructions from the proto */
+    for (int pc = 0; pc < proto->sizecode; pc++) {
+        if (debug_bytecode_count >= debug_bytecode_capacity) {
+            debug_bytecode_capacity *= 2;
+            debug_bytecode = realloc(debug_bytecode, debug_bytecode_capacity * sizeof(AQL_InstrInfo));
+        }
+        
+        Instruction inst = proto->code[pc];
+        OpCode op = GET_OPCODE(inst);
+        
+        AQL_InstrInfo *instr = &debug_bytecode[debug_bytecode_count++];
+        instr->pc = pc;
+        instr->opname = aql_opnames[op];
+        instr->opcode = op;
+        instr->a = GETARG_A(inst);
+        instr->b = GETARG_B(inst);
+        instr->c = GETARG_C(inst);
+        instr->bx = GETARG_Bx(inst);
+        instr->sbx = GETARG_sBx(inst);
+        
+        /* Determine instruction format */
+        if (op <= OP_EXTRAARG) {
+            /* Most instructions use ABC format */
+            if (op == OP_LOADK || op == OP_LOADKX || op == OP_CLOSURE) {
+                instr->format = "ABx";
+            } else if (op == OP_LOADI || op == OP_LOADF) {
+                instr->format = "AsBx";
+            } else if (op == OP_EXTRAARG) {
+                instr->format = "Ax";
+            } else {
+                instr->format = "ABC";
+            }
+        } else {
+            instr->format = "ABC";  /* Default for other instructions */
+        }
+        
+        /* Generate description */
+        static char desc_buf[256];
+        switch (op) {
+            case OP_LOADI:
+                snprintf(desc_buf, sizeof(desc_buf), "R(%d) := %d", instr->a, instr->sbx);
+                break;
+            case OP_LOADK:
+                snprintf(desc_buf, sizeof(desc_buf), "R(%d) := K(%d)", instr->a, instr->bx);
+                break;
+            case OP_ADD:
+                snprintf(desc_buf, sizeof(desc_buf), "R(%d) := R(%d) + R(%d)", instr->a, instr->b, instr->c);
+                break;
+            case OP_SUB:
+                snprintf(desc_buf, sizeof(desc_buf), "R(%d) := R(%d) - R(%d)", instr->a, instr->b, instr->c);
+                break;
+            case OP_MUL:
+                snprintf(desc_buf, sizeof(desc_buf), "R(%d) := R(%d) * R(%d)", instr->a, instr->b, instr->c);
+                break;
+            case OP_DIV:
+                snprintf(desc_buf, sizeof(desc_buf), "R(%d) := R(%d) / R(%d)", instr->a, instr->b, instr->c);
+                break;
+            case OP_RET_ONE:
+                snprintf(desc_buf, sizeof(desc_buf), "return R(%d)", instr->a);
+                break;
+            case OP_RET_VOID:
+                snprintf(desc_buf, sizeof(desc_buf), "return");
+                break;
+            default:
+                snprintf(desc_buf, sizeof(desc_buf), "%s %d %d %d", instr->opname, instr->a, instr->b, instr->c);
+                break;
+        }
+        instr->description = strdup(desc_buf);
+    }
+}
+
+static void finish_bytecode_collection(Proto *proto) {
+    if (!debug_collecting_bytecode) return;
+    
+    /* Collect bytecode from the completed proto */
+    collect_bytecode_from_proto(proto);
+    
+    /* Print bytecode debug output */
+    aqlD_print_bytecode_header();
+    
+    /* Print constants if any */
+    if (proto && proto->sizek > 0) {
+        aqlD_print_constants_pool(proto->k, proto->sizek);
+    }
+    
+    /* Print instructions */
+    aqlD_print_instruction_header();
+    for (int i = 0; i < debug_bytecode_count; i++) {
+        aqlD_print_instruction(&debug_bytecode[i]);
+        if (debug_bytecode[i].description) {
+            free((void*)debug_bytecode[i].description);
+        }
+    }
+    aqlD_print_bytecode_footer(debug_bytecode_count);
+    
+    debug_collecting_bytecode = 0;
+    debug_bytecode_count = 0;
+}
+
+#else
+/* Release build - no debug collections */
+static void start_ast_collection(void) { /* no-op */ }
+static void finish_ast_collection(void) { /* no-op */ }
+static void add_debug_ast_node(const char *type, const char *value, int line, int children_count) { 
+    (void)type; (void)value; (void)line; (void)children_count; /* no-op */ 
+}
+static void start_bytecode_collection(void) { /* no-op */ }
+static void finish_bytecode_collection(Proto *proto) { (void)proto; /* no-op */ }
+#endif
+
 #include "afunc.h"
 #include "alex.h"
 #include "amem.h"
 #include "aobject.h"
 #include "aopcodes.h"
 #include "aparser.h"
+#include "adict.h"
 #include "astring.h"
 #include "acontainer.h"
+#include "aerror.h"
+
+/* Helper function to convert expkind to string */
+static const char *expkind_to_string(expkind k) {
+    switch (k) {
+        case VVOID: return "VOID";
+        case VNIL: return "NIL";
+        case VTRUE: return "TRUE";
+        case VFALSE: return "FALSE";
+        case VKFLT: return "FLOAT";
+        case VKINT: return "INTEGER";
+        case VKSTR: return "STRING";
+        case VNONRELOC: return "NONRELOC";
+        case VLOCAL: return "LOCAL_VAR";
+        default: return "UNKNOWN";
+    }
+}
+
+/* Helper function to convert binary operator to string */
+static const char *binopr_to_string(BinOpr op) {
+    switch (op) {
+        case OPR_ADD: return "+";
+        case OPR_SUB: return "-";
+        case OPR_MUL: return "*";
+        case OPR_MOD: return "%";
+        case OPR_POW: return "**";
+        case OPR_DIV: return "/";
+        case OPR_IDIV: return "//";
+        case OPR_BAND: return "&";
+        case OPR_BOR: return "|";
+        case OPR_BXOR: return "^";
+        case OPR_SHL: return "<<";
+        case OPR_SHR: return ">>";
+        case OPR_CONCAT: return "..";
+        case OPR_EQ: return "==";
+        case OPR_LT: return "<";
+        case OPR_LE: return "<=";
+        case OPR_NE: return "!=";
+        case OPR_GT: return ">";
+        case OPR_GE: return ">=";
+        case OPR_AND: return "&&";
+        case OPR_OR: return "||";
+        default: return "UNKNOWN_OP";
+    }
+}
+
+/* VM execution is now handled in aapi.c */
 
 /* maximum number of local variables per function (must be smaller
    than 250, due to the bytecode format) */
 #define MAXVARS		200
+
+/* maximum number of C calls */
+#ifndef AQL_MAXCCALLS
+#define AQL_MAXCCALLS		200
+#endif
+
+/* maximum number of upvalues per function */
+#ifndef MAXUPVAL
+#define MAXUPVAL		255
+#endif
+
+/* Variable management functions */
+static int new_localvar (LexState *ls, TString *name);
+static void adjustlocalvars (LexState *ls, int nvars);
+static void removevars (FuncState *fs, int tolevel);
+static int searchupvalue (FuncState *fs, TString *name);
+static void markupval (FuncState *fs, int level);
+static void singlevar (LexState *ls, expdesc *var);
+
+static void singlevar_unified (LexState *ls, expdesc *var);
+
+
+/* Helper functions */
+static void init_exp (expdesc *e, expkind k, int i);
+static TString *str_checkname (LexState *ls);
+static int testnext (LexState *ls, int c);
+static void checknext (LexState *ls, int c);
+static void check_match (LexState *ls, int what, int who, int where);
+static void codestring (expdesc *e, TString *s);
 
 #define hasmultret(k)		((k) == VCALL || (k) == VVARARG)
 
@@ -56,9 +323,24 @@ typedef struct BlockCnt {
 */
 static void statement (LexState *ls);
 static void expr (LexState *ls, expdesc *v);
+static void retstat (LexState *ls);
+static int explist (LexState *ls, expdesc *v);
 
 /* Forward declarations for expression evaluation */
 static int expdesc_is_true(expdesc *e);
+
+/* aparser.c now focuses only on parsing, REPL moved to arepl.c */
+
+/* Check if expression is considered true */
+static int expdesc_is_true(expdesc *e) {
+  switch (e->k) {
+    case VFALSE: case VNIL: return 0;
+    case VKINT: return e->u.ival != 0;
+    case VKFLT: return e->u.nval != 0.0;
+    default: return 1;  /* non-false values are true */
+  }
+}
+
 
 static l_noret error_expected (LexState *ls, int token) {
   aqlX_syntaxerror(ls,
@@ -80,6 +362,25 @@ static l_noret errorlimit (FuncState *fs, int limit, const char *what) {
 static void checklimit (FuncState *fs, int v, int l, const char *what) {
   if (v > l) errorlimit(fs, l, what);
 }
+
+/*
+** Initialize expression descriptor
+*/
+static void init_exp (expdesc *e, expkind k, int i) {
+  e->f = e->t = NO_JUMP;
+  e->k = k;
+  e->u.info = i;
+}
+
+/*
+** Create string constant expression
+*/
+static void codestring (expdesc *e, TString *s) {
+  init_exp(e, VKSTR, 0);
+  e->u.strval = s;
+}
+
+
 
 /*
 ** Test whether next token is 'c'; if so, skip it.
@@ -135,21 +436,12 @@ static TString *str_checkname (LexState *ls) {
   return ts;
 }
 
-static void init_exp (expdesc *e, expkind k, int i) {
-  e->f = e->t = NO_JUMP;
-  e->k = k;
-  e->u.info = i;
-}
+/* Forward declarations for missing functions */
+static int newupvalue (FuncState *fs, TString *name, expdesc *v);
+static int searchupvalue (FuncState *fs, TString *name);
+/* aqlK_indexed is now defined in acode.c */
 
-static void codestring (expdesc *e, TString *s) {
-  e->f = e->t = NO_JUMP;
-  e->k = VKSTR;
-  e->u.strval = s;
-}
 
-static void codename (LexState *ls, expdesc *e) {
-  codestring(e, str_checkname(ls));
-}
 
 /*
 ** Register a new local variable in the active 'Proto' (for debug
@@ -388,11 +680,20 @@ static void singlevar (LexState *ls, expdesc *var) {
   singlevaraux(fs, varname, var, 1);
   if (var->k == VVOID) {  /* global name? */
     expdesc key;
+    
     singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
     aql_assert(var->k != VVOID);  /* this one must exist */
-    /* TODO: aqlK_exp2anyregup(fs, var); */ /* but could be a constant */
+    
+    
+    aqlK_exp2anyregup(fs, var);  /* but could be a constant */
     codestring(&key, varname);  /* key is variable name */
-    /* TODO: aqlK_indexed(fs, var, &key); */ /* env[varname] */
+    
+    /* For global variables, we need to set up for both reading and writing */
+    /* Store the table (env) and key information for later use in assignment */
+    var->u.ind.t = var->u.info;  /* table is the environment upvalue */
+    var->u.ind.idx = aqlK_exp2RK(fs, &key);  /* key index */
+    var->k = VINDEXUP;  /* mark as indexed upvalue for proper assignment handling */
+    
   }
 }
 
@@ -459,31 +760,44 @@ static void simpleexp (LexState *ls, expdesc *v) {
     case TK_FLT: {
       init_exp(v, VKFLT, 0);
       v->u.nval = ls->t.seminfo.r;
+      char float_buf[32];
+      snprintf(float_buf, sizeof(float_buf), "%.2f", v->u.nval);
+      add_debug_ast_node("FLOAT", float_buf, ls->linenumber, 0);
+      aqlX_next(ls);  /* skip number */
       break;
     }
     case TK_INT: {
       init_exp(v, VKINT, 0);
       v->u.ival = ls->t.seminfo.i;
+      char int_buf[32];
+      snprintf(int_buf, sizeof(int_buf), "%lld", (long long)v->u.ival);
+      add_debug_ast_node("INTEGER", int_buf, ls->linenumber, 0);
+      aqlX_next(ls);  /* skip number */
       break;
     }
     case TK_STRING: {
       codestring(v, ls->t.seminfo.ts);
+      aqlX_next(ls);  /* skip string */
       break;
     }
     case TK_NIL: {
       init_exp(v, VNIL, 0);
+      aqlX_next(ls);  /* skip nil */
       break;
     }
     case TK_TRUE: {
       init_exp(v, VTRUE, 0);
+      aqlX_next(ls);  /* skip true */
       break;
     }
     case TK_FALSE: {
       init_exp(v, VFALSE, 0);
+      aqlX_next(ls);  /* skip false */
       break;
     }
     case TK_NAME: {
-      singlevar(ls, v);
+      /* Use unified variable lookup that works for all execution modes */
+      singlevar_unified(ls, v);
       return;
     }
     case TK_LPAREN: {
@@ -498,7 +812,6 @@ static void simpleexp (LexState *ls, expdesc *v) {
       aqlX_syntaxerror(ls, "unexpected symbol");
     }
   }
-  aqlX_next(ls);
 }
 
 static UnOpr getunopr (int op) {
@@ -513,7 +826,8 @@ static UnOpr getunopr (int op) {
 
 static BinOpr getbinopr (int op) {
   switch (op) {
-    case TK_PLUS: return OPR_ADD;
+    case TK_PLUS: 
+      return OPR_ADD;
     case TK_MINUS: return OPR_SUB;
     case TK_MUL: return OPR_MUL;
     case TK_MOD: return OPR_MOD;
@@ -535,7 +849,9 @@ static BinOpr getbinopr (int op) {
     case TK_GE: return OPR_GE;
     case TK_LAND: return OPR_AND;  /* && */
     case TK_LOR: return OPR_OR;    /* || */
-    default: return OPR_NOBINOPR;
+    default: 
+      
+      return OPR_NOBINOPR;
   }
 }
 
@@ -574,6 +890,7 @@ static const struct {
 static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
   BinOpr op;
   UnOpr uop;
+  
   enterlevel(ls);
   uop = getunopr(ls->t.token);
   if (uop != OPR_NOUNOPR) {  /* prefix (unary) operator? */
@@ -582,14 +899,23 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
     subexpr(ls, v, UNARY_PRIORITY);
     aqlK_prefix(ls->fs, uop, v, line);
   }
-  else simpleexp(ls, v);
+  else {
+    simpleexp(ls, v);
+  }
   /* expand while operators have priorities higher than 'limit' */
   op = getbinopr(ls->t.token);
+  
   while (op != OPR_NOBINOPR && priority[op].left > limit) {
     expdesc v2;
     BinOpr nextop;
     int line = ls->linenumber;
+    
+    /* Add AST node for binary operation */
+    add_debug_ast_node("BINARY_OP", binopr_to_string(op), line, 2);
+    
     aqlX_next(ls);  /* skip operator */
+    
+    /* Standard Lua-style code generation */
     aqlK_infix(ls->fs, op, v);
     /* read sub-expression with higher priority */
     nextop = subexpr(ls, &v2, priority[op].right);
@@ -626,7 +952,66 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
 }
 
 static void expr (LexState *ls, expdesc *v) {
+  
   subexpr(ls, v, 0);
+  
+}
+
+/*
+** AQL return statement implementation (based on Lua's retstat)
+*/
+static void retstat (LexState *ls) {
+  /* stat -> RETURN [explist] [';'] */
+  
+  FuncState *fs = ls->fs;
+  expdesc e;
+  int nret;  /* number of values being returned */
+  int first = fs->freereg;  /* first slot to be returned */
+  
+  if (block_follow(ls, 1) || ls->t.token == ';')
+    nret = 0;  /* return no values */
+  else {
+    nret = explist(ls, &e);  /* optional return values */
+    if (hasmultret(e.k)) {
+      aqlK_setmultret(fs, &e);
+      if (e.k == VCALL && nret == 1) {  /* tail call? */
+        /* TODO: implement tail call optimization */
+      }
+      nret = AQL_MULTRET;  /* return all values */
+    }
+    else {
+      if (nret == 1) {  /* only one single value? */
+        
+        aqlK_exp2anyreg(fs, &e);  /* can use original slot */
+        first = e.u.info;  /* get the register where expression was placed */
+        
+      }
+      else {  /* values must go to the top of the stack */
+        aqlK_exp2nextreg(fs, &e);
+        aql_assert(nret == fs->freereg - first);
+      }
+    }
+  }
+  aqlK_ret(fs, first, nret);
+  testnext(ls, ';');  /* skip optional semicolon */
+}
+
+/*
+** AQL expression list implementation (based on Lua's explist)
+*/
+static int explist (LexState *ls, expdesc *v) {
+  /* explist -> expr { ',' expr } */
+  
+  int n = 1;  /* at least one expression */
+  expr(ls, v);
+  
+  while (testnext(ls, ',')) {
+    aqlK_exp2nextreg(ls->fs, v);
+    expr(ls, v);
+    n++;
+  }
+  
+  return n;
 }
 
 static void block (LexState *ls) {
@@ -639,40 +1024,50 @@ static void block (LexState *ls) {
 }
 
 /*
-** AQL if statement: if expr { statlist } { elif expr { statlist } } [ else { statlist } ]
+** AQL test_then_block: [IF | ELIF] cond '{' block '}'
 */
-static void ifstat (LexState *ls, int line) {
-  /* ifstat -> IF cond '{' block '}' {ELIF cond '{' block '}'} [ELSE '{' block '}'] */
+static void test_then_block (LexState *ls, int *escapelist) {
+  /* test_then_block -> [IF | ELIF] cond '{' block '}' */
+  BlockCnt bl;
   FuncState *fs = ls->fs;
   expdesc v;
-  int escapelist = NO_JUMP;  /* exit list for finished parts */
+  int jf;  /* instruction to skip 'then' code (if condition is false) */
   
-  /* IF part */
-  aqlX_next(ls);  /* skip IF */
+  aqlX_next(ls);  /* skip IF or ELIF */
   expr(ls, &v);  /* read condition */
   checknext(ls, '{');
-  /* TODO: handle conditional jump */
-  block(ls);  /* 'then' part */
-  check_match(ls, '}', '{', line);
   
-  /* ELIF parts */
-  while (ls->t.token == TK_ELIF) {
-    aqlX_next(ls);  /* skip ELIF */
-    expr(ls, &v);  /* read condition */
-    checknext(ls, '{');
-    /* TODO: handle conditional jump */
-    block(ls);  /* 'elif' part */
-    check_match(ls, '}', '{', line);
-  }
+  /* Generate conditional jump */
+  aqlK_goiffalse(fs, &v);  /* jump if condition is false */
+  enterblock(fs, &bl, 0);
+  jf = v.f;
   
-  /* ELSE part */
+  statlist(ls);  /* 'then' part */
+  leaveblock(fs);
+  
+  if (ls->t.token == TK_ELSE ||
+      ls->t.token == TK_ELIF)  /* followed by 'else'/'elif'? */
+    aqlK_concat(fs, escapelist, aqlK_jump(fs));  /* must jump over it */
+  aqlK_patchtohere(fs, jf);
+}
+
+/*
+** AQL if statement: if expr { statlist } [elif expr { statlist }]* [else { statlist }]
+*/
+static void ifstat (LexState *ls, int line) {
+  /* ifstat -> IF cond '{' block '}' {ELIF cond '{' block '}'}* [ELSE '{' block '}'] */
+  FuncState *fs = ls->fs;
+  int escapelist = NO_JUMP;  /* exit list for finished parts */
+  
+  test_then_block(ls, &escapelist);  /* IF cond '{' block '}' */
+  while (ls->t.token == TK_ELIF)
+    test_then_block(ls, &escapelist);  /* ELIF cond '{' block '}' */
   if (testnext(ls, TK_ELSE)) {
     checknext(ls, '{');
     block(ls);  /* 'else' part */
     check_match(ls, '}', '{', line);
   }
-  
-  /* TODO: patch escape list */
+  aqlK_patchtohere(fs, escapelist);  /* patch escape list to 'if' end */
 }
 
 /*
@@ -719,9 +1114,32 @@ static void letstat (LexState *ls) {
     str_checkname(ls);  /* skip type for now */
   }
   
-  checknext(ls, '=');
+  checknext(ls, TK_ASSIGN);
   expr(ls, &e);  /* parse initialization expression */
-  /* TODO: store expression result */
+  
+  /* Store expression result to register */
+  aqlK_exp2nextreg(fs, &e);
+  adjustlocalvars(ls, 1);
+}
+
+/*
+** AQL type-inferred declaration: name := expr
+*/
+static void inferredstat (LexState *ls) {
+  /* inferredstat -> NAME ':=' expr */
+  FuncState *fs = ls->fs;
+  expdesc e;
+  int vidx;
+  TString *varname;
+  
+  varname = str_checkname(ls);  /* variable name */
+  vidx = new_localvar(ls, varname);
+  
+  checknext(ls, TK_ASSIGN);  /* check ':=' */
+  expr(ls, &e);  /* parse initialization expression */
+  
+  /* Store expression result to register */
+  aqlK_exp2nextreg(fs, &e);
   adjustlocalvars(ls, 1);
 }
 
@@ -729,16 +1147,27 @@ static void letstat (LexState *ls) {
 ** AQL assignment: name := expr or name = expr
 */
 static void assignment (LexState *ls) {
+  
+  /* Normal assignment or expression statement */
   expdesc v;
   singlevar(ls, &v);
   
-  if (testnext(ls, TK_ASSIGN) || testnext(ls, '=')) {  /* := or = */
+  if (testnext(ls, TK_ASSIGN)) {  /* name := expr */
+    
     expdesc e;
     expr(ls, &e);  /* parse right-hand side */
-    /* TODO: store assignment */
+    
+    aqlK_storevar(ls->fs, &v, &e);
+  }
+  else if (testnext(ls, '=')) {  /* name = expr (if supported) */
+    
+    expdesc e;
+    expr(ls, &e);  /* parse right-hand side */
+    aqlK_storevar(ls->fs, &v, &e);
   }
   else {
-    aqlX_syntaxerror(ls, "unexpected symbol");
+    /* Expression statement */
+    aqlK_exp2nextreg(ls->fs, &v);
   }
 }
 
@@ -748,6 +1177,7 @@ static void assignment (LexState *ls) {
 static void statement (LexState *ls) {
   int line = ls->linenumber;  /* may be needed for error messages */
   enterlevel(ls);
+  
   switch (ls->t.token) {
     case ';': {  /* stat -> ';' (empty statement) */
       aqlX_next(ls);  /* skip ';' */
@@ -773,7 +1203,7 @@ static void statement (LexState *ls) {
     }
     case TK_RETURN: {  /* stat -> retstat */
       aqlX_next(ls);  /* skip RETURN */
-      /* TODO: implement return statement */
+      retstat(ls);
       break;
     }
     case TK_BREAK: {  /* stat -> breakstat */
@@ -822,7 +1252,10 @@ static void close_func (LexState *ls) {
   aql_State *L = ls->L;
   FuncState *fs = ls->fs;
   Proto *f = fs->f;
-  /* TODO: generate final return instruction */
+  
+  /* Generate final return instruction for main function */
+  aqlK_codeABC(fs, OP_RET_VOID, 0, 0, 0);  /* return with no values */
+  
   leaveblock(fs);
   aql_assert(fs->bl == NULL);
   /* TODO: finish code generation */
@@ -845,23 +1278,38 @@ static void mainfunc (LexState *ls, FuncState *fs) {
   env->kind = VDKREG;
   env->name = ls->envn;
   /* TODO: aqlC_objbarrier(ls->L, fs->f, env->name); */
+  
   aqlX_next(ls);  /* read first token */
+  
   statlist(ls);  /* parse main body */
+  
   check(ls, TK_EOS);
+  
   close_func(ls);
+  
 }
 
 LClosure *aqlY_parser (aql_State *L, struct Zio *z, Mbuffer *buff,
                        Dyndata *dyd, const char *name, int firstchar) {
+  
+  /* Start debug collections */
+  start_token_collection();
+  start_ast_collection();
+  start_bytecode_collection();
+  
+  
   LexState lexstate;
   FuncState funcstate;
   LClosure *cl = aqlF_newLclosure(L, 1);  /* create main closure */
+  
+  
   setclLvalue2s(L, L->top, cl);  /* anchor it (to avoid being collected) */
-  /* TODO: aqlD_inctop(L); */
+  L->top++;  /* increment top for the closure */
+  
   /* TODO: lexstate.h = aqlH_new(L); */ /* create table for scanner */
   lexstate.h = NULL;  /* temporary fix */
   /* TODO: sethvalue2s(L, L->top, lexstate.h); */ /* anchor it */
-  /* TODO: aqlD_inctop(L); */
+  /* TODO: L->top++; */ /* increment for scanner table */
   funcstate.f = cl->p = aqlF_newproto(L);
   /* TODO: aqlC_objbarrier(L, cl, cl->p); */
   funcstate.f->source = aqlStr_newlstr(L, name, strlen(name));  /* create and anchor TString */
@@ -869,239 +1317,213 @@ LClosure *aqlY_parser (aql_State *L, struct Zio *z, Mbuffer *buff,
   lexstate.buff = buff;
   lexstate.dyd = dyd;
   dyd->actvar.n = dyd->gt.n = dyd->label.n = 0;
+  
   aqlX_setinput(L, &lexstate, z, funcstate.f->source, firstchar);
+  
+  
   mainfunc(&lexstate, &funcstate);
+  
+  
   aql_assert(!funcstate.prev && funcstate.nups == 1 && !lexstate.fs);
   /* all scopes should be correctly finished */
   aql_assert(dyd->actvar.n == 0 && dyd->gt.n == 0 && dyd->label.n == 0);
-  L->top--;  /* remove scanner's table */
-  return cl;  /* closure is on the stack, too */
+  L->top--;  /* remove closure from stack (we return it directly) */
+  
+  /* Finish debug collections and output debug info */
+  finish_token_collection();
+  finish_ast_collection();
+  finish_bytecode_collection(cl->p);  /* Pass the generated proto */
+  
+  return cl;  /* closure is returned directly */
 }
 
+
+
 /*
-** Simple evaluation of expdesc for REPL mode
-** This is a temporary solution until full code generation is implemented
+** Convert expdesc to TValue for REPL mode
 */
-static int eval_expdesc(expdesc *e, double *result) {
+static int expdesc_to_tvalue(aql_State *L, expdesc *e, TValue *result) {
   switch (e->k) {
     case VKINT:
-      *result = (double)e->u.ival;
+      setivalue(result, e->u.ival);
       return 0;
     case VKFLT:
-      *result = e->u.nval;
+      setfltvalue(result, e->u.nval);
+      return 0;
+    case VKSTR:
+      setsvalue2n(L, result, e->u.strval);
       return 0;
     case VNIL:
-      *result = 0.0;
+      setnilvalue(result);
       return 0;
     case VTRUE:
-      *result = 1.0;
+      setbvalue(result, 1);
       return 0;
     case VFALSE:
-      *result = 0.0;
+      setbvalue(result, 0);
       return 0;
     default:
-      return -1;  /* unsupported expression type for simple evaluation */
+      setnilvalue(result);  /* default to nil for unsupported types */
+      return -1;  /* unsupported expression type */
   }
 }
 
 /*
-** Simple allocator for temporary state
+** Global state for string concatenation (temporary workaround)
 */
-static void *simple_alloc(void *ud, void *ptr, size_t osize, size_t nsize) {
-  UNUSED(ud); UNUSED(osize);
-  if (nsize == 0) {
-    free(ptr);
-    return NULL;
+aql_State *g_current_L = NULL;
+
+/*
+** ============================================================================
+** 便利宏定义 (使用 aerror.h 模块)
+** ============================================================================
+*/
+
+/* 便捷的错误报告宏 */
+#define REPORT_SYNTAX_ERROR(line, msg, suggestion) \
+  aqlE_report_error(AQL_ERROR_SYNTAX, AQL_ERROR_LEVEL_ERROR, line, msg, suggestion)
+
+#define REPORT_NAME_ERROR(line, msg, suggestion) \
+  aqlE_report_error(AQL_ERROR_NAME, AQL_ERROR_LEVEL_ERROR, line, msg, suggestion)
+
+#define REPORT_RUNTIME_ERROR(line, msg, suggestion) \
+  aqlE_report_error(AQL_ERROR_RUNTIME, AQL_ERROR_LEVEL_ERROR, line, msg, suggestion)
+
+#define REPORT_WARNING(line, msg, suggestion) \
+  aqlE_report_error(AQL_ERROR_SYNTAX, AQL_ERROR_LEVEL_WARNING, line, msg, suggestion)
+
+
+
+/*
+** Simple variable table for REPL mode
+*/
+#define MAX_VARIABLES 100
+
+typedef struct {
+  TString *name;
+  TValue value;
+} Variable;
+
+static Variable g_variables[MAX_VARIABLES];
+static int g_var_count = 0;
+
+/*
+** Find variable by name, return index or -1 if not found
+*/
+static int find_variable(TString *name) {
+  for (int i = 0; i < g_var_count; i++) {
+    if (eqstr(g_variables[i].name, name)) {
+      return i;
+    }
   }
-  return realloc(ptr, nsize);
+  return -1;
 }
 
 /*
-** Parse and evaluate an expression string using a hybrid approach
-** Uses the correct Lua-style precedence but with simplified evaluation
-** Returns 0 on success, -1 on error
+** Set variable value (create if not exists)
 */
-
-/* Forward declarations for hybrid parser */
-static int parse_expression_hybrid(const char **pos, double *result);
-static int parse_term_hybrid(const char **pos, double *result);
-static int parse_factor_hybrid(const char **pos, double *result);
-static int parse_power_hybrid(const char **pos, double *result);
-
-/* Skip whitespace */
-static void skip_whitespace_hybrid(const char **pos) {
-  while (**pos && (**pos == ' ' || **pos == '\t')) {
-    (*pos)++;
-  }
-}
-
-/* Parse a number */
-static int parse_number_hybrid(const char **pos, double *result) {
-  skip_whitespace_hybrid(pos);
-  char *endptr;
-  *result = strtod(*pos, &endptr);
-  if (endptr == *pos) return -1;  /* no number found */
-  *pos = endptr;
-  return 0;
-}
-
-/* Parse power (highest precedence, right associative): factor ^ power | factor */
-static int parse_power_hybrid(const char **pos, double *result) {
-  if (parse_factor_hybrid(pos, result) != 0) return -1;
-  
-  skip_whitespace_hybrid(pos);
-  if (**pos == '^') {
-    (*pos)++;
-    double right;
-    if (parse_power_hybrid(pos, &right) != 0) return -1;  /* right associative */
-    *result = pow(*result, right);
-  }
-  return 0;
-}
-
-/* Parse factor: number | '(' expression ')' */
-static int parse_factor_hybrid(const char **pos, double *result) {
-  skip_whitespace_hybrid(pos);
-  
-  if (**pos == '(') {
-    (*pos)++;
-    if (parse_expression_hybrid(pos, result) != 0) return -1;
-    skip_whitespace_hybrid(pos);
-    if (**pos != ')') return -1;
-    (*pos)++;
+static int set_variable(TString *name, const TValue *value) {
+  int idx = find_variable(name);
+  if (idx >= 0) {
+    /* Update existing variable */
+    g_variables[idx].value = *value;
+    return 0;
+  } else if (g_var_count < MAX_VARIABLES) {
+    /* Create new variable */
+    g_variables[g_var_count].name = name;
+    g_variables[g_var_count].value = *value;
+    g_var_count++;
     return 0;
   }
-  
-  return parse_number_hybrid(pos, result);
+  return -1;  /* table full */
 }
 
-/* Parse term: power { ('*'|'/') power } */
-static int parse_term_hybrid(const char **pos, double *result) {
-  if (parse_power_hybrid(pos, result) != 0) return -1;
+/*
+** Get variable value by name
+*/
+static int get_variable(TString *name, TValue *result) {
+  int idx = find_variable(name);
+  if (idx >= 0) {
+    *result = g_variables[idx].value;
+    return 0;
+  }
+  return -1;  /* not found */
+}
+
+/*
+** Unified variable lookup for all execution modes
+** Simplified version without extra abstraction layers
+*/
+static void singlevar_unified(LexState *ls, expdesc *var) {
+  TString *varname = str_checkname(ls);
+  FuncState *fs = ls->fs;
   
-  while (1) {
-    skip_whitespace_hybrid(pos);
-    char op = **pos;
-    if (op != '*' && op != '/') break;
-    
-    (*pos)++;
-    double right;
-    if (parse_power_hybrid(pos, &right) != 0) return -1;
-    
-    if (op == '*') {
-      *result *= right;
-    } else {  /* op == '/' */
-      if (right == 0.0) return -1;  /* division by zero */
-      *result /= right;
+  if (fs != NULL) {
+    /* Compilation mode - use standard Lua variable lookup */
+    singlevaraux(fs, varname, var, 1);
+    if (var->k == VVOID) {
+      /* Handle global variables */
+      expdesc key;
+      singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
+      aql_assert(var->k != VVOID);  /* this one must exist */
+      init_exp(&key, VKSTR, 0);
+      key.u.strval = varname;  /* key is variable name */
+      aqlK_indexed(fs, var, &key);  /* env[varname] */
+    }
+  } else {
+    /* REPL mode - use simple variable table */
+    TValue value;
+    if (get_variable(varname, &value) == 0) {
+      /* Convert TValue to expdesc */
+      int tag = ttypetag(&value);
+      switch (tag) {
+        case AQL_VNUMINT:
+          init_exp(var, VKINT, 0);
+          var->u.ival = ivalue(&value);
+          break;
+        case AQL_VNUMFLT:
+          init_exp(var, VKFLT, 0);
+          var->u.nval = fltvalue(&value);
+          break;
+        case AQL_VSHRSTR:
+        case AQL_VLNGSTR:
+          init_exp(var, VKSTR, 0);
+          var->u.strval = tsvalue(&value);
+          break;
+        case AQL_VNIL:
+          init_exp(var, VNIL, 0);
+          break;
+        case AQL_VFALSE:
+          init_exp(var, VFALSE, 0);
+          break;
+        case AQL_VTRUE:
+          init_exp(var, VTRUE, 0);
+          break;
+        default:
+          init_exp(var, VNIL, 0);
+          break;
+      }
+    } else {
+      /* Variable not found in REPL mode */
+      char msg[256];
+      snprintf(msg, sizeof(msg), "Undefined variable '%s'", getstr(varname));
+      REPORT_NAME_ERROR(1, msg, "Check variable name spelling or declare it with 'let'");
+      init_exp(var, VNIL, 0);
     }
   }
-  return 0;
 }
-
-/* Parse expression: term { ('+'|'-') term } */
-static int parse_expression_hybrid(const char **pos, double *result) {
-  if (parse_term_hybrid(pos, result) != 0) return -1;
-  
-  while (1) {
-    skip_whitespace_hybrid(pos);
-    char op = **pos;
-    if (op != '+' && op != '-') break;
-    
-    (*pos)++;
-    double right;
-    if (parse_term_hybrid(pos, &right) != 0) return -1;
-    
-    if (op == '+') {
-      *result += right;
-    } else {  /* op == '-' */
-      *result -= right;
-    }
-  }
-  return 0;
-}
-
-/*
-** Priority table for operators (Lua-style)
-** Lower numbers = lower precedence
-*/
-static const struct {
-  aql_byte left;   /* left priority for each binary operator */
-  aql_byte right;  /* right priority */
-} op_priority[] = {
-  /* Ternary (handled separately) */
-  {0, 0},          /* ? : (placeholder) */
-  /* Logical OR */
-  {1, 1},          /* || */
-  /* Logical AND */  
-  {2, 2},          /* && */
-  /* Bitwise OR */
-  {3, 3},          /* | */
-  /* Bitwise XOR */
-  {4, 4},          /* ^ */
-  /* Bitwise AND */
-  {5, 5},          /* & */
-  /* Equality */
-  {6, 6}, {6, 6},  /* == != */
-  /* Relational */
-  {7, 7}, {7, 7}, {7, 7}, {7, 7},  /* < > <= >= */
-  /* Shift */
-  {8, 8}, {8, 8},  /* << >> */
-  /* Additive */
-  {9, 9}, {9, 9},  /* + - */
-  /* Multiplicative */
-  {10, 10}, {10, 10}, {10, 10},  /* * / % */
-  /* Power (right associative) */
-  {12, 11},        /* ^ */
-};
-
-#define UNARY_PRIORITY_V3  13  /* priority for unary operators */
-
-/*
-** Map token to binary operator index in priority table
-*/
-static int get_binop_priority_index(int token) {
-  switch (token) {
-    case TK_LOR:   return 1;   /* || */
-    case TK_LAND:  return 2;   /* && */
-    case TK_BOR:   return 3;   /* | */
-    case TK_BXOR:  return 4;   /* ^ */
-    case TK_BAND:  return 5;   /* & */
-    case TK_EQ:    return 6;   /* == */
-    case TK_NE:    return 7;   /* != */
-    case TK_LT:    return 8;   /* < */
-    case TK_GT:    return 9;   /* > */
-    case TK_LE:    return 10;  /* <= */
-    case TK_GE:    return 11;  /* >= */
-    case TK_SHL:   return 12;  /* << */
-    case TK_SHR:   return 13;  /* >> */
-    case TK_PLUS:  return 14;  /* + */
-    case TK_MINUS: return 15;  /* - */
-    case TK_MUL:   return 16;  /* * */
-    case TK_DIV:   return 17;  /* / */
-    case TK_MOD:   return 18;  /* % */
-    default:       return -1;  /* not a binary operator */
-  }
-}
-
 
 
 /*
-** Check if token is a unary operator
+** Parse and evaluate an expression string
+** Uses Lua-style precedence with direct evaluation for REPL
+** Returns 0 on success, -1 on error
 */
-static int is_unary_op(int token) {
-  return (token == TK_PLUS || token == TK_MINUS || 
-          token == TK_LNOT || token == TK_BNOT);
-}
-
-
-AQL_API int aqlP_parse_expression(const char *expr_str, double *result) {
-  if (!expr_str || !result) return -1;
+AQL_API int aqlP_parse_expression(aql_State *L, const char *expr_str, TValue *result) {
+  if (!expr_str || !result || !L) return -1;
   
-  /* Set up lexer state */
-  aql_State *L = aql_newstate(simple_alloc, NULL);
-  if (!L) return -1;
-  
-  aqlStr_init(L);
+  /* Set global L for string concatenation */
+  g_current_L = L;
   
   struct Zio z;
   aqlZ_init_string(L, &z, expr_str, strlen(expr_str));
@@ -1129,7 +1551,35 @@ AQL_API int aqlP_parse_expression(const char *expr_str, double *result) {
   
   ls.h = NULL;
   ls.dyd = NULL;
-  ls.fs = NULL;
+  
+  /* Create a minimal FuncState and Proto for REPL expression evaluation */
+  Proto f;
+  memset(&f, 0, sizeof(f));
+  f.source = source;
+  f.maxstacksize = 2;  /* Minimal stack size for simple expressions */
+  
+  FuncState fs;
+  memset(&fs, 0, sizeof(fs));
+  fs.f = &f;
+  fs.prev = NULL;
+  fs.ls = &ls;
+  fs.bl = NULL;
+  fs.pc = 0;
+  fs.lasttarget = 0;
+  fs.previousline = 0;
+  fs.nk = 0;
+  fs.np = 0;
+  fs.nabslineinfo = 0;
+  fs.firstlocal = 0;
+  fs.firstlabel = 0;
+  fs.ndebugvars = 0;
+  fs.nactvar = 0;
+  fs.nups = 0;
+  fs.freereg = 0;
+  fs.iwthabs = 0;
+  fs.needclose = 0;
+  
+  ls.fs = &fs;
   
   /* Get first token */
   aqlX_next(&ls);
@@ -1138,304 +1588,324 @@ AQL_API int aqlP_parse_expression(const char *expr_str, double *result) {
   expdesc v;
   expr(&ls, &v);
   
-  /* Evaluate the expression */
-  int parse_result = eval_expdesc(&v, result);
+  /* Convert to TValue */
+  int parse_result = expdesc_to_tvalue(L, &v, result);
   
   /* Check for end of input */
   if (parse_result == 0 && ls.t.token != TK_EOS) {
     parse_result = -1;  /* unexpected tokens after expression */
   }
   
-  /* Cleanup */
+
+  
+    /* Cleanup */
   aqlZ_freebuffer(L, &buff);
   aqlZ_cleanup_string(L, &z);
-  aql_close(L);
-  
+  /* Note: Don't close L yet if result contains references to L's memory */
+  /* aql_close(L); */
+
+  /* Clear global L */
+  g_current_L = NULL;
+
   return parse_result;
+}
+
+/*
+** Print a TValue to stdout for REPL
+*/
+AQL_API void aqlP_print_value(const TValue *v) {
+  int tag = ttypetag(v);
+  
+  switch (tag) {
+    case AQL_VNUMINT:
+      printf("%lld", (long long)ivalue(v));
+      break;
+    case AQL_VNUMFLT:
+      printf("%.6g", fltvalue(v));
+      break;
+    case AQL_VSHRSTR:
+    case AQL_VLNGSTR: {
+      TString *ts = tsvalue(v);
+      const char *str = getstr(ts);
+      size_t len = tsslen(ts);
+      printf("\"%.*s\"", (int)len, str);
+      break;
+    }
+    case AQL_VNIL:
+      printf("nil");
+      break;
+    case AQL_VFALSE:
+      printf("false");
+      break;
+    case AQL_VTRUE:
+      printf("true");
+      break;
+    default:
+      printf("(unknown type %d)", tag);
+      break;
+  }
+}
+
+/*
+** Free resources associated with a TValue (currently no-op for simple types)
+*/
+AQL_API void aqlP_free_value(TValue *v) {
+  /* For now, no explicit cleanup needed as GC handles string memory */
+  UNUSED(v);
 }
 
 
 /*
-** Execute an AQL source file
+** Execute an AQL source file with automatic last expression display
 ** Returns 1 on success, 0 on error
 */
 AQL_API int aqlP_execute_file(aql_State *L, const char *filename) {
   if (!L || !filename) return 0;
   
-  FILE *f = fopen(filename, "r");
-  if (!f) {
-    printf("Error: Cannot open file '%s'\n", filename);
+  printf("Executing file: %s\n", filename);
+  
+  /* Load and compile the file with automatic return for last expression */
+  if (aql_loadfile_with_return(L, filename) != 0) {
+    printf("Error: Failed to load file '%s'\n", filename);
     return 0;
   }
   
-  /* TODO: Implement file parsing and execution */
-  printf("Executing file: %s\n", filename);
-  printf("(File execution not yet implemented)\n");
+  /* Execute the compiled function with 1 result expected (for last expression) */
+  if (aql_execute(L, 0, 1) != 0) {
+    printf("Error: Failed to execute file '%s'\n", filename);
+    return 0;
+  }
   
-  fclose(f);
-  return 1;  /* success for now */
-}
-
-/*
-** Start the Read-Eval-Print Loop (REPL)
-*/
-AQL_API void aqlP_repl(aql_State *L) {
-  if (!L) return;
+  /* Check if there's a result on the stack (last expression value) */
   
-  printf("AQL %s Interactive Mode\n", AQL_VERSION);
-  printf("Type 'exit' or press Ctrl+C to quit.\n\n");
-  
-  char line[1024];
-  while (1) {
-    printf("aql> ");
-    fflush(stdout);
-    
-    if (!fgets(line, sizeof(line), stdin)) {
-      break;  /* EOF */
-    }
-    
-    /* Remove trailing newline */
-    size_t len = strlen(line);
-    if (len > 0 && line[len-1] == '\n') {
-      line[len-1] = '\0';
-    }
-    
-    /* Skip empty lines */
-    if (strlen(line) == 0) continue;
-    
-    /* Check for exit command */
-    if (strcmp(line, "exit") == 0 || strcmp(line, "quit") == 0) {
-      break;
-    }
-    
-
-    
-    /* Try to parse as expression using hybrid parser */
-    double result;
-    if (aqlP_parse_expression(line, &result) == 0) {
-      printf("%.6g\n", result);
+  if (L->top > L->ci->func + 1) {  /* Has result? */
+    TValue *result = s2v(L->top - 1);
+    /* Only print non-nil results */
+    if (!ttisnil(result)) {
+      aqlP_print_value(result);
+      printf("\n");
     } else {
-      printf("Error: Invalid expression\n");
     }
-  }
-  
-  printf("\nGoodbye!\n");
-}
-
-/*
-** Simplified code generation functions for expression evaluation
-** These are placeholders until full code generation is implemented
-*/
-
-/* Apply unary operator to expression (simplified for direct evaluation) */
-void aqlK_prefix(FuncState *fs, UnOpr op, expdesc *e, int line) {
-  UNUSED(fs); UNUSED(line);
-  
-  switch (op) {
-    case OPR_MINUS:
-      if (e->k == VKINT) {
-        e->u.ival = -e->u.ival;
-      } else if (e->k == VKFLT) {
-        e->u.nval = -e->u.nval;
-      } else {
-        /* Convert other types to numbers and negate */
-        double val = 0.0;
-        if (e->k == VTRUE) val = 1.0;
-        else if (e->k == VFALSE || e->k == VNIL) val = 0.0;
-        e->k = VKFLT;
-        e->u.nval = -val;
-      }
-      break;
-    case OPR_NOT: {
-      /* Convert to boolean and negate */
-      int is_true = 0;
-      if (e->k == VTRUE) is_true = 1;
-      else if (e->k == VKINT) is_true = (e->u.ival != 0);
-      else if (e->k == VKFLT) is_true = (e->u.nval != 0.0);
-      /* else VFALSE, VNIL are already false */
-      
-      e->k = is_true ? VFALSE : VTRUE;
-      break;
-    }
-    case OPR_LEN:
-      /* For now, length of numbers is undefined, return 0 */
-      e->k = VKINT;
-      e->u.ival = 0;
-      break;
-    case OPR_BNOT:
-      /* Bitwise NOT - convert to integer first */
-      if (e->k == VKINT) {
-        e->u.ival = ~e->u.ival;
-      } else if (e->k == VKFLT) {
-        e->k = VKINT;
-        e->u.ival = ~(aql_Integer)e->u.nval;
-      } else {
-        e->k = VKINT;
-        e->u.ival = ~0;  /* NOT of non-numbers */
-      }
-      break;
-    default:
-      break;
-  }
-}
-
-/* Prepare for binary operation (currently no-op) */
-void aqlK_infix(FuncState *fs, BinOpr op, expdesc *v) {
-  UNUSED(fs); UNUSED(op); UNUSED(v);
-  /* TODO: prepare registers if needed */
-}
-
-/* Convert expression to numeric value for calculations */
-static double expdesc_to_number(expdesc *e) {
-  switch (e->k) {
-    case VKINT: return (double)e->u.ival;
-    case VKFLT: return e->u.nval;
-    case VTRUE: return 1.0;
-    case VFALSE: case VNIL: return 0.0;
-    default: return 0.0;
-  }
-}
-
-/* Convert expression to integer value for bitwise operations */
-static aql_Integer expdesc_to_integer(expdesc *e) {
-  switch (e->k) {
-    case VKINT: return e->u.ival;
-    case VKFLT: return (aql_Integer)e->u.nval;
-    case VTRUE: return 1;
-    case VFALSE: case VNIL: return 0;
-    default: return 0;
-  }
-}
-
-/* Check if expression represents a true value */
-static int expdesc_is_true(expdesc *e) {
-  switch (e->k) {
-    case VFALSE: case VNIL: return 0;
-    case VTRUE: return 1;
-    case VKINT: return (e->u.ival != 0);
-    case VKFLT: return (e->u.nval != 0.0);
-    default: return 1;  /* non-false values are true */
-  }
-}
-
-/* Apply binary operator to two expressions (simplified for direct evaluation) */
-void aqlK_posfix(FuncState *fs, BinOpr op, expdesc *e1, expdesc *e2, int line) {
-  UNUSED(fs); UNUSED(line);
-  
-  /* Handle logical operators first (short-circuit evaluation) */
-  if (op == OPR_AND) {
-    if (!expdesc_is_true(e1)) {
-      /* e1 is false, result is e1 */
-      return;
-    } else {
-      /* e1 is true, result is e2 */
-      *e1 = *e2;
-      return;
-    }
-  }
-  
-  if (op == OPR_OR) {
-    if (expdesc_is_true(e1)) {
-      /* e1 is true, result is e1 */
-      return;
-    } else {
-      /* e1 is false, result is e2 */
-      *e1 = *e2;
-      return;
-    }
-  }
-  
-  /* For arithmetic and comparison operators, convert to numbers */
-  double left = expdesc_to_number(e1);
-  double right = expdesc_to_number(e2);
-  double result = 0.0;
-  int is_int = 0;
-  
-  switch (op) {
-    case OPR_ADD: result = left + right; break;
-    case OPR_SUB: result = left - right; break;
-    case OPR_MUL: result = left * right; break;
-    case OPR_DIV: 
-      if (right == 0.0) {
-        /* Division by zero - set to infinity */
-        result = (left >= 0) ? HUGE_VAL : -HUGE_VAL;
-      } else {
-        result = left / right; 
-      }
-      break;
-    case OPR_IDIV:
-      if (right == 0.0) {
-        /* Division by zero - set to infinity */
-        result = (left >= 0) ? HUGE_VAL : -HUGE_VAL;
-      } else {
-        result = floor(left / right);  /* Integer division: floor(a/b) */
-      }
-      is_int = 1;  /* Result is always integer */
-      break;
-    case OPR_MOD: 
-      if (right == 0.0) {
-        result = 0.0;  /* Modulo by zero */
-      } else {
-        result = fmod(left, right); 
-      }
-      break;
-    case OPR_POW: 
-      result = pow(left, right); 
-      break;
-    case OPR_EQ: result = (left == right) ? 1.0 : 0.0; is_int = 1; break;
-    case OPR_NE: result = (left != right) ? 1.0 : 0.0; is_int = 1; break;
-    case OPR_LT: result = (left < right) ? 1.0 : 0.0; is_int = 1; break;
-    case OPR_LE: result = (left <= right) ? 1.0 : 0.0; is_int = 1; break;
-    case OPR_GT: result = (left > right) ? 1.0 : 0.0; is_int = 1; break;
-    case OPR_GE: result = (left >= right) ? 1.0 : 0.0; is_int = 1; break;
-    
-    /* Bitwise operators */
-    case OPR_BAND: {
-      aql_Integer ileft = expdesc_to_integer(e1);
-      aql_Integer iright = expdesc_to_integer(e2);
-      e1->k = VKINT;
-      e1->u.ival = ileft & iright;
-      return;
-    }
-    case OPR_BOR: {
-      aql_Integer ileft = expdesc_to_integer(e1);
-      aql_Integer iright = expdesc_to_integer(e2);
-      e1->k = VKINT;
-      e1->u.ival = ileft | iright;
-      return;
-    }
-    case OPR_BXOR: {
-      aql_Integer ileft = expdesc_to_integer(e1);
-      aql_Integer iright = expdesc_to_integer(e2);
-      e1->k = VKINT;
-      e1->u.ival = ileft ^ iright;
-      return;
-    }
-    case OPR_SHL: {
-      aql_Integer ileft = expdesc_to_integer(e1);
-      aql_Integer iright = expdesc_to_integer(e2);
-      e1->k = VKINT;
-      e1->u.ival = ileft << iright;
-      return;
-    }
-    case OPR_SHR: {
-      aql_Integer ileft = expdesc_to_integer(e1);
-      aql_Integer iright = expdesc_to_integer(e2);
-      e1->k = VKINT;
-      e1->u.ival = ileft >> iright;
-      return;
-    }
-    
-    default:
-      return;  /* unsupported operation */
-  }
-  
-  /* Store result back in e1 */
-  if (is_int || (result == floor(result) && result >= INT_MIN && result <= INT_MAX)) {
-    e1->k = VKINT;
-    e1->u.ival = (aql_Integer)result;
+    /* Clean up stack */
+    L->top = L->ci->func + 1;
   } else {
-    e1->k = VKFLT;
-    e1->u.nval = result;
   }
+  
+  printf_debug("File '%s' executed successfully\n", filename);
+  return 1;  /* success */
 }
+
+/*
+** Check if input starts with a statement keyword
+*/
+static int is_statement(const char *input) {
+  /* Skip leading whitespace */
+  while (isspace(*input)) input++;
+  
+  /* Check for statement keywords */
+  if (strncmp(input, "let ", 4) == 0) return 1;
+  if (strncmp(input, "const ", 6) == 0) return 1;
+  if (strncmp(input, "var ", 4) == 0) return 1;
+  if (strncmp(input, "if ", 3) == 0) return 1;
+  if (strncmp(input, "while ", 6) == 0) return 1;
+  if (strncmp(input, "for ", 4) == 0) return 1;
+  
+  /* Check for type-inferred declaration: name := expr */
+  const char *p = input;
+  /* Skip identifier characters */
+  if (isalpha(*p) || *p == '_') {
+    while (isalnum(*p) || *p == '_') p++;
+    /* Skip whitespace */
+    while (isspace(*p)) p++;
+    /* Check for ':=' */
+    if (p[0] == ':' && p[1] == '=') return 1;
+  }
+  
+  if (strncmp(input, "function ", 9) == 0) return 1;
+  if (strncmp(input, "class ", 6) == 0) return 1;
+  if (strncmp(input, "return ", 7) == 0) return 1;
+  if (strncmp(input, "break", 5) == 0) return 1;
+  
+  return 0;  /* assume expression */
+}
+
+/*
+** Parse and execute a statement (for REPL)
+*/
+AQL_API int aqlP_parse_statement(aql_State *L, const char *stmt_str) {
+  if (!stmt_str || !L) return -1;
+  
+  /* Use the provided aql_State instead of creating a new one */
+  
+  struct Zio z;
+  aqlZ_init_string(L, &z, stmt_str, strlen(stmt_str));
+  
+  LexState ls;
+  memset(&ls, 0, sizeof(ls));
+  ls.L = L;
+  ls.z = &z;
+  ls.linenumber = 1;
+  ls.lastline = 1;
+  ls.current = zgetc(&z);
+  
+  ls.t.token = 0;
+  ls.lookahead.token = TK_EOS;
+  
+  TString *source = aqlStr_newlstr(L, "repl", 4);
+  ls.source = source;
+  
+  Mbuffer buff;
+  aqlZ_initbuffer(L, &buff);
+  ls.buff = &buff;
+  
+  TString *envn = aqlStr_newlstr(L, "_ENV", 4);
+  ls.envn = envn;
+  
+  ls.h = NULL;
+  ls.dyd = NULL;
+  ls.fs = NULL;
+  
+  /* Get first token */
+  aqlX_next(&ls);
+  
+  /* Parse statement */
+  int result = 0;
+  switch (ls.t.token) {
+    case TK_LET: {
+      printf("Parsing let statement...\n");
+      /* For now, just acknowledge the let statement */
+      aqlX_next(&ls);  /* skip 'let' */
+      if (ls.t.token == TK_NAME) {
+        TString *varname = ls.t.seminfo.ts;
+        printf("Variable name: %s\n", getstr(varname));
+        aqlX_next(&ls);  /* skip name */
+               if (ls.t.token == TK_ASSIGN) {
+          aqlX_next(&ls);  /* skip '=' */
+          printf("Assignment detected\n");
+          
+          /* Parse and evaluate the expression */
+          expdesc e;
+          expr(&ls, &e);
+          
+          /* Convert to TValue */
+          TValue value;
+          if (expdesc_to_tvalue(L, &e, &value) == 0) {
+            /* Store the variable */
+            if (set_variable(varname, &value) == 0) {
+              printf("Variable '%s' set to ", getstr(varname));
+              aqlP_print_value(&value);
+              printf("\n");
+              result = 0;
+            } else {
+              REPORT_RUNTIME_ERROR(ls.linenumber, "Variable table full", 
+                                   "Maximum number of variables exceeded");
+              result = -1;
+            }
+          } else {
+            REPORT_RUNTIME_ERROR(ls.linenumber, "Failed to evaluate expression", 
+                                 "Check expression syntax and variable references");
+            result = -1;
+          }
+        } else {
+          REPORT_SYNTAX_ERROR(ls.linenumber, "Expected '=' after variable name", 
+                              "Use 'let variable = value' syntax");
+          result = -1;
+        }
+      } else {
+        REPORT_SYNTAX_ERROR(ls.linenumber, "Expected variable name after 'let'", 
+                            "Use 'let variable = value' syntax");
+        result = -1;
+      }
+      break;
+    }
+    case TK_NAME: {
+      printf("Parsing assignment statement...\n");
+      /* Assignment: name = expression */
+      TString *varname = ls.t.seminfo.ts;
+      printf("Variable name: %s\n", getstr(varname));
+      aqlX_next(&ls);  /* skip name */
+      if (ls.t.token == TK_ASSIGN) {
+        aqlX_next(&ls);  /* skip ':=' */
+        printf("Type-inferred assignment detected\n");
+        
+        /* Parse and evaluate the expression */
+        expdesc e;
+        expr(&ls, &e);
+        
+        /* Convert to TValue */
+        TValue value;
+        if (expdesc_to_tvalue(L, &e, &value) == 0) {
+          /* Store the variable */
+          if (set_variable(varname, &value) == 0) {
+            printf("Variable '%s' set to ", getstr(varname));
+            aqlP_print_value(&value);
+            printf("\n");
+            result = 0;
+          } else {
+            REPORT_RUNTIME_ERROR(ls.linenumber, "Variable table full", 
+                                 "Maximum number of variables exceeded");
+            result = -1;
+          }
+        } else {
+          REPORT_RUNTIME_ERROR(ls.linenumber, "Failed to evaluate expression", 
+                               "Check expression syntax and variable references");
+          result = -1;
+        }
+      } else {
+        REPORT_SYNTAX_ERROR(ls.linenumber, "Expected '=' after variable name", 
+                            "Use 'variable = value' syntax");
+        result = -1;
+      }
+      break;
+    }
+    case TK_IF: {
+      printf("Parsing if statement...\n");
+      /* For now, just parse the tokens without full execution */
+      aqlX_next(&ls);  /* skip 'if' */
+      
+      /* Parse condition */
+      expdesc e;
+      expr(&ls, &e);
+      printf("Condition parsed\n");
+      
+      /* Expect '{' */
+      if (ls.t.token == '{') {
+        aqlX_next(&ls);  /* skip '{' */
+        printf("Opening brace found\n");
+        
+        /* Skip statements until '}' */
+        int brace_count = 1;
+        while (brace_count > 0 && ls.t.token != TK_EOS) {
+          if (ls.t.token == '{') brace_count++;
+          else if (ls.t.token == '}') brace_count--;
+          aqlX_next(&ls);
+        }
+        printf("If statement parsed successfully\n");
+        result = 0;
+      } else {
+        REPORT_SYNTAX_ERROR(ls.linenumber, "Expected '{' after if condition", 
+                            "Use 'if condition { ... }' syntax");
+        result = -1;
+      }
+      break;
+    }
+    default: {
+      REPORT_SYNTAX_ERROR(ls.linenumber, "Unsupported statement type", 
+                          "Use 'let', assignment, or expression statements");
+      result = -1;
+      break;
+    }
+  }
+  
+  /* Cleanup */
+  aqlZ_freebuffer(L, &buff);
+  aqlZ_cleanup_string(L, &z);
+  
+  return result;
+}
+
+/* Compilation functions moved to aapi.c */
+
+/* Execution functions moved to aapi.c */
+
+/* REPL functionality moved to arepl.c for better separation of concerns */

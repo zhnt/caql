@@ -197,6 +197,7 @@ typedef struct global_State {
   aql_mem lastatomic;  /* see function 'genstep' in file 'lgc.c' */
   stringtable strt;  /* hash table for strings */
   TValue l_registry;
+  TValue l_globals;  /* global variables dict */
   TValue nilvalue;  /* a nil value */
   unsigned int seed;  /* randomized seed for hashes */
   aql_byte currentwhite;

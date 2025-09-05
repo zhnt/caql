@@ -11,7 +11,7 @@
 
 #include <stddef.h>
 
-#include "adebug.h"
+#include "adebug_internal.h"
 #include "ado.h"
 #include "afunc.h"
 #include "agc.h"

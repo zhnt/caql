@@ -64,7 +64,7 @@ enum RESERVED {
   
   /* other terminal symbols */
   TK_IDIV, TK_CONCAT, TK_DOTS, TK_DBCOLON, TK_EOS,
-  TK_FLT, TK_INT_LITERAL, TK_NAME, TK_STRING_LITERAL, TK_STRING,
+  TK_FLT, TK_INT_LITERAL, TK_NAME, TK_STRING_INTERP,
   
   /* AQL specific operators */
   TK_ARROW, TK_PIPE, TK_QUESTION, TK_NULLCOAL, TK_TERNARY,
@@ -98,6 +98,7 @@ typedef struct LexState {
   int current;  /* current character (charint) */
   int linenumber;  /* input line counter */
   int lastline;  /* line of last token 'consumed' */
+  int column;  /* current column position */
   Token t;  /* current token */
   Token lookahead;  /* look ahead token */
   struct FuncState *fs;  /* current function (parser) */

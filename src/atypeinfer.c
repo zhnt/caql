@@ -9,7 +9,7 @@
 #include "avm.h"
 #include "aopcodes.h"
 #include "amem.h"
-#include "adebug.h"
+#include "adebug_internal.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>

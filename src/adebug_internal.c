@@ -4,7 +4,7 @@
 ** See Copyright Notice in aql.h
 */
 
-#include "adebug.h"
+#include "adebug_internal.h"
 #include "astate.h"
 #include "aobject.h"
 #include <stdio.h>
@@ -191,7 +191,7 @@ void aqlD_pop_frame(void) {
 /*
 ** Performance profiling
 */
-void aqlD_profile_start(const char *name) {
+void aqlD_internal_profile_start(const char *name) {
     if (!aqlD_is_enabled() || !g_debug_state.profile_enabled) return;
     
     /* Find existing entry or create new one */
@@ -216,7 +216,7 @@ void aqlD_profile_start(const char *name) {
     }
 }
 
-void aqlD_profile_end(const char *name) {
+void aqlD_internal_profile_end(const char *name) {
     if (!aqlD_is_enabled() || !g_debug_state.profile_enabled) return;
     
     for (int i = 0; i < g_debug_state.profile_count; i++) {

@@ -12,6 +12,21 @@
 
 #include "aconf.h"
 
+/*
+** Debug output control
+** Disable old DEBUG printf statements by default
+*/
+#ifndef DEBUG_DISABLED
+#define DEBUG_DISABLED 1
+#endif
+
+/* Macro to disable old printf DEBUG statements */
+#if DEBUG_DISABLED
+#define printf_debug(...) ((void)0)
+#else
+#define printf_debug printf
+#endif
+
 #define AQL_VERSION_MAJOR	"1"
 #define AQL_VERSION_MINOR	"0"
 #define AQL_VERSION_RELEASE	"0"
@@ -254,6 +269,9 @@ AQL_API int   (aql_setiuservalue) (aql_State *L, int idx, int n);
 /*
 ** 'load' and 'call' functions (load and run AQL code)
 */
+AQL_API int   (aql_loadstring) (aql_State *L, const char *source);
+AQL_API int   (aql_execute) (aql_State *L, int nargs, int nresults);
+
 AQL_API void  (aql_callk) (aql_State *L, int nargs, int nresults,
                            aql_KContext ctx, aql_KFunction k);
 #define aql_call(L,n,r)		aql_callk(L, (n), (r), 0, NULL)

@@ -7,7 +7,7 @@
 
 #include "acodegen.h"
 #include "amem.h"
-#include "adebug.h"
+#include "adebug_internal.h"
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>

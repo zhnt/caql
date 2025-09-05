@@ -19,7 +19,7 @@ typedef struct aql_State aql_State;
 ** pointer to the new vector.
 */
 #define aqlM_reallocv(L,v,oldn,n,t) \
-	(cast_charp(aqlM_malloc(L, cast_sizet(n) * sizeof(t))))
+	(cast(t*, aqlM_realloc(L, v, cast_sizet(oldn) * sizeof(t), cast_sizet(n) * sizeof(t))))
 
 #define aqlM_freemem(L, b, s)	aqlM_free(L, (b), (s))
 #define aqlM_free(L, b, s)	aqlM_realloc(L, (b), (s), 0)

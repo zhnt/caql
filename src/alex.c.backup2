@@ -13,70 +13,7 @@
 #include <stdio.h>
 #include <limits.h>
 #include <stdlib.h>
-
-#include "adebug_user.h"
 #include <setjmp.h>
-
-#ifdef AQL_DEBUG_BUILD
-/* Token collection for debug output - only in debug builds */
-static AQL_TokenInfo *debug_tokens = NULL;
-static int debug_token_count = 0;
-static int debug_token_capacity = 0;
-static int debug_collecting_tokens = 0;
-
-/* Token collection functions */
-void start_token_collection(void) {
-    if (aql_debug_enabled && (aql_debug_flags & AQL_DEBUG_LEX)) {
-        debug_collecting_tokens = 1;
-        debug_token_count = 0;
-        if (!debug_tokens) {
-            debug_token_capacity = 64;
-            debug_tokens = malloc(debug_token_capacity * sizeof(AQL_TokenInfo));
-        }
-    }
-}
-
-static void add_debug_token(int token_type, const char *value, int line, int column) {
-    if (!debug_collecting_tokens) return;
-    
-    if (debug_token_count >= debug_token_capacity) {
-        debug_token_capacity *= 2;
-        debug_tokens = realloc(debug_tokens, debug_token_capacity * sizeof(AQL_TokenInfo));
-    }
-    
-    AQL_TokenInfo *token = &debug_tokens[debug_token_count++];
-    token->type = token_type;
-    token->name = aqlD_token_name(token_type);
-    token->value = value ? strdup(value) : NULL;
-    token->line = line;
-    token->column = column;
-}
-
-void finish_token_collection(void) {
-    if (!debug_collecting_tokens) return;
-    
-    aqlD_print_tokens_header();
-    for (int i = 0; i < debug_token_count; i++) {
-        aqlD_print_token(i, &debug_tokens[i]);
-        if (debug_tokens[i].value) {
-            free((void*)debug_tokens[i].value);
-        }
-    }
-    aqlD_print_tokens_footer(debug_token_count);
-    
-    debug_collecting_tokens = 0;
-    debug_token_count = 0;
-}
-
-#else
-/* Release build - no token collection */
-void start_token_collection(void) { /* no-op */ }
-void finish_token_collection(void) { /* no-op */ }
-static void add_debug_token(int token_type, const char *value, int line, int column) { 
-    (void)token_type; (void)value; (void)line; (void)column; /* no-op */ 
-}
-#endif
-
 
 /* Include core AQL headers */
 #include "aql.h"
@@ -121,14 +58,10 @@ static const char *const aql_tokens [] = {
 #define next(ls)	do { \
   int old_current = ls->current; \
   ls->current = zgetc(ls->z); \
-  if (old_current == '\n' || old_current == '\r') { \
-    ls->column = 1; \
-  } else { \
-    ls->column++; \
-  } \
-  AQL_DEBUG(AQL_DEBUG_LEX, "next: %c (%d) -> %c (%d)", \
+  printf("[DEBUG] next: %c (%d) -> %c (%d)\n", \
          (old_current >= 32 && old_current < 127) ? old_current : '?', old_current, \
          (ls->current >= 32 && ls->current < 127) ? ls->current : '?', ls->current); \
+  fflush(stdout); \
 } while(0)
 #define currIsNewline(ls)	(ls->current == '\n' || ls->current == '\r')
 
@@ -158,33 +91,62 @@ static void inclinenumber(LexState *ls) {
 }
 
 static void save(LexState *ls, int c) {
+  printf("[DEBUG] save: entry, c='%c' (%d)\n", 
+         (c >= 32 && c < 127) ? c : '?', c);
+  fflush(stdout);
   
   Mbuffer *b = ls->buff;
+  printf("[DEBUG] save: buffer=%p\n", (void*)b);
+  fflush(stdout);
   
   if (!b) {
+    printf("[DEBUG] save: ERROR - buffer is NULL!\n");
+    fflush(stdout);
     return;
   }
   
   if (!b->buffer) {
+    printf("[DEBUG] save: buffer->buffer is NULL, initializing...\n");
+    fflush(stdout);
     /* Initialize buffer using AQL's buffer system */
     aqlZ_resizebuffer(ls->L, b, 32);
+    printf("[DEBUG] save: buffer initialized with size %zu\n", b->buffsize);
+    fflush(stdout);
   }
   
+  printf("[DEBUG] save: bufflen=%zu, sizebuffer=%zu\n", 
+         aqlZ_bufflen(b), aqlZ_sizebuffer(b));
+  fflush(stdout);
   
   if (aqlZ_bufflen(b) + 1 > aqlZ_sizebuffer(b)) {
+    printf("[DEBUG] save: resizing buffer\n");
+    fflush(stdout);
     size_t newsize;
     if (aqlZ_sizebuffer(b) >= MAX_SIZE/2) {
+      printf("[DEBUG] save: ERROR - buffer too large!\n");
+      fflush(stdout);
       aqlX_lexerror(ls, "lexical element too long", 0);
     }
     newsize = aqlZ_sizebuffer(b) * 2;
+    printf("[DEBUG] save: resizing from %zu to %zu\n", aqlZ_sizebuffer(b), newsize);
+    fflush(stdout);
     aqlZ_resizebuffer(ls->L, b, newsize);
+    printf("[DEBUG] save: resize completed\n");
+    fflush(stdout);
   }
   
+  printf("[DEBUG] save: storing character at index %zu\n", aqlZ_bufflen(b));
+  fflush(stdout);
   b->buffer[aqlZ_bufflen(b)++] = cast_char(c);
   
+  printf("[DEBUG] save: completed\n");
+  fflush(stdout);
 }
 
 static void save_and_next(LexState *ls) {
+  printf("[DEBUG] save_and_next: entry, current='%c' (%d)\n", 
+         (ls->current >= 32 && ls->current < 127) ? ls->current : '?', ls->current);
+  fflush(stdout);
   
   save(ls, ls->current);
   next(ls);
@@ -261,17 +223,28 @@ static void read_string(LexState *ls, int del, SemInfo *seminfo) {
 }
 
 static int read_numeral(LexState *ls, SemInfo *seminfo) {
+  printf("[DEBUG] read_numeral: entry\n");
+  fflush(stdout);
   
   /* Simple integer parsing for now */
   aql_Integer value = 0;
   do {
+    printf("[DEBUG] read_numeral: processing digit '%c'\n", ls->current);
+    fflush(stdout);
     
     value = value * 10 + (ls->current - '0');
     
+    printf("[DEBUG] read_numeral: calling save_and_next\n");
+    fflush(stdout);
     save_and_next(ls);
     
+    printf("[DEBUG] read_numeral: after save_and_next, current='%c' (%d)\n", 
+           (ls->current >= 32 && ls->current < 127) ? ls->current : '?', ls->current);
+    fflush(stdout);
   } while (isdigit(ls->current));
   
+  printf("[DEBUG] read_numeral: final value = %ld\n", (long)value);
+  fflush(stdout);
   
   seminfo->i = value;
   return TK_INT;
@@ -280,9 +253,12 @@ static int read_numeral(LexState *ls, SemInfo *seminfo) {
 static int isreserved(TString *ts) {
   const char *s = getstr(ts);
   
+  printf("[DEBUG] isreserved: checking '%s' (len=%zu)\n", s, strlen(s));
+  fflush(stdout);
   
   /* Check for mathematical keywords */
   if (strcmp(s, "div") == 0) {
+    /* printf("[DEBUG] isreserved: found 'div', returning TK_DIV_KW = %d\n", TK_DIV_KW); */
     return TK_DIV_KW;
   }
   
@@ -304,9 +280,12 @@ static int isreserved(TString *ts) {
   if (strcmp(s, "end") == 0) return TK_END;
   if (strcmp(s, "break") == 0) return TK_BREAK;
   if (strcmp(s, "return") == 0) {
+    printf("[DEBUG] isreserved: found 'return', returning TK_RETURN = %d\n", TK_RETURN);
+    fflush(stdout);
     return TK_RETURN;
   }
   
+  /* printf("[DEBUG] isreserved: '%s' not reserved, returning 0\n", s); */
   
   /* For now, return 0 for other keywords */
   return 0;  /* not reserved */
@@ -319,26 +298,21 @@ static int isreserved(TString *ts) {
 */
 
 static int aql_lex(LexState *ls, SemInfo *seminfo) {
+  printf("[DEBUG] aql_lex: entry, current='%c' (%d)\n", 
+         (ls->current >= 32 && ls->current < 127) ? ls->current : '?', ls->current);
+  fflush(stdout);
   
-  int token_type;
-  const char *token_value = NULL;
-  
-  /* Macro to collect token and return */
-  #ifdef AQL_DEBUG_BUILD
-  #define RETURN_TOKEN(type, value) do { \
-    token_type = (type); \
-    token_value = (value); \
-    add_debug_token(token_type, token_value, ls->linenumber, ls->column); \
-    return token_type; \
-  } while(0)
-  #else
-  #define RETURN_TOKEN(type, value) return (type)
-  #endif
-  
+  printf("[DEBUG] aql_lex: calling aqlZ_resetbuffer\n");
+  fflush(stdout);
   aqlZ_resetbuffer(ls->buff);
   
+  printf("[DEBUG] aql_lex: entering main loop\n");
+  fflush(stdout);
   
   for (;;) {
+    printf("[DEBUG] aql_lex: switch on current='%c' (%d)\n", 
+           (ls->current >= 32 && ls->current < 127) ? ls->current : '?', ls->current);
+    fflush(stdout);
     
     switch (ls->current) {
       case '\n': case '\r': {  /* line breaks */
@@ -353,27 +327,14 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
       /* Numbers */
       case '0': case '1': case '2': case '3': case '4':
       case '5': case '6': case '7': case '8': case '9': {
-        int start_col = ls->column;
-        token_type = read_numeral(ls, seminfo);
-        char num_buf[32];
-        if (token_type == TK_INT) {
-          snprintf(num_buf, sizeof(num_buf), "%lld", seminfo->i);
-        } else {
-          snprintf(num_buf, sizeof(num_buf), "%.2f", seminfo->r);
-        }
-        #ifdef AQL_DEBUG_BUILD
-        add_debug_token(token_type, num_buf, ls->linenumber, start_col);
-        #endif
-        return token_type;
+        printf("[DEBUG] aql_lex: processing number, calling read_numeral\n");
+        fflush(stdout);
+        return read_numeral(ls, seminfo);
       }
       
       /* Arithmetic operators */
       case '+': {
-        int start_col = ls->column;
         next(ls);
-        #ifdef AQL_DEBUG_BUILD
-        add_debug_token(TK_PLUS, NULL, ls->linenumber, start_col);
-        #endif
         return TK_PLUS;
       }
       case '-': {
@@ -385,16 +346,16 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
             next(ls);
           break;  /* continue loop to skip whitespace */
         }
-        RETURN_TOKEN(TK_MINUS, NULL);
+        return TK_MINUS;
       }
       case '*': {
         next(ls);
-        if (check_next1(ls, '*')) RETURN_TOKEN(TK_POW, NULL);  /* '**' */
-        else RETURN_TOKEN(TK_MUL, NULL);  /* '*' */
+        if (check_next1(ls, '*')) return TK_POW;  /* '**' */
+        else return TK_MUL;  /* '*' */
       }
       case '/': {
         next(ls);
-        RETURN_TOKEN(TK_DIV, NULL);
+        return TK_DIV;
       }
       case '%': {
         next(ls);
@@ -481,7 +442,11 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
       
       /* Default: identifiers or single-char tokens */
       default: {
+        printf("[DEBUG] aql_lex: default case, current='%c' (%d)\n", ls->current, ls->current);
+        fflush(stdout);
         if (aqlX_isalpha(ls->current)) {  /* identifier or reserved word? */
+          printf("[DEBUG] aql_lex: processing identifier\n");
+          fflush(stdout);
           TString *ts;
           do {
             save_and_next(ls);
@@ -489,7 +454,11 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
           ts = aqlX_newstring(ls, aqlZ_buffer(ls->buff),
                              aqlZ_bufflen(ls->buff));
           seminfo->ts = ts;
+          printf("[DEBUG] aql_lex: created string, about to call isreserved\n");
+          fflush(stdout);
           int reserved = isreserved(ts);
+          printf("[DEBUG] aql_lex: isreserved returned %d\n", reserved);
+          fflush(stdout);
           if (reserved)  /* reserved word? */
             return reserved;
           else {
@@ -513,14 +482,22 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
 */
 
 void aqlX_next(LexState *ls) {
+  printf("[DEBUG] aqlX_next: entry\n");
+  fflush(stdout);
   
   ls->lastline = ls->linenumber;
   if (ls->lookahead.token != TK_EOS) {  /* is there a look-ahead token? */
+    printf("[DEBUG] aqlX_next: using lookahead token\n");
+    fflush(stdout);
     ls->t = ls->lookahead;  /* use this one */
     ls->lookahead.token = TK_EOS;  /* and discharge it */
   }
   else {
+    printf("[DEBUG] aqlX_next: calling aql_lex\n");
+    fflush(stdout);
     ls->t.token = aql_lex(ls, &ls->t.seminfo);  /* read next token */
+    printf("[DEBUG] aqlX_next: aql_lex returned token %d\n", ls->t.token);
+    fflush(stdout);
   }
 }
 
@@ -535,6 +512,9 @@ int aqlX_lookahead(LexState *ls) {
 */
 void aqlX_setinput(aql_State *L, LexState *ls, ZIO *z, TString *source,
                    int firstchar) {
+  printf("[DEBUG] aqlX_setinput: entry, firstchar='%c' (%d)\n", 
+         (firstchar >= 32 && firstchar < 127) ? firstchar : '?', firstchar);
+  fflush(stdout);
   
   ls->t.token = 0;
   ls->L = L;
@@ -543,12 +523,13 @@ void aqlX_setinput(aql_State *L, LexState *ls, ZIO *z, TString *source,
   ls->z = z;
   ls->fs = NULL;
   ls->linenumber = 1;
-  ls->column = 1;
   ls->lastline = 1;
   ls->source = source;
   ls->envn = aqlStr_newlstr(L, "_ENV", strlen("_ENV"));  /* get env name */
   aqlZ_resizebuffer(ls->L, ls->buff, 32);  /* initialize buffer */
   
+  printf("[DEBUG] aqlX_setinput: completed\n");
+  fflush(stdout);
 }
 
 /*

@@ -1,0 +1,6 @@
+x := 5
+y := 3
+sum := x + y
+product := x * y
+power := x ** 2
+difference := x - y

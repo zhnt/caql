@@ -89,8 +89,7 @@ AQL_API GCObject *aqlC_newobj(aql_State *L, int tt, size_t sz) {
     if (o == NULL) return NULL;
     
     o->marked = aqlC_white(g);
-    /* Note: GCObject doesn't have 'tt' field directly, it's in the CommonHeader */
-    /* This is a simplified implementation for MVP */
+    o->tt_ = cast_byte(tt);  /* Set the type tag */
     o->next = g->allgc;
     g->allgc = o;
     

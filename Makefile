@@ -5,7 +5,9 @@
 
 # Compiler and flags
 CC = gcc
-CFLAGS = -std=c11 -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -I./src
+BASE_CFLAGS = -std=c11 -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -I./src
+DEBUG_CFLAGS = $(BASE_CFLAGS) -DAQL_DEBUG_BUILD -g -O0 -DDEBUG_DISABLED=0
+RELEASE_CFLAGS = $(BASE_CFLAGS) -O2 -DNDEBUG -DDEBUG_DISABLED=1
 LDFLAGS = -lm
 
 # Directories
@@ -13,8 +15,9 @@ SRC_DIR = src
 BUILD_DIR = build
 BIN_DIR = bin
 
-# Target executable
-TARGET = $(BIN_DIR)/aql
+# Target executables
+TARGET_RELEASE = $(BIN_DIR)/aql
+TARGET_DEBUG = $(BIN_DIR)/aqld
 
 # Core source files (working modules)
 CORE_SOURCES = \
@@ -33,7 +36,8 @@ CORE_SOURCES = \
     $(SRC_DIR)/adatatype.c \
     $(SRC_DIR)/atype.c \
     $(SRC_DIR)/astring.c \
-    $(SRC_DIR)/adebug.c \
+    $(SRC_DIR)/adebug_internal.c \
+    $(SRC_DIR)/adebug_user.c \
     $(SRC_DIR)/aperf.c \
     $(SRC_DIR)/atypeinfer.c \
     $(SRC_DIR)/avm.c \
@@ -45,11 +49,22 @@ CORE_SOURCES = \
     $(SRC_DIR)/aregalloc.c \
     $(SRC_DIR)/aoptimizer.c \
     $(SRC_DIR)/aql.c \
+    $(SRC_DIR)/aapi.c \
+    $(SRC_DIR)/ado.c \
     $(SRC_DIR)/aparser.c \
+    $(SRC_DIR)/acode.c \
+    $(SRC_DIR)/aerror.c \
+    $(SRC_DIR)/arepl.c \
     $(SRC_DIR)/main.c
 
 # Object files (replace .c with .o and move to build dir)
-CORE_OBJECTS = $(CORE_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+# Object files for different build types
+DEBUG_BUILD_DIR = $(BUILD_DIR)/debug
+RELEASE_BUILD_DIR = $(BUILD_DIR)/release
+DEBUG_OBJECTS = $(CORE_SOURCES:$(SRC_DIR)/%.c=$(DEBUG_BUILD_DIR)/%.o)
+RELEASE_OBJECTS = $(CORE_SOURCES:$(SRC_DIR)/%.c=$(RELEASE_BUILD_DIR)/%.o)
+# Keep old name for compatibility with tests
+CORE_OBJECTS = $(DEBUG_OBJECTS)
 
 # Problematic sources (to be fixed later)
 PROBLEM_SOURCES = \
@@ -59,26 +74,52 @@ PROBLEM_SOURCES = \
 HEADERS = $(wildcard $(SRC_DIR)/*.h)
 
 # Default target
-.PHONY: all mvp1 clean dirs test test_phase1 test_phase2 test_phase3 test_phase4
+.PHONY: all both debug release clean dirs test test_phase1 test_phase2 test_phase3 test_phase4
 
-all: mvp1
+all: both
 
-mvp1: dirs $(TARGET)
+# Build both debug and release versions
+both: dirs $(TARGET_DEBUG) $(TARGET_RELEASE)
+
+# Build only debug version
+debug: dirs $(TARGET_DEBUG)
+
+# Build only release version  
+release: dirs $(TARGET_RELEASE)
 
 # Create necessary directories
 dirs:
 	@mkdir -p $(BUILD_DIR) $(BIN_DIR)
 
 # Link the executable
-$(TARGET): $(CORE_OBJECTS)
-	@echo "Linking AQL MVP1 executable..."
-	$(CC) $(CORE_OBJECTS) -o $@ $(LDFLAGS)
-	@echo "✅ Successfully built AQL MVP1: $@"
+# Link the release executable
+$(TARGET_RELEASE): $(RELEASE_OBJECTS)
+	@echo "Linking AQL Release executable..."
+	$(CC) $(RELEASE_OBJECTS) -o $@ $(LDFLAGS)
+	@echo "✅ Successfully built AQL Release: $@"
 
-# Compile core source files
+# Link the debug executable
+$(TARGET_DEBUG): $(DEBUG_OBJECTS)
+	@echo "Linking AQL Debug executable..."
+	$(CC) $(DEBUG_OBJECTS) -o $@ $(LDFLAGS)
+	@echo "✅ Successfully built AQL Debug: $@"
+
+# Compile debug version
+$(DEBUG_BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
+	@echo "Compiling $< (debug)..."
+	@mkdir -p $(DEBUG_BUILD_DIR)
+	$(CC) $(DEBUG_CFLAGS) -c $< -o $@
+
+# Compile release version  
+$(RELEASE_BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
+	@echo "Compiling $< (release)..."
+	@mkdir -p $(RELEASE_BUILD_DIR)
+	$(CC) $(RELEASE_CFLAGS) -c $< -o $@
+
+# Keep old rule for compatibility with tests
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
 	@echo "Compiling $<..."
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(DEBUG_CFLAGS) -c $< -o $@
 
 # Clean build artifacts
 clean:

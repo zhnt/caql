@@ -17,6 +17,7 @@
 #include "aql.h"
 #include "aconf.h"
 #include "aobject.h"
+#include "astate.h"
 
 /* Temporary math function implementations */
 static aql_Number aql_numpow(aql_State *L, aql_Number v1, aql_Number v2) {
@@ -133,40 +134,9 @@ AQL_API int isdead (global_State *g, GCObject *o) {
   return 0;
 }
 
-/*
-** VM function call support (placeholder implementations)
-*/
-int aqlD_precall (aql_State *L, StkId func, int nResults) {
-  /* Placeholder - simplified function call setup */
-  UNUSED(L); UNUSED(func); UNUSED(nResults);
-  /* In a real implementation, this would:
-     1. Check if function is C or AQL function
-     2. Set up call frame
-     3. Return 1 for C functions, 0 for AQL functions
-  */
-  return 1;  /* Assume C function for simplicity */
-}
+/* VM function call support moved to ado.c */
 
-int aqlD_poscall (aql_State *L, struct CallInfo *ci, int nres) {
-  /* Placeholder - simplified function call cleanup */
-  UNUSED(L); UNUSED(ci); UNUSED(nres);
-  /* In a real implementation, this would:
-     1. Move results to proper stack positions
-     2. Restore previous call frame
-     3. Return number of results
-  */
-  return 0;
-}
-
-int aqlD_pretailcall (aql_State *L, struct CallInfo *ci, StkId func, int narg1, int delta) {
-  /* Placeholder - simplified tail call setup */
-  UNUSED(L); UNUSED(ci); UNUSED(func); UNUSED(narg1); UNUSED(delta);
-  /* In a real implementation, this would:
-     1. Set up tail call optimization
-     2. Reuse current call frame
-  */
-  return 0;
-}
+/* Call management functions moved to ado.c */
 
 /*
 ** Integer arithmetic operations

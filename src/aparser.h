@@ -14,7 +14,7 @@
 /* kinds of variables/expressions */
 typedef enum {
   VVOID,       /* when 'expdesc' describes the last expression of a list,
-                   this kind means an empty list (so, no expression) */
+               this kind means an empty list (so, no expression) */
   VNIL,        /* constant nil */
   VTRUE,       /* constant true */
   VFALSE,      /* constant false */
@@ -156,13 +156,18 @@ typedef struct FuncState {
 } FuncState;
 
 AQL_API LClosure *aqlY_parser (aql_State *L, struct Zio *z, Mbuffer *buff,
-                                Dyndata *dyd, const char *name, int firstchar);
+                              Dyndata *dyd, const char *name, int firstchar);
 
-/* REPL and expression parsing functions */
-AQL_API int aqlP_parse_expression(const char *expr_str, double *result);
-AQL_API int aqlP_parse_expression_v3(const char *expr_str, double *result);  /* Lua-style precedence climbing */
+/* Expression and statement parsing functions */
+AQL_API int aqlP_parse_expression(aql_State *L, const char *expr_str, TValue *result);  /* Unified function using TValue */
+AQL_API int aqlP_parse_statement(aql_State *L, const char *stmt_str);
 AQL_API int aqlP_execute_file(aql_State *L, const char *filename);
-AQL_API void aqlP_repl(aql_State *L);
+
+/* Compilation and execution functions moved to aapi.h */
+
+/* Helper functions for TValue manipulation in REPL */
+AQL_API void aqlP_print_value(const TValue *v);
+AQL_API void aqlP_free_value(TValue *v);
 
 /*
 ** Marks the end of a patch list. It is an invalid value both as an absolute
@@ -209,9 +214,6 @@ typedef struct ConsControl {
   int tostore;  /* number of array elements pending to be stored */
 } ConsControl;
 
-/* Code generation functions (simplified for REPL) */
-void aqlK_prefix(FuncState *fs, UnOpr op, expdesc *e, int line);
-void aqlK_infix(FuncState *fs, BinOpr op, expdesc *v);
-void aqlK_posfix(FuncState *fs, BinOpr op, expdesc *e1, expdesc *e2, int line);
+/* Code generation functions are in acode.h */
 
 #endif

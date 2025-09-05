@@ -12,7 +12,9 @@
 #include "astate.h"
 #include "avm.h"
 #include "aparser.h"
+#include "arepl.h"
 #include "ajit.h"
+#include "adebug_user.h"
 
 
 /*
@@ -23,9 +25,21 @@ static void print_usage(const char *progname) {
     printf("Usage: %s [options] [file]\n\n", progname);
     printf("Options:\n");
     printf("  -h, --help     Show this help message\n");
-    printf("  -v, --version  Show version information\n");
+    printf("  --version      Show version information\n");
     printf("  -i, --interactive  Enter interactive mode (default if no file)\n");
     printf("  -e <expr>      Evaluate expression directly\n");
+    printf("  --test         Run comprehensive arithmetic tests\n\n");
+    printf("Debug Options:\n");
+    printf("  -v             Show all debug details (equivalent to -vt -va -vb -ve -vr)\n");
+    printf("  -vt            Show tokens from lexical analysis\n");
+    printf("  -va            Show abstract syntax tree (AST)\n");
+    printf("  -vb            Show bytecode instructions\n");
+    printf("  -ve            Show execution trace\n");
+    printf("  -vr            Show register values during execution\n");
+    printf("  -vm            Show memory management info\n");
+    printf("  -vg            Show garbage collection info\n");
+    printf("  -vd            Show REPL debug information\n\n");
+    printf("JIT Options:\n");
     printf("  --jit-auto     Enable automatic JIT compilation (default)\n");
     printf("  --jit-off      Disable JIT compilation\n");
     printf("  --jit-force    Force JIT compilation for all functions\n");
@@ -33,6 +47,8 @@ static void print_usage(const char *progname) {
     printf("Examples:\n");
     printf("  %s                    # Interactive mode with auto-JIT\n", progname);
     printf("  %s script.aql         # Execute file with JIT\n", progname);
+    printf("  %s -v script.aql      # Execute with full debug output\n", progname);
+    printf("  %s -vt -ve script.aql # Show tokens and execution trace\n", progname);
     printf("  %s --jit-off script.aql # Execute without JIT\n", progname);
     printf("  %s -e \"2 + 3 * 4\"     # Evaluate expression\n", progname);
 }
@@ -72,8 +88,8 @@ static int run_tests(aql_State *L) {
     
     for (int i = 0; test_expressions[i]; i++) {
         printf("Testing: %s\n", test_expressions[i]);
-        double result;
-        if (aqlP_parse_expression(test_expressions[i], &result) == 0) {
+        TValue expr_result;
+        if (aqlP_parse_expression(L, test_expressions[i], &expr_result) == 0) {
             if (aql_gettop(L) > 0) {
                 if (aql_isinteger(L, -1)) {
                     printf("  Result: %lld\n", aql_tointeger(L, -1));
@@ -118,14 +134,35 @@ int main(int argc, char *argv[]) {
     int jit_mode = 1;  // 0=off, 1=auto, 2=force, 3=stats
     int show_jit_stats = 0;
     
+    /* Debug configuration */
+    int debug_flags = AQL_DEBUG_NONE;
+    
     /* Parse command line arguments */
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             print_usage(progname);
             return 0;
-        } else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
+        } else if (strcmp(argv[i], "--version") == 0) {
             print_version();
             return 0;
+        } else if (strcmp(argv[i], "-v") == 0) {
+            debug_flags = AQL_DEBUG_ALL;
+        } else if (strcmp(argv[i], "-vt") == 0) {
+            debug_flags |= AQL_DEBUG_LEX;
+        } else if (strcmp(argv[i], "-va") == 0) {
+            debug_flags |= AQL_DEBUG_PARSE;
+        } else if (strcmp(argv[i], "-vb") == 0) {
+            debug_flags |= AQL_DEBUG_CODE;
+        } else if (strcmp(argv[i], "-ve") == 0) {
+            debug_flags |= AQL_DEBUG_VM;
+        } else if (strcmp(argv[i], "-vr") == 0) {
+            debug_flags |= AQL_DEBUG_REG;
+        } else if (strcmp(argv[i], "-vm") == 0) {
+            debug_flags |= AQL_DEBUG_MEM;
+        } else if (strcmp(argv[i], "-vg") == 0) {
+            debug_flags |= AQL_DEBUG_GC;
+        } else if (strcmp(argv[i], "-vd") == 0) {
+            debug_flags |= AQL_DEBUG_REPL;
         } else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--interactive") == 0) {
             interactive = 1;
         } else if (strcmp(argv[i], "--test") == 0) {
@@ -165,6 +202,10 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     
+    /* Initialize debug system */
+    aqlD_init_debug();
+    aqlD_set_debug_flags(debug_flags);
+    
     /* Initialize JIT if enabled */
     #if AQL_USE_JIT
     if (jit_mode > 0) {
@@ -191,8 +232,8 @@ int main(int argc, char *argv[]) {
     } else if (expression) {
         /* Evaluate single expression */
         printf("Evaluating: %s\n", expression);
-        double result;
-        if (aqlP_parse_expression(expression, &result) == 0) {
+        TValue expr_result;
+        if (aqlP_parse_expression(L, expression, &expr_result) == 0) {
             if (aql_gettop(L) > 0) {
                 if (aql_isinteger(L, -1)) {
                     printf("Result: %lld\n", aql_tointeger(L, -1));
@@ -216,11 +257,11 @@ int main(int argc, char *argv[]) {
         /* Enter interactive mode if requested */
         if (interactive) {
             printf("\nEntering interactive mode...\n");
-            aqlP_repl(L);
+            aqlREPL_run(L);
         }
     } else {
         /* Default: interactive mode */
-        aqlP_repl(L);
+        aqlREPL_run(L);
     }
     
     /* Show JIT statistics if requested */

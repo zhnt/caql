@@ -29,6 +29,11 @@ static void *aql_alloc(void *ud, void *ptr, size_t osize, size_t nsize) {
 }
 
 /*
+** Forward declarations
+*/
+#include "aapi.h"
+
+/*
 ** Helper functions for type checking and conversion
 */
 static int tointeger(const TValue *obj, aql_Integer *p) {
@@ -275,13 +280,12 @@ AQL_API aql_Number aql_tonumberx(aql_State *L, int idx, int *pisnum) {
 }
 
 /*
-** Exception handling functions
+** API Functions for compilation and execution (similar to Lua's lua_load/lua_pcall)
 */
-AQL_API l_noret aqlD_throw(aql_State *L, int errcode) {
-    /* Basic error throwing - for MVP, just exit */
-    fprintf(stderr, "AQL Error: Exception thrown with code %d\n", errcode);
-    exit(errcode);
-}
+
+/* API functions moved to aapi.c */
+
+/* Exception handling functions moved to ado.c */
 
 /*
 ** Function manipulation - moved to afunc.c

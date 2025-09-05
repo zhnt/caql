@@ -11,6 +11,10 @@
 #include "aobject.h"
 #include "aopcodes.h"
 
+/* Forward declarations */
+typedef enum UnOpr UnOpr;
+typedef enum BinOpr BinOpr;
+
 /*
 ** Maximum number of registers in an AQL function
 ** (must fit in an unsigned byte)
@@ -51,6 +55,10 @@ AQL_API void aqlK_exp2nextreg(FuncState *fs, struct expdesc *e);
 AQL_API void aqlK_exp2anyreg(FuncState *fs, struct expdesc *e);
 AQL_API void aqlK_exp2anyregup(FuncState *fs, struct expdesc *e);
 AQL_API void aqlK_exp2val(FuncState *fs, struct expdesc *e);
+AQL_API void aqlK_setmultret(FuncState *fs, struct expdesc *e);
+AQL_API void aqlK_int(FuncState *fs, int reg, aql_Integer i);
+AQL_API void aqlK_float(FuncState *fs, int reg, aql_Number f);
+AQL_API int aqlK_numberK(FuncState *fs, aql_Number r);
 AQL_API int aqlK_exp2RK(FuncState *fs, struct expdesc *e);
 AQL_API void aqlK_storevar(FuncState *fs, struct expdesc *var, struct expdesc *e);
 AQL_API void aqlK_self(FuncState *fs, struct expdesc *e, struct expdesc *key);
@@ -119,6 +127,13 @@ AQL_API int aqlK_need_value(FuncState *fs, int list);
 AQL_API void aqlK_drop_value(FuncState *fs, struct expdesc *e);
 
 /*
+** Expression code generation
+*/
+AQL_API void aqlK_prefix(FuncState *fs, UnOpr op, struct expdesc *e, int line);
+AQL_API void aqlK_infix(FuncState *fs, BinOpr op, struct expdesc *v);
+AQL_API void aqlK_posfix(FuncState *fs, BinOpr op, struct expdesc *e1, struct expdesc *e2, int line);
+
+/*
 ** Function call optimization
 */
 AQL_API int aqlK_is_tail_call(FuncState *fs, struct expdesc *e);
@@ -129,10 +144,10 @@ AQL_API void aqlK_optimize_call(FuncState *fs, struct expdesc *e, int nargs, int
 ** Register allocation
 */
 typedef struct RegInfo {
-  aql_Byte used;     /* register is in use */
-  aql_Byte temp;     /* register is temporary */
-  aql_Byte local;    /* register holds a local variable */
-  aql_Byte close;    /* register needs to be closed */
+  aql_byte used;     /* register is in use */
+  aql_byte temp;     /* register is temporary */
+  aql_byte local;    /* register holds a local variable */
+  aql_byte close;    /* register needs to be closed */
 } RegInfo;
 
 AQL_API void aqlK_init_registers(FuncState *fs);
@@ -179,10 +194,10 @@ AQL_API int aqlK_codeextraarg(FuncState *fs, int a);
 */
 typedef struct OptInfo {
   int hotcount;        /* execution count for hot path detection */
-  aql_Byte can_inline; /* function can be inlined */
-  aql_Byte has_upvals; /* function has upvalues */
-  aql_Byte has_loops;  /* function has loops */
-  aql_Byte has_calls;  /* function has function calls */
+  aql_byte can_inline; /* function can be inlined */
+  aql_byte has_upvals; /* function has upvalues */
+  aql_byte has_loops;  /* function has loops */
+  aql_byte has_calls;  /* function has function calls */
 } OptInfo;
 
 AQL_API void aqlK_analyze_function(FuncState *fs, OptInfo *info);
@@ -199,16 +214,7 @@ AQL_API void aqlK_warning(FuncState *fs, const char *msg);
 ** Constants and limits
 */
 #define MAXSTACK        MAXREGS
-#define MAXINDEXRK      (MAXARG_B - 1)
-#define MAXARG_A        ((1<<SIZE_A)-1)
-#define MAXARG_B        ((1<<SIZE_B)-1)
-#define MAXARG_C        ((1<<SIZE_C)-1)
-#define MAXARG_Bx       ((1<<SIZE_Bx)-1)
-#define MAXARG_sBx      (MAXARG_Bx>>1)
-#define MAXARG_Ax       ((1<<SIZE_Ax)-1)
-
-/* K/RK encoding constants */
-#define RKASK(x)        ((x) | (1 << (SIZE_B - 1)))
+/* Use existing definitions from aopcodes.h */
 #define RK_CONSTANT     (1 << (SIZE_B - 1))
 #define RK_REGISTER     0
 

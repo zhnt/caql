@@ -29,8 +29,10 @@ int aqlZ_fill (ZIO *z) {
   /* TODO: aql_unlock(L); */
   buff = z->reader(L, z->data, &size);
   /* TODO: aql_lock(L); */
-  if (buff == NULL || size == 0)
+  if (buff == NULL || size == 0) {
+    z->n = 0;  /* reset buffer size */
     return EOZ;
+  }
   z->n = size - 1;  /* discount char being returned */
   z->p = buff;
   return cast_uchar(*(z->p++));
@@ -137,6 +139,16 @@ void aqlZ_pushvfstring(aql_State *L, Mbuffer *buff, const char *fmt, va_list arg
 static const char *string_reader(aql_State *L, void *data, size_t *size) {
   StringReaderData *srd = (StringReaderData *)data;
   UNUSED(L);
+  
+  if (srd->pos >= srd->len) {
+    *size = 0;
+    return NULL;
+  }
+  
+  /* Skip the first character on first call, since it's already in ls->current */
+  if (srd->pos == 0) {
+    srd->pos = 1;  /* skip first character */
+  }
   
   if (srd->pos >= srd->len) {
     *size = 0;

@@ -7,11 +7,13 @@
 #define astate_c
 #define AQL_CORE
 
+
 #include "aconf.h"
 
 #include <stddef.h>
 #include <string.h>
 #include <time.h>
+#include <stdio.h>
 
 #include "aql.h"
 #include "astate.h"
@@ -19,6 +21,8 @@
 #include "amem.h"
 #include "afunc.h"
 #include "astring.h"
+#include "adict.h"
+#include "adatatype.h"
 
 /*
 ** thread state + extra space
@@ -230,9 +234,45 @@ static void freestack (aql_State *L) {
 /*
 ** Create registry table and its predefined values
 */
+/*
+** Get or create the global variables dict
+*/
+Dict *get_globals_dict(aql_State *L) {
+    global_State *g = G(L);
+    
+    if (ttisnil(&g->l_globals)) {
+        printf_debug("[DEBUG] get_globals_dict: creating new globals dict\n");
+        fflush(stdout);
+        
+        /* Create globals dict on first access */
+        Dict *globals_dict = aqlD_new(L, DT_STRING, AQL_DATA_TYPE_ANY);
+        if (globals_dict) {
+            setdictvalue(L, &g->l_globals, globals_dict);
+            printf_debug("[DEBUG] get_globals_dict: successfully created globals dict\n");
+            fflush(stdout);
+        } else {
+            printf_debug("[DEBUG] get_globals_dict: failed to create globals dict\n");
+            fflush(stdout);
+            return NULL;
+        }
+    }
+    
+    if (ttisdict(&g->l_globals)) {
+        return dictvalue(&g->l_globals);
+    }
+    
+    return NULL;
+}
+
 static void init_registry (aql_State *L, global_State *g) {
-    /* For MVP, just set registry to nil */
+    /* Set registry to nil for now */
     setnilvalue(&g->l_registry);
+    
+    /* Initialize global variables dict - start with nil, will create on first use */
+    setnilvalue(&g->l_globals);
+    
+    printf_debug("[DEBUG] init_registry: initialized registry and globals (simplified)\n");
+    fflush(stdout);
 }
 
 /*
@@ -459,11 +499,7 @@ int aqlD_closeprotected(aql_State *L, ptrdiff_t level, int status) {
     return status;  /* Simplified - no actual closing */
 }
 
-/* Error object setting */
-void aqlD_seterrorobj(aql_State *L, int errcode, StkId oldtop) {
-    UNUSED(L); UNUSED(errcode); UNUSED(oldtop);
-    /* Error object setting - placeholder */
-}
+/* Error object setting moved to ado.c */
 
 /* Stack reallocation */
 void aqlD_reallocstack(aql_State *L, int newsize, int raiseerror) {
@@ -488,7 +524,4 @@ void aqlai_userstatefree(aql_State *L, aql_State *L1) {
     UNUSED(L); UNUSED(L1);
 }
 
-/* Protected call implementation */
-int aqlD_rawrunprotected(aql_State *L, Pfunc f, void *ud) {
-    return (*f)(L, ud);  /* Simplified - no actual protection */
-}
+/* Protected call implementation moved to ado.c */
