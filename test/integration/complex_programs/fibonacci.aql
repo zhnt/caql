@@ -1,0 +1,12 @@
+// Fibonacci sequence test
+let a = 0
+let b = 1
+print(a)
+print(b)
+for i = 1, 5, 1 {
+    let c = a + b
+    print(c)
+    a = b
+    b = c
+}
+

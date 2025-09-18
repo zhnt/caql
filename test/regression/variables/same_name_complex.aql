@@ -1,0 +1,20 @@
+// Complex interactions with same-named variables
+let x = 1
+{
+    print("before shadow: x=" + x)  // outer x
+    let x = x * 10  // shadow using outer x
+    print("after shadow: x=" + x)   // inner x
+    {
+        print("before inner shadow: x=" + x)  // middle x
+        let x = x + 5  // shadow using middle x
+        print("after inner shadow: x=" + x)   // innermost x
+        {
+            x = x * 2  // modify innermost x
+            print("modified innermost: x=" + x)
+        }
+        print("back to inner: x=" + x)
+    }
+    print("back to middle: x=" + x)
+}
+print("back to outer: x=" + x)
+

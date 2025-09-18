@@ -1,0 +1,12 @@
+// Inner block modifies outer variable
+let x = 10
+let y = 20
+print("before: x=" + x + ", y=" + y)
+{
+    x = 100  // modify outer variable
+    let z = 30
+    y = y + z  // modify outer variable using local
+    print("inside: x=" + x + ", y=" + y + ", z=" + z)
+}
+print("after: x=" + x + ", y=" + y)
+

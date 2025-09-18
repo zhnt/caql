@@ -251,6 +251,9 @@ static TString *internshrstr(aql_State *L, const char *str, size_t l) {
     unsigned int h = aqlS_hash_string(str, l);
     TString **list = &tb->hash[lmod(h, tb->size)];
     
+    printf_debug("[DEBUG] internshrstr: str='%.*s', len=%zu, hash=%u, table_size=%d, table_nuse=%d\n", 
+                (int)l, str, l, h, tb->size, tb->nuse);
+    
     aql_assert(l <= AQLAI_MAXSHORTLEN);
     
     /* 在字符串表中查找 */

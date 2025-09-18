@@ -1,0 +1,24 @@
+// Multiple assignments and accumulative modifications
+let sum = 0
+let count = 0
+print("initial: sum=" + sum + ", count=" + count)
+{
+    sum = sum + 10
+    count = count + 1
+    print("block1: sum=" + sum + ", count=" + count)
+    {
+        sum = sum + 20
+        count = count + 1
+        let temp = sum * 2
+        print("block2: sum=" + sum + ", count=" + count + ", temp=" + temp)
+        {
+            sum = sum + temp
+            count = count + 1
+            print("block3: sum=" + sum + ", count=" + count)
+        }
+        print("back to block2: sum=" + sum + ", count=" + count)
+    }
+    print("back to block1: sum=" + sum + ", count=" + count)
+}
+print("final: sum=" + sum + ", count=" + count)
+

@@ -23,6 +23,8 @@
 #include "acodegen.h"
 #include "adebug_user.h"
 #include "ado.h"
+#include "arange.h"
+#include "aarray.h"
 
 /* Forward declarations for token collection (from alex.c) */
 extern void start_token_collection(void);
@@ -316,6 +318,22 @@ typedef struct BlockCnt {
   aql_byte upval;  /* true if some variable in the block is an upvalue */
   aql_byte isloop;  /* true if 'block' is a loop */
   aql_byte insidetbc;  /* true if inside the scope of a to-be-closed var. */
+  int breaklist;  /* list of jumps out of this loop */
+  int continuelist;  /* list of jumps to loop start */
+  
+  /* AQL enhancements for block scope management */
+  struct {
+    /* Type inference scope */
+    int type_scope_start;       /* Starting index for type scope */
+    bool type_inference_enabled; /* Is type inference active? */
+    
+    /* Container scope management */
+    int container_scope_start;  /* Starting index for container scope */
+    bool auto_cleanup;          /* Auto-cleanup containers on exit? */
+    
+    /* Execution mode for this block */
+    AQLExecMode block_mode;     /* Execution mode for this block */
+  } aql;
 } BlockCnt;
 
 /*
@@ -397,16 +415,23 @@ static int testnext (LexState *ls, int c) {
 ** Check that next token is 'c'.
 */
 static void check (LexState *ls, int c) {
-  if (ls->t.token != c)
+  printf_debug("[DEBUG] check: expecting token %d, got token %d\n", c, ls->t.token);
+  if (ls->t.token != c) {
+    printf_debug("[ERROR] check: token mismatch, calling error_expected\n");
     error_expected(ls, c);
+  }
+  printf_debug("[DEBUG] check: token matched successfully\n");
 }
 
 /*
 ** Check that next token is 'c' and skip it.
 */
 static void checknext (LexState *ls, int c) {
+  printf_debug("[DEBUG] checknext: calling check for token %d\n", c);
   check(ls, c);
+  printf_debug("[DEBUG] checknext: check passed, calling aqlX_next, current token before = %d\n", ls->t.token);
   aqlX_next(ls);
+  printf_debug("[DEBUG] checknext: aqlX_next completed, current token after = %d\n", ls->t.token);
 }
 
 #define check_condition(ls,c,msg)	{ if (!(c)) aqlX_syntaxerror(ls, msg); }
@@ -463,19 +488,54 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
 /*
 ** Create a new local variable with the given 'name'. Return its index
 ** in the function.
+** Enhanced with AQL variable information management.
 */
 static int new_localvar (LexState *ls, TString *name) {
   aql_State *L = ls->L;
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
   Vardesc *var;
+  
   checklimit(fs, dyd->actvar.n + 1 - fs->firstlocal,
                  MAXVARS, "local variables");
+  
+  /* Grow variable array (Lua-compatible) */
   aqlM_growvector(L, dyd->actvar.arr, dyd->actvar.n + 1,
                   dyd->actvar.size, Vardesc, SHRT_MAX, "local variables");
-  var = &dyd->actvar.arr[dyd->actvar.n++];
+  
+  /* Initialize variable with AQL enhancements */
+  var = &dyd->actvar.arr[dyd->actvar.n];
+  
+  /* Initialize Lua-compatible fields */
   var->vd.kind = VDKREG;  /* default */
   var->vd.name = name;
+  var->vd.ridx = 0;       /* Will be set by adjustlocalvars */
+  var->vd.pidx = -1;      /* Will be set by adjustlocalvars */
+  
+  /* Initialize AQL enhancement fields */
+  var->aql.type_level = AQL_TYPE_NONE;
+  var->aql.inferred_type = TYPENONE;
+  var->aql.confidence = 0;
+  var->aql.exec_mode = dyd->aql.current_mode;
+  
+  /* Initialize container information */
+  var->aql.container_type = CONTAINER_NONE;
+  var->aql.container_capacity = 0;
+  var->aql.container_flags = 0x02;  /* is_mutable=1, is_container=0 */
+  
+  /* Initialize debug information */
+  #ifdef AQL_DEBUG_BUILD
+  var->aql.declaration_line = ls->linenumber;
+  var->aql.declaration_column = ls->column;
+  var->aql.access_count = 0;
+  var->aql.modification_count = 0;
+  #endif
+  
+  dyd->actvar.n++;
+  
+  printf_debug("[DEBUG] new_localvar: created variable '%s' at index %d with unified AQL enhancements\n", 
+               getstr(name), dyd->actvar.n - 1 - fs->firstlocal);
+  
   return dyd->actvar.n - 1 - fs->firstlocal;
 }
 
@@ -536,20 +596,51 @@ static void init_var (FuncState *fs, expdesc *e, int vidx) {
   e->k = VLOCAL;
   e->u.var.vidx = vidx;
   e->u.var.ridx = getlocalvardesc(fs, vidx)->vd.ridx;
+  printf_debug("[DEBUG] init_var: vidx=%d, ridx=%d, name='%s'\n", 
+               vidx, e->u.var.ridx, getstr(getlocalvardesc(fs, vidx)->vd.name));
 }
 
 /*
 ** Start the scope for the last 'nvars' created variables.
+** Enhanced with AQL type inference and container management.
 */
 static void adjustlocalvars (LexState *ls, int nvars) {
   FuncState *fs = ls->fs;
   int reglevel = aqlY_nvarstack(fs);
   int i;
+  
+  printf_debug("[DEBUG] adjustlocalvars: activating %d variables, reglevel=%d\n", 
+               nvars, reglevel);
+  
   for (i = 0; i < nvars; i++) {
     int vidx = fs->nactvar++;
     Vardesc *var = getlocalvardesc(fs, vidx);
+    
+    /* Assign register (Lua-compatible) */
     var->vd.ridx = reglevel++;
+    
+    /* Register for debug information */
     var->vd.pidx = registerlocalvar(ls, fs, var->vd.name);
+    
+    printf_debug("[DEBUG] adjustlocalvars: variable '%s' -> register %d, debug index %d\n",
+                 getstr(var->vd.name), var->vd.ridx, var->vd.pidx);
+    
+    /* AQL enhancement: Auto-infer type from context if not set */
+    if (var->aql.type_level == AQL_TYPE_NONE) {
+      /* Simple heuristic: if variable name suggests a type, infer it */
+      const char *name = getstr(var->vd.name);
+      if (strstr(name, "count") || strstr(name, "size") || strstr(name, "len")) {
+        var->aql.inferred_type = TYPEINT;
+        var->aql.type_level = AQL_TYPE_INFERRED;
+        var->aql.confidence = 70;  /* Medium confidence */
+        printf_debug("[DEBUG] adjustlocalvars: inferred type INT for variable '%s'\n", name);
+      } else if (strstr(name, "list") || strstr(name, "array")) {
+        var->aql.container_type = CONTAINER_ARRAY;
+        var->aql.container_flags |= 0x01;  /* set is_container=1 */
+        var->aql.container_capacity = 16;  /* Default capacity */
+        printf_debug("[DEBUG] adjustlocalvars: inferred container ARRAY for variable '%s'\n", name);
+      }
+    }
   }
 }
 
@@ -698,31 +789,79 @@ static void singlevar (LexState *ls, expdesc *var) {
 }
 
 static void enterblock (FuncState *fs, BlockCnt *bl, aql_byte isloop) {
+  Dyndata *dyd = fs->ls->dyd;
+  
+  /* Initialize Lua-compatible fields */
   bl->isloop = isloop;
   bl->nactvar = fs->nactvar;
-  bl->firstlabel = fs->ls->dyd->label.n;
-  bl->firstgoto = fs->ls->dyd->gt.n;
+  bl->firstlabel = dyd->label.n;
+  bl->firstgoto = dyd->gt.n;
   bl->upval = 0;
   bl->insidetbc = (fs->bl != NULL && fs->bl->insidetbc);
+  bl->breaklist = NO_JUMP;  /* initialize break list */
+  bl->continuelist = NO_JUMP;  /* initialize continue list */
   bl->previous = fs->bl;
+  
+  /* Initialize AQL-specific fields */
+  bl->aql.type_scope_start = dyd->aql.types.cache_used;
+  bl->aql.type_inference_enabled = true;
+  bl->aql.container_scope_start = dyd->aql.containers.container_count;
+  bl->aql.auto_cleanup = true;
+  bl->aql.block_mode = dyd->aql.current_mode;
+  
+  /* Link to function state */
   fs->bl = bl;
   aql_assert(fs->freereg == aqlY_nvarstack(fs));
+  
+  printf_debug("[DEBUG] enterblock: entered block, nactvar=%d, isloop=%d, mode=%d\n", 
+               bl->nactvar, isloop, bl->aql.block_mode);
 }
 
 static void leaveblock (FuncState *fs) {
   BlockCnt *bl = fs->bl;
   LexState *ls = fs->ls;
+  Dyndata *dyd = ls->dyd;
   int hasclose = 0;
   int stklevel = reglevel(fs, bl->nactvar);  /* level outside the block */
+  
+  printf_debug("[DEBUG] leaveblock: leaving block, cleaning up from level %d\n", 
+               bl->nactvar);
+  
+  /* Clean up variables (Lua-compatible) */
   removevars(fs, bl->nactvar);  /* remove block locals */
   aql_assert(bl->nactvar == fs->nactvar);  /* back to level on entry */
+  
+  /* AQL enhancement: Clean up type information */
+  dyd->aql.types.cache_used = bl->aql.type_scope_start;
+  
+  /* AQL enhancement: Clean up containers if auto-cleanup is enabled */
+  if (bl->aql.auto_cleanup) {
+    dyd->aql.containers.container_count = bl->aql.container_scope_start;
+    printf_debug("[DEBUG] leaveblock: cleaned up containers to count %d\n", 
+                 dyd->aql.containers.container_count);
+  }
+  
   if (bl->isloop)  /* has to fix pending breaks? */
     hasclose = 1;  /* simplified: assume we need close for loops */
   if (!hasclose && bl->previous && bl->upval)  /* still need a 'close'? */
     /* emit close instruction if needed */;
-  fs->freereg = stklevel;  /* free registers */
-  ls->dyd->label.n = bl->firstlabel;  /* remove local labels */
+  
+  /* For loop blocks, preserve register reservation for for-loop control */
+  if (bl->isloop && stklevel > 0) {
+    /* This is a for-loop block - preserve the for-loop control registers */
+    /* For-loop uses 4 consecutive registers starting from some base position */
+    /* We need to ensure freereg doesn't go below the for-loop base + 4 */
+    printf_debug("[DEBUG] leaveblock: for-loop block, stklevel=%d, preserving for-loop registers\n", stklevel);
+    /* stklevel represents the register level outside the loop block */
+    /* For-loop control registers are managed by the loop itself, so use stklevel */
+    fs->freereg = stklevel;
+  } else {
+    fs->freereg = stklevel;  /* free registers normally */
+  }
+  dyd->label.n = bl->firstlabel;  /* remove local labels */
   fs->bl = bl->previous;  /* current block now is previous one */
+  
+  printf_debug("[DEBUG] leaveblock: completed, freereg=%d\n", fs->freereg);
 }
 
 #define enterlevel(ls)	/* TODO: aqlE_incCstack(ls->L) */
@@ -742,13 +881,17 @@ static int block_follow (LexState *ls, int withuntil) {
 
 static void statlist (LexState *ls) {
   /* statlist -> { stat [';'] } */
+  printf_debug("[DEBUG] statlist: entering, current token = %d\n", ls->t.token);
   while (!block_follow(ls, 1)) {
+    printf_debug("[DEBUG] statlist: in loop, current token = %d\n", ls->t.token);
     if (ls->t.token == TK_RETURN) {
       statement(ls);
       return;  /* 'return' must be last statement */
     }
     statement(ls);
+    printf_debug("[DEBUG] statlist: statement completed, current token = %d\n", ls->t.token);
   }
+  printf_debug("[DEBUG] statlist: exiting loop, current token = %d\n", ls->t.token);
 }
 
 /*
@@ -756,6 +899,7 @@ static void statlist (LexState *ls) {
 */
 static void simpleexp (LexState *ls, expdesc *v) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | NAME | '(' expr ')' */
+  printf_debug("[DEBUG] simpleexp: entering, current token = %d\n", ls->t.token);
   switch (ls->t.token) {
     case TK_FLT: {
       init_exp(v, VKFLT, 0);
@@ -766,7 +910,7 @@ static void simpleexp (LexState *ls, expdesc *v) {
       aqlX_next(ls);  /* skip number */
       break;
     }
-    case TK_INT: {
+    case TK_INT_LITERAL: {
       init_exp(v, VKINT, 0);
       v->u.ival = ls->t.seminfo.i;
       char int_buf[32];
@@ -798,6 +942,81 @@ static void simpleexp (LexState *ls, expdesc *v) {
     case TK_NAME: {
       /* Use unified variable lookup that works for all execution modes */
       singlevar_unified(ls, v);
+      
+      /* Check for function call syntax: name ( args... ) */
+      if (ls->t.token == TK_LPAREN) {
+        /* Function call detected */
+        int line = ls->linenumber;
+        int nargs = 0;
+        
+        aqlX_next(ls);  /* skip '(' */
+        
+        /* Parse arguments using explist */
+        if (ls->t.token != TK_RPAREN) {  /* are there arguments? */
+          expdesc arg;
+          nargs = explist(ls, &arg);  /* parse comma-separated argument list */
+          aqlK_exp2nextreg(ls->fs, &arg);  /* ensure last argument is in register */
+        }
+        
+        checknext(ls, TK_RPAREN);  /* check and skip ')' */
+        
+        /* Generate function call instruction */
+        if (v->k == VBUILTIN) {
+          /* Builtin function call - use OP_BUILTIN */
+          int result_reg = ls->fs->freereg++;
+          aqlK_codeABC(ls->fs, OP_BUILTIN, result_reg, v->u.info, nargs);
+          init_exp(v, VNONRELOC, result_reg);  /* result is in result_reg */
+        } else {
+          /* Regular function call - use OP_CALL with the function in register, arguments already set up */
+          aqlK_codeABC(ls->fs, OP_CALL, v->u.info, nargs + 1, 2);  /* 1 result */
+          /* Set up expression for function result */
+          init_exp(v, VNONRELOC, v->u.info);  /* result is in the same register */
+        }
+      }
+      
+      return;
+    }
+    case '[': {  /* Array literal: [expr, expr, ...] */
+      int line = ls->linenumber;
+      aqlX_next(ls);  /* skip '[' */
+      
+      /* Parse array elements and store their register indices */
+      int element_regs[32];  /* Support up to 32 elements for now */
+      int element_count = 0;
+      
+      /* Parse array elements */
+      if (ls->t.token != ']') {
+        do {
+          if (element_count >= 32) {
+            aqlX_syntaxerror(ls, "too many array elements (max 32)");
+          }
+          expdesc element;
+          expr(ls, &element);
+          aqlK_exp2nextreg(ls->fs, &element);
+          element_regs[element_count] = element.u.info;
+          element_count++;
+        } while (testnext(ls, ','));
+      }
+      
+      check_match(ls, ']', '[', line);
+      
+      /* Create array with the correct size */
+      int array_reg = ls->fs->freereg++;
+      aqlK_codeABC(ls->fs, OP_NEWOBJECT, array_reg, 0, element_count);  /* type=0 for array */
+      
+      /* Set array elements using the stored register indices */
+      if (element_count > 0) {
+        for (int i = 0; i < element_count; i++) {
+          /* Create a register for the index */
+          int index_reg = ls->fs->freereg++;
+          aqlK_codeAsBx(ls->fs, OP_LOADI, index_reg, i);
+          
+          /* Generate OP_SETPROP to set array[index] = element */
+          aqlK_codeABC(ls->fs, OP_SETPROP, array_reg, index_reg, element_regs[i]);
+        }
+      }
+      
+      init_exp(v, VNONRELOC, array_reg);
       return;
     }
     case TK_LPAREN: {
@@ -825,6 +1044,7 @@ static UnOpr getunopr (int op) {
 }
 
 static BinOpr getbinopr (int op) {
+  printf_debug("[DEBUG] getbinopr: input token=%d (TK_GE=%d)\n", op, TK_GE);
   switch (op) {
     case TK_PLUS: 
       return OPR_ADD;
@@ -846,11 +1066,15 @@ static BinOpr getbinopr (int op) {
     case TK_LT: return OPR_LT;
     case TK_LE: return OPR_LE;
     case TK_GT: return OPR_GT;
-    case TK_GE: return OPR_GE;
+    case TK_GE: 
+      printf_debug("[DEBUG] getbinopr: TK_GE -> OPR_GE (%d)\n", OPR_GE);
+      return OPR_GE;
     case TK_LAND: return OPR_AND;  /* && */
     case TK_LOR: return OPR_OR;    /* || */
+    case TK_AND: return OPR_AND;   /* and */
+    case TK_OR: return OPR_OR;     /* or */
     default: 
-      
+      printf_debug("[DEBUG] getbinopr: unknown token %d, returning OPR_NOBINOPR\n", op);
       return OPR_NOBINOPR;
   }
 }
@@ -952,9 +1176,9 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
 }
 
 static void expr (LexState *ls, expdesc *v) {
-  
+  printf_debug("[DEBUG] expr: entering, current token = %d\n", ls->t.token);
   subexpr(ls, v, 0);
-  
+  printf_debug("[DEBUG] expr: exiting, current token = %d\n", ls->t.token);
 }
 
 /*
@@ -1028,27 +1252,38 @@ static void block (LexState *ls) {
 */
 static void test_then_block (LexState *ls, int *escapelist) {
   /* test_then_block -> [IF | ELIF] cond '{' block '}' */
+  printf_debug("[DEBUG] test_then_block: entering\n");
   BlockCnt bl;
   FuncState *fs = ls->fs;
   expdesc v;
   int jf;  /* instruction to skip 'then' code (if condition is false) */
   
+  printf_debug("[DEBUG] test_then_block: skipping IF/ELIF token\n");
   aqlX_next(ls);  /* skip IF or ELIF */
+  printf_debug("[DEBUG] test_then_block: parsing condition expression\n");
   expr(ls, &v);  /* read condition */
+  printf_debug("[DEBUG] test_then_block: condition parsed, checking for '{'\n");
   checknext(ls, '{');
   
   /* Generate conditional jump */
-  aqlK_goiffalse(fs, &v);  /* jump if condition is false */
+  printf_debug("[DEBUG] test_then_block: calling aqlK_goiffalse\n");
+  aqlK_goiffalse(fs, &v);  /* jump to next elif/else if condition is false */
+  printf_debug("[DEBUG] test_then_block: aqlK_goiffalse completed\n");
   enterblock(fs, &bl, 0);
   jf = v.f;
   
   statlist(ls);  /* 'then' part */
   leaveblock(fs);
   
+  printf_debug("[DEBUG] test_then_block: checking for closing '}'\n");
+  checknext(ls, '}');  /* match closing brace */
+  printf_debug("[DEBUG] test_then_block: closing '}' matched\n");
+  
   if (ls->t.token == TK_ELSE ||
       ls->t.token == TK_ELIF)  /* followed by 'else'/'elif'? */
     aqlK_concat(fs, escapelist, aqlK_jump(fs));  /* must jump over it */
   aqlK_patchtohere(fs, jf);
+  aqlK_patchtohere(fs, v.t);  /* patch true jumps to here too */
 }
 
 /*
@@ -1056,8 +1291,16 @@ static void test_then_block (LexState *ls, int *escapelist) {
 */
 static void ifstat (LexState *ls, int line) {
   /* ifstat -> IF cond '{' block '}' {ELIF cond '{' block '}'}* [ELSE '{' block '}'] */
+  printf_debug("[DEBUG] ifstat: entering if statement parsing\n");
   FuncState *fs = ls->fs;
   int escapelist = NO_JUMP;  /* exit list for finished parts */
+  
+  if (!fs) {
+    printf_debug("[ERROR] ifstat: fs is NULL\n");
+    return;
+  }
+  
+  printf_debug("[DEBUG] ifstat: calling test_then_block\n");
   
   test_then_block(ls, &escapelist);  /* IF cond '{' block '}' */
   while (ls->t.token == TK_ELIF)
@@ -1071,27 +1314,502 @@ static void ifstat (LexState *ls, int line) {
 }
 
 /*
+** AQL condition parsing for while loop (use goiffalse instead of goiftrue)
+*/
+static int whilecond (LexState *ls) {
+  /* whilecond -> expr */
+  expdesc v;
+  expr(ls, &v);  /* read condition */
+  if (v.k == VNIL) v.k = VFALSE;  /* 'falses' are all equal here */
+  aqlK_goiffalse(ls->fs, &v);  /* jump when condition is false (exit loop) */
+  return v.f;  /* return false list (exit when condition is false) */
+}
+
+/*
+** break statement: break
+*/
+static void breakstat (LexState *ls) {
+  FuncState *fs = ls->fs;
+  BlockCnt *bl = fs->bl;
+  int upval = 0;
+  
+  /* Find the innermost loop */
+  while (bl && !bl->isloop) {
+    if (bl->upval) upval = 1;
+    bl = bl->previous;
+  }
+  
+  if (!bl) {
+    aqlX_syntaxerror(ls, "break statement not inside a loop");
+  }
+  
+  /* Generate jump to loop exit */
+  if (upval) {
+    /* Need to close upvalues */
+    aqlK_codeABC(fs, OP_CLOSE, reglevel(fs, bl->nactvar), 0, 0);
+  }
+  
+  /* Add to break list - we'll patch this later */
+  aqlK_concat(fs, &bl->breaklist, aqlK_jump(fs));
+}
+
+/*
+** continue statement: continue  
+*/
+static void continuestat (LexState *ls) {
+  FuncState *fs = ls->fs;
+  BlockCnt *bl = fs->bl;
+  int upval = 0;
+  
+  /* Find the innermost loop */
+  while (bl && !bl->isloop) {
+    if (bl->upval) upval = 1;
+    bl = bl->previous;
+  }
+  
+  if (!bl) {
+    aqlX_syntaxerror(ls, "continue statement not inside a loop");
+  }
+  
+  /* Generate jump to loop start */
+  if (upval) {
+    /* Need to close upvalues */
+    aqlK_codeABC(fs, OP_CLOSE, reglevel(fs, bl->nactvar), 0, 0);
+  }
+  
+  /* Add to continue list - we'll patch this later */
+  aqlK_concat(fs, &bl->continuelist, aqlK_jump(fs));
+}
+
+/*
+** Fix for instruction at position 'pc' to jump to 'dest'.
+** (Jump addresses are relative in AQL). 'back' true means a back jump.
+*/
+static void fixforjump (FuncState *fs, int pc, int dest, int back) {
+  Instruction *jmp = &fs->f->code[pc];
+  int offset = dest - (pc + 1);
+  if (back)
+    offset = -offset;
+  if (offset > MAXARG_sBx) {
+    aqlX_syntaxerror(fs->ls, "control structure too long");
+  }
+  SETARG_sBx(*jmp, offset);
+}
+
+/*
+** AQL numeric for statement: for name = start, end [, step] { statlist }
+*/
+static void forstat_numeric (LexState *ls, int line, TString *varname) {
+  /* forstat_numeric -> NAME '=' exp ',' exp [',' exp] '{' block '}' */
+  /* Note: varname is already parsed, FOR and NAME tokens consumed */
+  printf_debug("[DEBUG] forstat_numeric: entering numeric for statement parsing\n");
+  FuncState *fs = ls->fs;
+  int base = fs->freereg;
+  BlockCnt bl;
+  int prep, endfor;
+  
+  /* FOR and variable name already consumed by caller */
+  printf_debug("[DEBUG] forstat_numeric: loop variable = %s\n", getstr(varname));
+  
+  checknext(ls, TK_ASSIGN);  /* expect '=' */
+  
+  /* Parse initial value */
+  expdesc init;
+  expr(ls, &init);
+  printf_debug("[DEBUG] forstat: initial value expr, k=%d\n", init.k);
+  aqlK_exp2anyreg(fs, &init);  /* evaluate to any register first */
+  if (init.u.info != base) {
+    /* Move to correct register if needed */
+    aqlK_codeABC(fs, OP_MOVE, base, init.u.info, 0);
+    printf_debug("[DEBUG] forstat: moved initial value from R%d to R%d\n", init.u.info, base);
+  }
+  aqlK_reserveregs(fs, 1);  /* reserve base register */
+  printf_debug("[DEBUG] forstat: parsed initial value, stored in register %d\n", base);
+  
+  checknext(ls, ',');  /* expect ',' */
+  
+  /* Parse limit value */
+  expdesc limit;
+  expr(ls, &limit);
+  printf_debug("[DEBUG] forstat: limit value expr, k=%d\n", limit.k);
+  aqlK_exp2anyreg(fs, &limit);  /* evaluate to any register first */
+  if (limit.u.info != base + 1) {
+    /* Move to correct register if needed */
+    aqlK_codeABC(fs, OP_MOVE, base + 1, limit.u.info, 0);
+    printf_debug("[DEBUG] forstat: moved limit value from R%d to R%d\n", limit.u.info, base + 1);
+  }
+  aqlK_reserveregs(fs, 1);  /* reserve base+1 register */
+  printf_debug("[DEBUG] forstat: parsed limit value, stored in register %d\n", base + 1);
+  
+  /* Parse optional step value - 智能步长推断版本 */
+  if (testnext(ls, ',')) {
+    expdesc step;
+    expr(ls, &step);
+    printf_debug("[DEBUG] forstat: step value expr, k=%d\n", step.k);
+    aqlK_exp2anyreg(fs, &step);  /* evaluate to any register first */
+    if (step.u.info != base + 2) {
+      /* Move to correct register if needed */
+      aqlK_codeABC(fs, OP_MOVE, base + 2, step.u.info, 0);
+      printf_debug("[DEBUG] forstat: moved step value from R%d to R%d\n", step.u.info, base + 2);
+    }
+    aqlK_reserveregs(fs, 1);  /* reserve base+2 register */
+    printf_debug("[DEBUG] forstat: parsed explicit step value, stored in register %d\n", base + 2);
+  } else {
+    /* 智能步长：用nil标记需要运行时推断 */
+    aqlK_nil(fs, base + 2, 1);  /* 设置步长寄存器为nil */
+    aqlK_reserveregs(fs, 1);
+    printf_debug("[DEBUG] forstat: using smart step inference, nil at register %d\n", base + 2);
+  }
+  
+  /* Create loop variable */
+  new_localvar(ls, varname);
+  
+  checknext(ls, '{');  /* expect '{' */
+  
+  /* Generate FORPREP instruction */
+  prep = aqlK_codeAsBx(fs, OP_FORPREP, base, 0);
+  printf_debug("[DEBUG] forstat: generated FORPREP at PC=%d\n", prep);
+  
+  /* Enter loop block */
+  enterblock(fs, &bl, 1);  /* isloop = 1 */
+  
+  /* CRITICAL: Protect for-loop control registers */
+  /* For-loop uses 4 consecutive registers starting from base */
+  /* We need to ensure these registers are not reused during loop body execution */
+  int for_loop_base = base;  /* Save the for-loop base register */
+  int for_loop_end = base + 4;  /* End of for-loop control registers */
+  
+  /* Force new allocations to start after for-loop control registers */
+  int old_freereg = fs->freereg;
+  if (fs->freereg < for_loop_end) {
+    fs->freereg = for_loop_end;  /* Ensure we don't allocate in for-loop control range */
+  }
+  printf_debug("[DEBUG] forstat: protected for-loop registers %d-%d, freereg: %d -> %d\n", 
+               for_loop_base, for_loop_end-1, old_freereg, fs->freereg);
+  
+  adjustlocalvars(ls, 1);  /* adjust for loop variable */
+  aqlK_reserveregs(fs, 1);
+  
+  /* Fix: Loop variable should be at base+3 (Lua standard) */
+  /* The for loop control registers are: base+0=internal_index, base+1=limit, base+2=step, base+3=control_variable */
+  Vardesc *loopvar = getlocalvardesc(fs, fs->nactvar - 1);
+  loopvar->vd.ridx = base + 3;  /* Force loop variable to correct position */
+  
+  printf_debug("[DEBUG] forstat: loop variable '%s' at register %d, freereg=%d\n", 
+               getstr(loopvar->vd.name), loopvar->vd.ridx, fs->freereg);
+  
+  /* Parse loop body */
+  block(ls);
+  
+  /* Leave loop block */
+  leaveblock(fs);
+  
+  checknext(ls, '}');  /* expect '}' */
+  
+  /* Generate FORLOOP instruction */
+  endfor = aqlK_codeAsBx(fs, OP_FORLOOP, base, 0);
+  printf_debug("[DEBUG] forstat: generated FORLOOP at PC=%d\n", endfor);
+  
+  /* Fix jump addresses - similar to Lua's forbody */
+  fixforjump(fs, prep, aqlK_getlabel(fs), 0);   /* FORPREP jumps to after loop */
+  fixforjump(fs, endfor, prep + 1, 1);          /* FORLOOP jumps back to after FORPREP */
+  
+  /* Patch break statements to jump here */
+  aqlK_patchtohere(fs, bl.breaklist);
+  
+  /* Patch continue statements to jump to FORLOOP instruction */
+  aqlK_patchlist(fs, bl.continuelist, endfor);
+  printf_debug("[DEBUG] forstat: continue jumps patched to FORLOOP at PC=%d\n", endfor);
+  
+  printf_debug("[DEBUG] forstat: for statement parsing completed\n");
+}
+
+/*
+** Convert range(...) to numeric for loop
+*/
+static void forstat_range_to_numeric(LexState *ls, int line, TString *varname, 
+                                     expdesc *start, expdesc *stop, expdesc *step) {
+  printf_debug("[DEBUG] forstat_range_to_numeric: converting to numeric for loop\n");
+  FuncState *fs = ls->fs;
+  int base = fs->freereg;
+  BlockCnt bl;
+  int prep, endfor;
+  
+  /* Generate code for start, stop, step expressions */
+  /* Ensure they are in consecutive registers starting from base */
+  printf_debug("[DEBUG] forstat_range_to_numeric: base=%d, freereg=%d\n", base, fs->freereg);
+  
+  /* Use aqlK_exp2anyreg and then move to ensure correct register allocation */
+  aqlK_exp2anyreg(fs, start);  /* evaluate start to any register */
+  if (start->u.info != base) {
+    aqlK_codeABC(fs, OP_MOVE, base, start->u.info, 0);
+    printf_debug("[DEBUG] forstat_range_to_numeric: moved start from R%d to R%d\n", start->u.info, base);
+  }
+  aqlK_reserveregs(fs, 1);  /* reserve base register */
+  printf_debug("[DEBUG] forstat_range_to_numeric: start allocated to register %d\n", base);
+  
+  aqlK_exp2anyreg(fs, stop);   /* evaluate stop to any register */
+  if (stop->u.info != base + 1) {
+    aqlK_codeABC(fs, OP_MOVE, base + 1, stop->u.info, 0);
+    printf_debug("[DEBUG] forstat_range_to_numeric: moved stop from R%d to R%d\n", stop->u.info, base + 1);
+  }
+  aqlK_reserveregs(fs, 1);  /* reserve base+1 register */
+  printf_debug("[DEBUG] forstat_range_to_numeric: stop allocated to register %d\n", base + 1);
+  
+  /* Note: No stop-1 adjustment needed since numeric for loop now uses left-closed, right-open semantics */
+  
+  aqlK_exp2anyreg(fs, step);   /* evaluate step to any register */
+  if (step->u.info != base + 2) {
+    aqlK_codeABC(fs, OP_MOVE, base + 2, step->u.info, 0);
+    printf_debug("[DEBUG] forstat_range_to_numeric: moved step from R%d to R%d\n", step->u.info, base + 2);
+  }
+  aqlK_reserveregs(fs, 1);  /* reserve base+2 register */
+  printf_debug("[DEBUG] forstat_range_to_numeric: step allocated to register %d\n", base + 2);
+  
+  printf_debug("[DEBUG] forstat_range_to_numeric: generated start/stop/step code\n");
+  
+  /* Create loop variable */
+  new_localvar(ls, varname);
+  
+  checknext(ls, '{');  /* expect '{' */
+  
+  /* Generate FORPREP instruction */
+  prep = aqlK_codeAsBx(fs, OP_FORPREP, base, 0);
+  printf_debug("[DEBUG] forstat_range_to_numeric: generated FORPREP at PC=%d\n", prep);
+  
+  /* Enter loop block */
+  enterblock(fs, &bl, 1);  /* isloop = 1 */
+  
+  /* CRITICAL: Reserve registers 0,1,2,3 for for-loop control before any other allocation */
+  /* This must be done before adjustlocalvars to prevent conflicts */
+  int old_freereg = fs->freereg;
+  fs->freereg = base + 4;  /* Force allocation to start from register 4 */
+  printf_debug("[DEBUG] forstat_range_to_numeric: reserved registers 0-3 for for-loop, freereg: %d -> %d\n", 
+               old_freereg, fs->freereg);
+  
+  adjustlocalvars(ls, 1);  /* adjust for loop variable */
+  aqlK_reserveregs(fs, 1);
+  
+  /* Fix: Loop variable should be at base+3 (Lua standard) */
+  /* The for loop control registers are: base+0=internal_index, base+1=limit, base+2=step, base+3=control_variable */
+  Vardesc *loopvar = getlocalvardesc(fs, fs->nactvar - 1);
+  loopvar->vd.ridx = base + 3;  /* Force loop variable to correct position */
+  
+  printf_debug("[DEBUG] forstat_range_to_numeric: loop variable '%s' at register %d, freereg=%d\n", 
+               getstr(loopvar->vd.name), loopvar->vd.ridx, fs->freereg);
+  
+  /* Parse loop body */
+  block(ls);
+  
+  /* Leave loop block */
+  leaveblock(fs);
+  
+  checknext(ls, '}');  /* expect '}' */
+  
+  /* Generate FORLOOP instruction */
+  endfor = aqlK_codeAsBx(fs, OP_FORLOOP, base, 0);
+  printf_debug("[DEBUG] forstat_range_to_numeric: generated FORLOOP at PC=%d\n", endfor);
+  
+  /* Fix jump addresses - similar to numeric for loop */
+  fixforjump(fs, prep, aqlK_getlabel(fs), 0);   /* FORPREP jumps to after loop */
+  fixforjump(fs, endfor, prep + 1, 1);          /* FORLOOP jumps back to after FORPREP */
+  
+  /* Patch break statements to jump here */
+  aqlK_patchtohere(fs, bl.breaklist);
+  
+  /* Patch continue statements to jump to FORLOOP instruction */
+  aqlK_patchlist(fs, bl.continuelist, endfor);
+  printf_debug("[DEBUG] forstat_range_to_numeric: continue jumps patched to FORLOOP at PC=%d\n", endfor);
+  
+  printf_debug("[DEBUG] forstat_range_to_numeric: completed\n");
+}
+
+/*
+** AQL for-in statement: for name in iterable { statlist }
+** Optimized implementation for range objects
+*/
+static void forinstat_range (LexState *ls, int line, TString *varname) {
+  /* forinstat_range -> NAME IN expr '{' block '}' */
+  /* Note: FOR and NAME tokens already consumed by caller */
+  printf_debug("[DEBUG] forinstat_range: entering for-in statement parsing\n");
+  FuncState *fs = ls->fs;
+  BlockCnt bl;
+  int iterator_reg, value_reg;
+  
+  /* FOR and variable name already consumed by caller */
+  printf_debug("[DEBUG] forinstat_range: loop variable = %s\n", getstr(varname));
+  
+  checknext(ls, TK_IN);  /* expect 'in' */
+  
+  /* Check if the iterable is a range(...) function call */
+  /* If so, we can optimize by converting directly to numeric for loop */
+  
+  /* Look ahead to see if this is range(...) */
+  if (ls->t.token == TK_NAME) {
+    /* Check if the name is 'range' */
+    TString *name = ls->t.seminfo.ts;
+    if (strcmp(getstr(name), "range") == 0) {
+      printf_debug("[DEBUG] forinstat_range: detected range() call, converting to numeric for\n");
+      
+      /* This is range(...) - parse it as a function call and extract arguments */
+      /* Then convert to numeric for loop */
+      
+      /* Skip 'range' and expect '(' */
+      printf_debug("[DEBUG] Before skipping range, current token = %d\n", ls->t.token);
+      aqlX_next(ls);  /* skip 'range' */
+      printf_debug("[DEBUG] After skipping range, current token = %d\n", ls->t.token);
+      checknext(ls, TK_LPAREN);  /* expect and consume '(' */
+      printf_debug("[DEBUG] After consuming '(', current token = %d\n", ls->t.token);
+      
+      /* Parse range arguments */
+      expdesc start, stop, step;
+      int nargs = 0;
+      
+      /* Parse first argument */
+      expr(ls, &start);
+      nargs++;
+      printf_debug("[DEBUG] forinstat_range: parsed start, k=%d\n", start.k);
+      
+      if (testnext(ls, ',')) {
+        /* Two or three arguments: range(start, stop [, step]) */
+        expr(ls, &stop);
+        nargs++;
+        printf_debug("[DEBUG] forinstat_range: parsed stop, k=%d\n", stop.k);
+        
+        if (testnext(ls, ',')) {
+          /* Three arguments: range(start, stop, step) */
+          expr(ls, &step);
+          nargs++;
+          printf_debug("[DEBUG] forinstat_range: parsed step, k=%d\n", step.k);
+        } else {
+          /* Two arguments: range(start, stop) - default step = 1 */
+          init_exp(&step, VKINT, 0);
+          step.u.ival = 1;  /* step = 1 */
+          printf_debug("[DEBUG] forinstat_range: default step = 1\n");
+        }
+      } else {
+        /* One argument: range(stop) - start=0, step=1 */
+        stop = start;  /* move first arg to stop */
+        init_exp(&start, VKINT, 0);  /* start = 0 */
+        start.u.ival = 0;
+        init_exp(&step, VKINT, 0);   /* step = 1 */
+        step.u.ival = 1;
+        printf_debug("[DEBUG] forinstat_range: one arg, start=0, step=1\n");
+      }
+      
+      checknext(ls, TK_RPAREN);  /* expect ')' */
+      
+      /* Now we have start, stop, step expressions */
+      /* Convert to numeric for loop: for var = start, stop-1, step */
+      printf_debug("[DEBUG] forinstat_range: converting range(%d args) to numeric for\n", nargs);
+      
+      /* Note: No adjustment needed here since numeric for loop now uses left-closed, right-open semantics */
+      printf_debug("[DEBUG] forinstat_range: stop value passed directly to numeric for loop\n");
+      
+      /* Call the numeric for loop implementation */
+      forstat_range_to_numeric(ls, line, varname, &start, &stop, &step);
+      return;  /* Early return - we're done */
+    }
+  }
+  
+  /* If we get here, it's not a range() call */
+  /* Fall back to generic iterator protocol for containers */
+  printf_debug("[DEBUG] forinstat_range: using generic iterator protocol\n");
+  
+  /* Parse the iterable expression */
+  expdesc iterable;
+  expr(ls, &iterable);
+  aqlK_exp2nextreg(fs, &iterable);
+  
+  checknext(ls, '{');  /* expect '{' */
+  
+  /* Generate iterator setup code */
+  iterator_reg = fs->freereg;
+  int state_reg = fs->freereg + 1;
+  value_reg = fs->freereg + 2;
+  aqlK_reserveregs(fs, 3);
+  
+  /* Generate ITER_INIT instruction to initialize iterator */
+  aqlK_codeABC(fs, OP_ITER_INIT, iterator_reg, iterable.u.info, 0);
+  
+  /* Create loop variable */
+  new_localvar(ls, varname);
+  
+  /* Enter loop block */
+  enterblock(fs, &bl, 1);  /* isloop = 1 */
+  adjustlocalvars(ls, 1);  /* adjust for loop variable */
+  
+  /* Loop start label */
+  int loopstart = aqlK_getlabel(fs);
+  
+  /* Generate ITER_NEXT instruction */
+  aqlK_codeABC(fs, OP_ITER_NEXT, iterator_reg, state_reg, value_reg);
+  
+  /* Test if iteration is finished (value is nil) */
+  int test_jump = aqlK_codeABC(fs, OP_TEST, value_reg, 0, 0);  /* if value is nil, jump to exit */
+  
+  /* Move iterator value to loop variable */
+  Vardesc *loopvar = getlocalvardesc(fs, fs->nactvar - 1);
+  aqlK_codeABC(fs, OP_MOVE, loopvar->vd.ridx, value_reg, 0);
+  
+  /* Parse loop body */
+  block(ls);
+  
+  /* Jump back to loop start */
+  aqlK_codeAsBx(fs, OP_JMP, 0, loopstart - aqlK_getlabel(fs) - 1);
+  
+  /* Patch test jump to exit loop */
+  aqlK_patchtohere(fs, test_jump);
+  
+  /* Leave loop block */
+  leaveblock(fs);
+  
+  checknext(ls, '}');  /* expect '}' */
+  
+  printf_debug("[DEBUG] forinstat_range: generic iterator protocol completed\n");
+}
+
+/*
 ** AQL while statement: while expr { statlist }
 */
 static void whilestat (LexState *ls, int line) {
   /* whilestat -> WHILE cond '{' block '}' */
+  printf_debug("[DEBUG] whilestat: entering while statement parsing\n");
   FuncState *fs = ls->fs;
   int whileinit;
   int condexit;
   BlockCnt bl;
-  expdesc v;
   
   aqlX_next(ls);  /* skip WHILE */
-  whileinit = fs->pc;  /* save loop start position */
-  expr(ls, &v);  /* read condition */
-  /* TODO: condexit = handle condition */
-  enterblock(fs, &bl, 1);
+  whileinit = aqlK_getlabel(fs);  /* save loop start position */
+  printf_debug("[DEBUG] whilestat: loop start at PC=%d\n", whileinit);
+  
+  condexit = whilecond(ls);  /* parse condition, get false exit list */
+  printf_debug("[DEBUG] whilestat: condition parsed, condexit=%d\n", condexit);
+  
   checknext(ls, '{');
-  block(ls);
-  check_match(ls, '}', '{', line);
-  /* TODO: jump back to loop start */
+  printf_debug("[DEBUG] whilestat: opening brace found\n");
+  
+  enterblock(fs, &bl, 1);  /* enter loop block (isloop=1) */
+  statlist(ls);  /* parse loop body */
+  
+  /* Handle continue statements - patch them to jump back to loop start */
+  aqlK_patchlist(fs, bl.continuelist, whileinit);
+  printf_debug("[DEBUG] whilestat: continue jumps patched to PC=%d\n", whileinit);
+  
   leaveblock(fs);
-  /* TODO: patch condition exit */
+  
+  check_match(ls, '}', '{', line);
+  printf_debug("[DEBUG] whilestat: closing brace found\n");
+  
+  /* Jump back to loop start - equivalent to luaK_jumpto(fs, whileinit) */
+  aqlK_patchlist(fs, aqlK_jump(fs), whileinit);
+  printf_debug("[DEBUG] whilestat: back jump generated to PC=%d\n", whileinit);
+  
+  /* Patch condition exit jumps and break statements to here (loop exit) */
+  aqlK_patchtohere(fs, condexit);
+  aqlK_patchtohere(fs, bl.breaklist);
+  printf_debug("[DEBUG] whilestat: exit jumps and break statements patched\n");
 }
 
 /*
@@ -1099,27 +1817,84 @@ static void whilestat (LexState *ls, int line) {
 */
 static void letstat (LexState *ls) {
   /* letstat -> LET NAME [':' type] '=' expr */
+  printf_debug("[DEBUG] letstat: entering\n");
   FuncState *fs = ls->fs;
-  expdesc e;
+  expdesc e, var;
   int vidx;
   TString *varname;
   
+  printf_debug("[DEBUG] letstat: calling aqlX_next to skip LET\n");
   aqlX_next(ls);  /* skip LET */
+  
+  printf_debug("[DEBUG] letstat: calling str_checkname for variable name\n");
   varname = str_checkname(ls);  /* variable name */
-  vidx = new_localvar(ls, varname);
+  printf_debug("[DEBUG] letstat: variable name = '%s'\n", getstr(varname));
   
   /* optional type annotation */
   if (testnext(ls, ':')) {
+    printf_debug("[DEBUG] letstat: found type annotation, skipping\n");
     /* TODO: parse type annotation */
     str_checkname(ls);  /* skip type for now */
   }
   
+  printf_debug("[DEBUG] letstat: calling checknext for '='\n");
   checknext(ls, TK_ASSIGN);
+  printf_debug("[DEBUG] letstat: calling expr for initialization\n");
   expr(ls, &e);  /* parse initialization expression */
+  printf_debug("[DEBUG] letstat: expr returned, e.k = %d\n", e.k);
   
-  /* Store expression result to register */
-  aqlK_exp2nextreg(fs, &e);
-  adjustlocalvars(ls, 1);
+  /* Determine scope: local vs global based on block nesting */
+  if (fs->bl != NULL && fs->bl->previous != NULL) {
+    /* Inside a block (not top-level) - create local variable */
+    printf_debug("[DEBUG] letstat: creating local variable in block scope (nesting level > 1)\n");
+    
+    /* Create new local variable (Lua-compatible) */
+    new_localvar(ls, varname);
+    adjustlocalvars(ls, 1);  /* activate the variable */
+    
+    /* Generate code to store the expression result in the local variable */
+    /* The local variable is now in register ridx */
+    Vardesc *localvar = getlocalvardesc(fs, fs->nactvar - 1);
+    int reg = localvar->vd.ridx;
+    
+    printf_debug("[DEBUG] letstat: local variable '%s' assigned to register %d\n", 
+                 getstr(varname), reg);
+    
+    /* Discharge expression to the allocated register */
+    aqlK_exp2nextreg(fs, &e);
+    if (e.u.info != reg) {
+      /* Move result to the correct register if needed */
+      aqlK_codeABC(fs, OP_MOVE, reg, e.u.info, 0);
+    }
+    
+    printf_debug("[DEBUG] letstat: local variable assignment completed\n");
+  } else {
+    /* Top-level scope - create global variable */
+    const char *source_name = getstr(ls->source);
+    printf_debug("[DEBUG] letstat: source='%s', creating global variable at top-level\n", source_name);
+    
+    /* Always create global variable at top level */
+    init_exp(&var, VUPVAL, 0);  /* _ENV upvalue */
+    
+    /* Store expression result as global variable */
+    printf_debug("[DEBUG] letstat: storing to global variable\n");
+    expdesc key;
+    int keyidx, validx;
+    
+    /* Create string constant for variable name */
+    codestring(&key, varname);
+    keyidx = aqlK_exp2RK(fs, &key);  /* Convert to R/K form */
+    
+    /* Evaluate expression and convert to R/K form */
+    validx = aqlK_exp2RK(fs, &e);
+    
+    /* Generate OP_SETTABUP: _ENV[varname] = expr */
+    /* OP_SETTABUP A B C: UpValue[A][RK(B)] := RK(C) */
+    aqlK_codeABC(fs, OP_SETTABUP, 0, keyidx, validx);
+    printf_debug("[DEBUG] letstat: global variable assignment completed\n");
+  }
+  
+  printf_debug("[DEBUG] letstat: completed successfully, current token = %d\n", ls->t.token);
 }
 
 /*
@@ -1144,31 +1919,104 @@ static void inferredstat (LexState *ls) {
 }
 
 /*
-** AQL assignment: name := expr or name = expr
+** Helper function: check if expression is a function call
 */
-static void assignment (LexState *ls) {
-  
-  /* Normal assignment or expression statement */
-  expdesc v;
-  singlevar(ls, &v);
-  
-  if (testnext(ls, TK_ASSIGN)) {  /* name := expr */
-    
-    expdesc e;
-    expr(ls, &e);  /* parse right-hand side */
-    
-    aqlK_storevar(ls->fs, &v, &e);
+static int is_function_call(expdesc *e) {
+  return (e->k == VBUILTIN || e->k == VCALL);
+}
+
+/*
+** Helper function: mark function call as statement (no return value saved)
+*/
+static void mark_statement_call(FuncState *fs, expdesc *e) {
+  if (e->k == VBUILTIN) {
+    /* Builtin function calls are already handled correctly */
+    return;
   }
-  else if (testnext(ls, '=')) {  /* name = expr (if supported) */
-    
+  if (e->k == VCALL) {
+    /* Mark regular function call to not save return value */
+    Instruction *inst = &fs->f->code[e->u.info];
+    SETARG_C(*inst, 1);  /* 1 = no return value saved */
+  }
+}
+
+/*
+** Forward declaration
+*/
+static void assignment (LexState *ls);
+
+/*
+** Assignment from already parsed variable (for exprstat)
+*/
+static void assignment_from_var(LexState *ls, expdesc *var) {
+  printf_debug("[DEBUG] assignment_from_var: entering, var->k=%d\n", var->k);
+  if (testnext(ls, TK_ASSIGN)) {  /* name = expr or name := expr */
+    printf_debug("[DEBUG] assignment_from_var: found assignment operator\n");
     expdesc e;
     expr(ls, &e);  /* parse right-hand side */
-    aqlK_storevar(ls->fs, &v, &e);
+    printf_debug("[DEBUG] assignment_from_var: calling aqlK_storevar\n");
+    aqlK_storevar(ls->fs, var, &e);
   }
   else {
-    /* Expression statement */
-    aqlK_exp2nextreg(ls->fs, &v);
+    printf_debug("[DEBUG] assignment_from_var: no assignment operator found\n");
+    aqlX_syntaxerror(ls, "'=' or ':=' expected in assignment");
   }
+}
+
+/*
+** Expression statement (Lua-style): func | assignment
+** Properly handle both assignments and function calls
+*/
+static void exprstat(LexState *ls) {
+  FuncState *fs = ls->fs;
+  expdesc v;
+  
+  /* Parse the primary expression */
+  printf_debug("[DEBUG] exprstat: calling singlevar_unified\n");
+  singlevar_unified(ls, &v);
+  printf_debug("[DEBUG] exprstat: singlevar_unified returned, v.k=%d\n", v.k);
+  
+  /* Check what follows */
+  if (ls->t.token == TK_ASSIGN || ls->t.token == '=') {
+    /* Assignment: name = expr */
+    assignment_from_var(ls, &v);
+  }
+  else if (ls->t.token == TK_LPAREN && v.k == VBUILTIN) {
+    /* Builtin function call: name(...) */
+    int nargs = 0;
+    
+    aqlX_next(ls);  /* skip '(' */
+    
+    /* Parse arguments */
+    if (ls->t.token != TK_RPAREN) {
+      expdesc arg;
+      nargs = explist(ls, &arg);
+      aqlK_exp2nextreg(fs, &arg);
+    }
+    
+    checknext(ls, TK_RPAREN);
+    
+    /* Generate builtin call */
+    int result_reg = fs->freereg++;
+    aqlK_codeABC(fs, OP_BUILTIN, result_reg, v.u.info, nargs);
+    init_exp(&v, VNONRELOC, result_reg);
+    
+    /* Result not used in statement context */
+    aqlK_exp2nextreg(fs, &v);
+  }
+  else {
+    /* Not supported as statement */
+    aqlX_syntaxerror(ls, "syntax error (only assignments and builtin calls allowed as statements)");
+  }
+}
+
+/*
+** AQL assignment: name := expr or name = expr (backward compatibility)
+*/
+static void assignment (LexState *ls) {
+  expdesc v;
+  singlevar_unified(ls, &v);
+  assignment_from_var(ls, &v);
 }
 
 /*
@@ -1191,6 +2039,30 @@ static void statement (LexState *ls) {
       whilestat(ls, line);
       break;
     }
+    case TK_FOR: {  /* stat -> forstat or forinstat */
+      /* Look ahead to determine which type of for loop */
+      aqlX_next(ls);  /* skip FOR */
+      TString *varname = str_checkname(ls);  /* get variable name */
+      
+      printf_debug("[DEBUG] After parsing variable name, current token = %d\n", ls->t.token);
+      printf_debug("[DEBUG] TK_ASSIGN = %d, TK_IN = %d\n", TK_ASSIGN, TK_IN);
+      
+      if (ls->t.token == TK_ASSIGN) {
+        /* Numeric for loop: for i = start, end [, step] */
+        printf_debug("[DEBUG] Detected numeric for loop\n");
+        /* Put back the tokens and call original forstat */
+        /* Note: This is a simplified approach - in a full implementation, 
+           we'd need proper token pushback or refactor the functions */
+        forstat_numeric(ls, line, varname);
+      } else if (ls->t.token == TK_IN) {
+        /* For-in loop: for i in iterable */
+        printf_debug("[DEBUG] Detected for-in loop\n");
+        forinstat_range(ls, line, varname);
+      } else {
+        aqlX_syntaxerror(ls, "'=' or 'in' expected after for variable");
+      }
+      break;
+    }
     case TK_LET: {  /* stat -> letstat */
       letstat(ls);
       break;
@@ -1208,11 +2080,16 @@ static void statement (LexState *ls) {
     }
     case TK_BREAK: {  /* stat -> breakstat */
       aqlX_next(ls);  /* skip BREAK */
-      /* TODO: implement break statement */
+      breakstat(ls);
       break;
     }
-    default: {  /* stat -> assignment or expression statement */
-      assignment(ls);
+    case TK_CONTINUE: {  /* stat -> continuestat */
+      aqlX_next(ls);  /* skip CONTINUE */
+      continuestat(ls);
+      break;
+    }
+    default: {  /* stat -> func | assignment */
+      exprstat(ls);
       break;
     }
   }
@@ -1318,6 +2195,16 @@ LClosure *aqlY_parser (aql_State *L, struct Zio *z, Mbuffer *buff,
   lexstate.dyd = dyd;
   dyd->actvar.n = dyd->gt.n = dyd->label.n = 0;
   
+  /* Initialize AQL enhancement fields */
+  dyd->aql.types.type_cache = NULL;
+  dyd->aql.types.cache_size = 0;
+  dyd->aql.types.cache_used = 0;
+  dyd->aql.containers.containers = NULL;
+  dyd->aql.containers.container_count = 0;
+  dyd->aql.containers.container_capacity = 0;
+  dyd->aql.current_mode = AQL_MODE_SCRIPT;  /* Default to script mode */
+  dyd->aql.mode_locked = false;
+  
   aqlX_setinput(L, &lexstate, z, funcstate.f->source, firstchar);
   
   
@@ -1331,6 +2218,13 @@ LClosure *aqlY_parser (aql_State *L, struct Zio *z, Mbuffer *buff,
   
   /* Finish debug collections and output debug info */
   finish_token_collection();
+  
+  /* Check if we should exit early for token-only debug */
+  if ((aql_debug_flags & AQL_DEBUG_LEX) && !(aql_debug_flags & ~AQL_DEBUG_LEX)) {
+    printf("\n✅ Lexical analysis completed successfully\n");
+    exit(0);  /* Exit after showing tokens only */
+  }
+  
   finish_ast_collection();
   finish_bytecode_collection(cl->p);  /* Pass the generated proto */
   
@@ -1372,25 +2266,6 @@ static int expdesc_to_tvalue(aql_State *L, expdesc *e, TValue *result) {
 ** Global state for string concatenation (temporary workaround)
 */
 aql_State *g_current_L = NULL;
-
-/*
-** ============================================================================
-** 便利宏定义 (使用 aerror.h 模块)
-** ============================================================================
-*/
-
-/* 便捷的错误报告宏 */
-#define REPORT_SYNTAX_ERROR(line, msg, suggestion) \
-  aqlE_report_error(AQL_ERROR_SYNTAX, AQL_ERROR_LEVEL_ERROR, line, msg, suggestion)
-
-#define REPORT_NAME_ERROR(line, msg, suggestion) \
-  aqlE_report_error(AQL_ERROR_NAME, AQL_ERROR_LEVEL_ERROR, line, msg, suggestion)
-
-#define REPORT_RUNTIME_ERROR(line, msg, suggestion) \
-  aqlE_report_error(AQL_ERROR_RUNTIME, AQL_ERROR_LEVEL_ERROR, line, msg, suggestion)
-
-#define REPORT_WARNING(line, msg, suggestion) \
-  aqlE_report_error(AQL_ERROR_SYNTAX, AQL_ERROR_LEVEL_WARNING, line, msg, suggestion)
 
 
 
@@ -1454,9 +2329,43 @@ static int get_variable(TString *name, TValue *result) {
 ** Unified variable lookup for all execution modes
 ** Simplified version without extra abstraction layers
 */
+/* Builtin function table */
+static const struct {
+  const char *name;
+  int id;
+} builtin_functions[] = {
+  {"print", 0},
+  {"type", 1},
+  {"len", 2},
+  {"tostring", 3},
+  {"string", 3},    /* alias for tostring */
+  {"tonumber", 4},
+  {"range", 5},
+  {NULL, -1}  /* sentinel */
+};
+
+/* Check if a name is a builtin function */
+static int get_builtin_id(TString *name) {
+  const char *str = getstr(name);
+  for (int i = 0; builtin_functions[i].name != NULL; i++) {
+    if (strcmp(str, builtin_functions[i].name) == 0) {
+      return builtin_functions[i].id;
+    }
+  }
+  return -1;  /* not a builtin */
+}
+
 static void singlevar_unified(LexState *ls, expdesc *var) {
   TString *varname = str_checkname(ls);
   FuncState *fs = ls->fs;
+  
+  /* First check if this is a builtin function */
+  int builtin_id = get_builtin_id(varname);
+  if (builtin_id >= 0) {
+    /* This is a builtin function - set up for OP_BUILTIN */
+    init_exp(var, VBUILTIN, builtin_id);
+    return;
+  }
   
   if (fs != NULL) {
     /* Compilation mode - use standard Lua variable lookup */
@@ -1469,6 +2378,23 @@ static void singlevar_unified(LexState *ls, expdesc *var) {
       init_exp(&key, VKSTR, 0);
       key.u.strval = varname;  /* key is variable name */
       aqlK_indexed(fs, var, &key);  /* env[varname] */
+    }
+    else {
+      /* Variable found by singlevaraux, but we need to check if it's actually a global */
+      /* In AQL, all top-level variables should be treated as globals for assignment */
+      printf_debug("[DEBUG] singlevar_unified: found variable '%s' with type k=%d\n", getstr(varname), var->k);
+      if (var->k != VLOCAL && var->k != VUPVAL) {
+        printf_debug("[DEBUG] singlevar_unified: forcing '%s' to be global variable\n", getstr(varname));
+        /* This might be a global variable that was incorrectly identified */
+        /* Force it to be treated as a global variable */
+        expdesc key;
+        singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
+        aql_assert(var->k != VVOID);  /* this one must exist */
+        init_exp(&key, VKSTR, 0);
+        key.u.strval = varname;  /* key is variable name */
+        aqlK_indexed(fs, var, &key);  /* env[varname] */
+        printf_debug("[DEBUG] singlevar_unified: after aqlK_indexed, var->k=%d\n", var->k);
+      }
     }
   } else {
     /* REPL mode - use simple variable table */
@@ -1640,6 +2566,43 @@ AQL_API void aqlP_print_value(const TValue *v) {
     case AQL_VTRUE:
       printf("true");
       break;
+    case AQL_TRANGE: {
+      RangeObject *range = rangevalue(v);
+      if (range) {
+        printf("range(%lld, %lld, %lld)", 
+               (long long)range->start, 
+               (long long)range->stop, 
+               (long long)range->step);
+      } else {
+        printf("range(invalid)");
+      }
+      break;
+    }
+    case AQL_VARRAY: {
+      Array *arr = arrayvalue(v);
+      if (arr) {
+        printf("[");
+        for (size_t i = 0; i < arr->length; i++) {
+          if (i > 0) printf(", ");
+          aqlP_print_value(&arr->data[i]);
+        }
+        printf("]");
+      } else {
+        printf("array(invalid)");
+      }
+      break;
+    }
+    case AQL_VDICT: {
+      Dict *dict = dictvalue(v);
+      if (dict) {
+        printf("{");
+        // TODO: 遍历dict并格式化输出 key: value, key: value
+        printf("}");
+      } else {
+        printf("dict(invalid)");
+      }
+      break;
+    }
     default:
       printf("(unknown type %d)", tag);
       break;
@@ -1662,7 +2625,7 @@ AQL_API void aqlP_free_value(TValue *v) {
 AQL_API int aqlP_execute_file(aql_State *L, const char *filename) {
   if (!L || !filename) return 0;
   
-  printf("Executing file: %s\n", filename);
+  //printf("Executing file: %s\n", filename);
   
   /* Load and compile the file with automatic return for last expression */
   if (aql_loadfile_with_return(L, filename) != 0) {
@@ -1903,9 +2866,3 @@ AQL_API int aqlP_parse_statement(aql_State *L, const char *stmt_str) {
   
   return result;
 }
-
-/* Compilation functions moved to aapi.c */
-
-/* Execution functions moved to aapi.c */
-
-/* REPL functionality moved to arepl.c for better separation of concerns */

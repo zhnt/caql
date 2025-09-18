@@ -1,0 +1,8 @@
+initial: sum=0, count=0
+block1: sum=10, count=1
+block2: sum=30, count=2, temp=60
+block3: sum=90, count=3
+back to block2: sum=90, count=3
+back to block1: sum=90, count=3
+final: sum=90, count=3
+

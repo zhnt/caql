@@ -1,0 +1,9 @@
+// Range loops with outer variable as parameter
+let sum = 0
+for i = 2, 5, 1 {
+    for j in range(i, i * 2, 1) {
+        sum = sum + i * 10 + j
+        print(i * 10 + j)
+    }
+}
+print(sum)

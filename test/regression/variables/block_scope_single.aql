@@ -1,0 +1,7 @@
+// Single block scope test
+let x = 10
+{
+    let y = 20
+    print("inside block: x=" + x + ", y=" + y)
+}
+print("outside block: x=" + x)

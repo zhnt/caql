@@ -17,6 +17,11 @@
 static AQL_ErrorContext g_error_ctx = {NULL, 0, 100, 1, "Global"};
 
 /*
+** 控制是否立即打印错误（用于 REPL 模式）
+*/
+static int g_immediate_error_print = 1;
+
+/*
 ** 错误类型字符串映射
 */
 static const char *error_type_strings[] = {
@@ -129,11 +134,13 @@ AQL_API void aqlE_report_error(AQL_ErrorType type, AQL_ErrorLevel level,
   if (error) {
     aqlE_add_error(&g_error_ctx, error);
     
-    /* 立即打印错误（用于调试） */
-    char *formatted = aqlE_format_error_message(error);
-    if (formatted) {
-      fprintf(stderr, "%s\n", formatted);
-      free(formatted);
+    /* 根据标志决定是否立即打印错误 */
+    if (g_immediate_error_print) {
+      char *formatted = aqlE_format_error_message(error);
+      if (formatted) {
+        fprintf(stderr, "%s\n", formatted);
+        free(formatted);
+      }
     }
   }
 }
@@ -346,6 +353,20 @@ AQL_API void aqlE_report_syntax_error(int line, const char *message,
   }
   
   aqlE_report_error(AQL_ERROR_SYNTAX, AQL_ERROR_LEVEL_ERROR, line, full_message, suggestion);
+}
+
+/*
+** 设置是否立即打印错误
+*/
+AQL_API void aqlE_set_immediate_print(int enable) {
+  g_immediate_error_print = enable;
+}
+
+/*
+** 获取当前立即打印设置
+*/
+AQL_API int aqlE_get_immediate_print(void) {
+  return g_immediate_error_print;
 }
 
 /*

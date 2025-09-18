@@ -83,8 +83,9 @@ typedef struct aql_State aql_State;
 #define AQL_TSLICE		10
 #define AQL_TDICT		11
 #define AQL_TVECTOR		12
+#define AQL_TRANGE		13
 
-#define AQL_NUMTYPES		14
+#define AQL_NUMTYPES		15
 
 /* minimum AQL stack available to a C function */
 #define AQL_MINSTACK	20
@@ -367,6 +368,7 @@ AQL_API void (aql_closeslot) (aql_State *L, int idx);
 #define aql_isslice(L,n)	(aql_type(L, (n)) == AQL_TSLICE)
 #define aql_isdict(L,n)		(aql_type(L, (n)) == AQL_TDICT)
 #define aql_isvector(L,n)	(aql_type(L, (n)) == AQL_TVECTOR)
+#define aql_isrange(L,n)	(aql_type(L, (n)) == AQL_TRANGE)
 
 #define aql_pushliteral(L, s)	aql_pushstring(L, s)
 

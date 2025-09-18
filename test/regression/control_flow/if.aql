@@ -1,0 +1,10 @@
+// Complex nesting: if-for-if-for
+let matrix_sum = 0
+
+if 1 == 1 {
+    print("Processing matrix")
+} else {
+    print("Skipping matrix processing")
+}
+
+print("Complex nesting test done")

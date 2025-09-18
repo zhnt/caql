@@ -1,0 +1,9 @@
+before shadow: x=1
+after shadow: x=10
+before inner shadow: x=10
+after inner shadow: x=15
+modified innermost: x=30
+back to inner: x=30
+back to middle: x=10
+back to outer: x=1
+

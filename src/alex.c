@@ -274,7 +274,7 @@ static int read_numeral(LexState *ls, SemInfo *seminfo) {
   
   
   seminfo->i = value;
-  return TK_INT;
+  return TK_INT_LITERAL;
 }
 
 static int isreserved(TString *ts) {
@@ -300,13 +300,19 @@ static int isreserved(TString *ts) {
   if (strcmp(s, "elif") == 0) return TK_ELIF;
   if (strcmp(s, "while") == 0) return TK_WHILE;
   if (strcmp(s, "for") == 0) return TK_FOR;
+  if (strcmp(s, "in") == 0) return TK_IN;
   if (strcmp(s, "do") == 0) return TK_DO;
   if (strcmp(s, "end") == 0) return TK_END;
   if (strcmp(s, "break") == 0) return TK_BREAK;
+  if (strcmp(s, "continue") == 0) return TK_CONTINUE;
   if (strcmp(s, "return") == 0) {
     return TK_RETURN;
   }
   
+  /* Logical operators */
+  if (strcmp(s, "and") == 0) return TK_AND;
+  if (strcmp(s, "or") == 0) return TK_OR;
+  if (strcmp(s, "not") == 0) return TK_NOT;
   
   /* For now, return 0 for other keywords */
   return 0;  /* not reserved */
@@ -356,7 +362,7 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
         int start_col = ls->column;
         token_type = read_numeral(ls, seminfo);
         char num_buf[32];
-        if (token_type == TK_INT) {
+        if (token_type == TK_INT_LITERAL) {
           snprintf(num_buf, sizeof(num_buf), "%lld", seminfo->i);
         } else {
           snprintf(num_buf, sizeof(num_buf), "%.2f", seminfo->r);
@@ -378,13 +384,6 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
       }
       case '-': {
         next(ls);
-        if (ls->current == '-') {  /* '--' comment */
-          next(ls);
-          /* Skip comment until end of line */
-          while (!currIsNewline(ls) && ls->current != EOZ)
-            next(ls);
-          break;  /* continue loop to skip whitespace */
-        }
         RETURN_TOKEN(TK_MINUS, NULL);
       }
       case '*': {
@@ -394,7 +393,38 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
       }
       case '/': {
         next(ls);
-        RETURN_TOKEN(TK_DIV, NULL);
+        if (ls->current == '/') {  /* '//' comment */
+          next(ls);
+          /* Skip single-line comment until end of line */
+          while (!currIsNewline(ls) && ls->current != EOZ)
+            next(ls);
+          break;  /* continue loop to skip whitespace */
+        }
+        else if (ls->current == '*') {  /* block comment */
+          next(ls);
+          /* Skip multi-line comment until end marker */
+          while (ls->current != EOZ) {
+            if (ls->current == '*') {
+              next(ls);
+              if (ls->current == '/') {
+                next(ls);  /* skip the '/' */
+                break;     /* end of comment */
+              }
+            }
+            else {
+              if (currIsNewline(ls)) {
+                inclinenumber(ls);  /* handle newlines in multi-line comments */
+              }
+              else {
+                next(ls);
+              }
+            }
+          }
+          break;  /* continue loop to skip whitespace */
+        }
+        else {
+          RETURN_TOKEN(TK_DIV, NULL);
+        }
       }
       case '%': {
         next(ls);
@@ -418,10 +448,20 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
         else return TK_ASSIGN;  /* '=' */
       }
       case '>': {
+        printf_debug("[DEBUG] alex: found '>', checking for compound operators\n");
         next(ls);
-        if (check_next1(ls, '=')) return TK_GE;  /* '>=' */
-        else if (check_next1(ls, '>')) return TK_SHR;  /* '>>' */
-        else return TK_GT;  /* '>' */
+        if (check_next1(ls, '=')) {
+          printf_debug("[DEBUG] alex: found '>=', returning TK_GE\n");
+          return TK_GE;  /* '>=' */
+        }
+        else if (check_next1(ls, '>')) {
+          printf_debug("[DEBUG] alex: found '>>', returning TK_SHR\n");
+          return TK_SHR;  /* '>>' */
+        }
+        else {
+          printf_debug("[DEBUG] alex: found '>', returning TK_GT\n");
+          return TK_GT;  /* '>' */
+        }
       }
       case '<': {
         next(ls);
@@ -490,16 +530,17 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
                              aqlZ_bufflen(ls->buff));
           seminfo->ts = ts;
           int reserved = isreserved(ts);
-          if (reserved)  /* reserved word? */
-            return reserved;
-          else {
-            return TK_NAME;
+          if (reserved) {  /* reserved word? */
+            RETURN_TOKEN(reserved, getstr(ts));
+          } else {
+            RETURN_TOKEN(TK_NAME, getstr(ts));
           }
         }
         else {  /* single-char tokens */
           int c = ls->current;
           next(ls);
-          return c;
+          char char_str[2] = {c, '\0'};
+          RETURN_TOKEN(c, char_str);
         }
       }
     }

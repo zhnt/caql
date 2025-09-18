@@ -1,0 +1,16 @@
+// Variable shadowing test
+let x = 10
+let y = 20
+print("outer: x=" + x + ", y=" + y)
+{
+    let x = 100  // shadows outer x
+    let z = x + y  // uses inner x and outer y
+    print("inner: x=" + x + ", y=" + y + ", z=" + z)
+    {
+        let y = 200  // shadows outer y
+        let w = x + y  // uses inner x and inner y
+        print("deepest: x=" + x + ", y=" + y + ", w=" + w)
+    }
+    print("back to inner: x=" + x + ", y=" + y)
+}
+print("back to outer: x=" + x + ", y=" + y)

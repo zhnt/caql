@@ -13,10 +13,16 @@
 #include "adebug_user.h"
 #include "aopcodes.h"
 #include "alex.h"
+#include "arange.h"
 
 /* Global debug state */
 int aql_debug_flags = AQL_DEBUG_NONE;
 int aql_debug_enabled = 0;
+
+/* Early exit flags for -s* parameters */
+int aql_stop_after_lex = 0;
+int aql_stop_after_parse = 0;
+int aql_stop_after_compile = 0;
 
 /* Performance profiling state */
 static AQL_ProfileEntry *profile_entries = NULL;
@@ -87,21 +93,28 @@ void aqlD_print_separator(void) {
 ** Lexical analysis debug output
 */
 void aqlD_print_tokens_header(void) {
-    aqlD_print_header("LEXICAL ANALYSIS (Tokens)");
+    if (!aql_debug_enabled || !(aql_debug_flags & AQL_DEBUG_LEX)) return;
+    
+    printf("\n🔍 === LEXICAL ANALYSIS (Tokens) ===\n");
 }
 
 void aqlD_print_token(int index, AQL_TokenInfo *token) {
+    if (!aql_debug_enabled || !(aql_debug_flags & AQL_DEBUG_LEX)) return;
+    
     if (token->value && strlen(token->value) > 0) {
-        aqlD_printf("  %2d: %-12s value=%s (line %d, col %d)\n", 
-                   index, token->name, token->value, token->line, token->column);
+        printf("  %2d: %-12s value=%s (line %d, col %d)\n", 
+               index, token->name, token->value, token->line, token->column);
     } else {
-        aqlD_printf("  %2d: %-12s (line %d, col %d)\n", 
-                   index, token->name, token->line, token->column);
+        printf("  %2d: %-12s (line %d, col %d)\n", 
+               index, token->name, token->line, token->column);
     }
 }
 
 void aqlD_print_tokens_footer(int total_tokens) {
-    aqlD_printf("\n📊 Total tokens: %d\n\n", total_tokens);
+    if (!aql_debug_enabled || !(aql_debug_flags & AQL_DEBUG_LEX)) return;
+    
+    printf("\n📊 Total tokens: %d\n\n", total_tokens);
+    printf("✅ Lexical analysis completed successfully\n");
 }
 
 /*
@@ -138,69 +151,91 @@ void aqlD_print_ast_footer(int total_nodes) {
 ** Bytecode debug output
 */
 void aqlD_print_bytecode_header(void) {
-    aqlD_print_header("BYTECODE INSTRUCTIONS");
+    if (!aql_debug_enabled || !(aql_debug_flags & AQL_DEBUG_CODE)) return;
+    
+    printf("\n⚙️  === BYTECODE INSTRUCTIONS ===\n");
 }
 
 void aqlD_print_constants_pool(TValue *constants, int count) {
-    int i;
-    aqlD_printf("📦 Constants Pool:\n");
-    for (i = 0; i < count; i++) {
-        char buffer[64];
-        aqlD_format_value(&constants[i], buffer, sizeof(buffer));
-        aqlD_printf("  CONST[%d] = %s\n", i, buffer);
+    if (!aql_debug_enabled || !(aql_debug_flags & AQL_DEBUG_CODE)) return;
+    
+    if (count > 0) {
+        printf("📦 Constants Pool:\n");
+        for (int i = 0; i < count; i++) {
+            char buffer[64];
+            aqlD_format_value(&constants[i], buffer, sizeof(buffer));
+            printf("  CONST[%d] = %s\n", i, buffer);
+        }
+        printf("\n");
     }
-    aqlD_printf("\n");
 }
 
 void aqlD_print_instruction_header(void) {
-    aqlD_printf("📝 Instructions:\n");
-    aqlD_printf("  PC    OPCODE       A        B        C       \n");
-    aqlD_print_separator();
+    if (!aql_debug_enabled || !(aql_debug_flags & AQL_DEBUG_CODE)) return;
+    
+    printf("📝 Instructions:\n");
+    printf("  PC    OPCODE       A        B        C       \n");
+    printf("  ---   ------       -        -        -       \n");
 }
 
 void aqlD_print_instruction(AQL_InstrInfo *instr) {
-    aqlD_printf("  %-4d  %-12s %-8d %-8d %-8d", 
-               instr->pc, instr->opname, instr->a, instr->b, instr->c);
+    if (!aql_debug_enabled || !(aql_debug_flags & AQL_DEBUG_CODE)) return;
+    
+    printf("  %-4d  %-12s %-8d %-8d %-8d", 
+           instr->pc, instr->opname, instr->a, instr->b, instr->c);
     if (instr->description) {
-        aqlD_printf("  # %s", instr->description);
+        printf("  # %s", instr->description);
     }
-    aqlD_printf("\n");
+    printf("\n");
 }
 
 void aqlD_print_bytecode_footer(int total_instructions) {
-    aqlD_printf("\n📊 Total instructions: %d\n\n", total_instructions);
+    if (!aql_debug_enabled || !(aql_debug_flags & AQL_DEBUG_CODE)) return;
+    
+    printf("\n📊 Total instructions: %d\n\n", total_instructions);
+    printf("✅ Bytecode generation completed successfully\n");
 }
 
 /*
 ** VM execution debug output
 */
 void aqlD_print_execution_header(void) {
-    aqlD_print_header("EXECUTION TRACE");
-    aqlD_printf("\n");
+    if (!aql_debug_enabled || !(aql_debug_flags & AQL_DEBUG_VM)) return;
+    
+    printf("\n🚀 === EXECUTION TRACE ===\n\n");
 }
 
 void aqlD_print_vm_state(AQL_VMState *state) {
-    aqlD_printf("📍 PC=%d: %s\n", state->pc, state->description);
+    if (!aql_debug_enabled || !(aql_debug_flags & AQL_DEBUG_VM)) return;
+    
+    printf("📍 PC=%d: %s\n", state->pc, state->description);
 }
 
 void aqlD_print_registers(TValue *registers, int count) {
-    int i;
-    aqlD_printf("   Registers: ");
-    for (i = 0; i < count && i < 8; i++) {  /* Limit to first 8 registers */
+    if (!aql_debug_enabled || !(aql_debug_flags & AQL_DEBUG_REG)) return;
+    
+    printf("   Registers: ");
+    for (int i = 0; i < count && i < 8; i++) {  /* Limit to first 8 registers */
         char buffer[32];
         aqlD_format_value(&registers[i], buffer, sizeof(buffer));
-        aqlD_printf("R[%d]=%s ", i, buffer);
+        printf("R[%d]=%s ", i, buffer);
     }
     if (count > 8) {
-        aqlD_printf("... (%d more)", count - 8);
+        printf("... (%d more)", count - 8);
     }
-    aqlD_printf("\n\n");
+    printf("\n\n");
 }
 
 void aqlD_print_execution_footer(TValue *result) {
-    char buffer[64];
-    aqlD_format_value(result, buffer, sizeof(buffer));
-    aqlD_printf("✅ Execution complete! Final result: %s\n\n", buffer);
+    if (!aql_debug_enabled || !(aql_debug_flags & AQL_DEBUG_VM)) return;
+    
+    if (result) {
+        char buffer[64];
+        aqlD_format_value(result, buffer, sizeof(buffer));
+        printf("✅ Execution complete! Final result: %s\n\n", buffer);
+    } else {
+        printf("✅ Execution complete!\n\n");
+    }
 }
 
 /*
@@ -429,7 +464,7 @@ void aqlD_print_profile_report(void) {
 */
 const char *aqlD_token_name(int token_type) {
     switch (token_type) {
-        case TK_INT: return "NUMBER";
+        case TK_INT_LITERAL: return "NUMBER";
         case TK_FLT: return "FLOAT";
         case TK_NAME: return "IDENTIFIER";
         case TK_STRING: return "STRING";
@@ -541,6 +576,7 @@ const char *aqlD_value_type_name(TValue *value) {
         case AQL_TFUNCTION: return "function";
         case AQL_TUSERDATA: return "userdata";
         case AQL_TTHREAD: return "thread";
+        case AQL_TRANGE: return "range";
         default: return "unknown";
     }
 }
@@ -568,6 +604,18 @@ void aqlD_format_value(TValue *value, char *buffer, size_t size) {
         case AQL_TSTRING:
             snprintf(buffer, size, "\"%s\"", svalue(value));
             break;
+        case AQL_TRANGE: {
+            RangeObject *range = rangevalue(value);
+            if (range) {
+                snprintf(buffer, size, "range(%lld, %lld, %lld)", 
+                        (long long)range->start, 
+                        (long long)range->stop, 
+                        (long long)range->step);
+            } else {
+                snprintf(buffer, size, "range(invalid)");
+            }
+            break;
+        }
         default:
             snprintf(buffer, size, "<%s>", aqlD_value_type_name(value));
             break;
@@ -602,3 +650,5 @@ void aqlD_dump_globals(aql_State *L) {
     aqlD_printf("  (Global variable dumping not implemented yet)\n");
     aqlD_printf("\n");
 }
+
+

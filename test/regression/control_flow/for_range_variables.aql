@@ -1,0 +1,7 @@
+// Range for loop with variables
+let start = 2
+let limit = 6
+let step = 2
+for i in range(start, limit, step) {
+    print(i)
+}

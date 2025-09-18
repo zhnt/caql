@@ -46,6 +46,11 @@ typedef enum {
 extern int aql_debug_flags;
 extern int aql_debug_enabled;
 
+/* Early exit flags for -s* parameters */
+extern int aql_stop_after_lex;
+extern int aql_stop_after_parse;
+extern int aql_stop_after_compile;
+
 /*
 ** High-performance debug macros
 ** - Compile to nothing in release builds

@@ -609,24 +609,28 @@ typedef struct Array Array;
 typedef struct Slice Slice;
 typedef struct Dict Dict;
 typedef struct Vector Vector;
+typedef struct RangeObject RangeObject;
 
 /* Variant tags for AQL containers */
 #define AQL_VARRAY	makevariant(AQL_TARRAY, 0)
 #define AQL_VSLICE	makevariant(AQL_TSLICE, 0)
 #define AQL_VDICT	makevariant(AQL_TDICT, 0)
 #define AQL_VVECTOR	makevariant(AQL_TVECTOR, 0)
+#define AQL_VRANGE	makevariant(AQL_TRANGE, 0)
 
 /* Container type tests */
 #define ttisarray(o)		checktag((o), ctb(AQL_VARRAY))
 #define ttisslice(o)		checktag((o), ctb(AQL_VSLICE))
 #define ttisdict(o)		checktag((o), ctb(AQL_VDICT))
 #define ttisvector(o)		checktag((o), ctb(AQL_VVECTOR))
+#define ttisrange(o)		checktag((o), ctb(AQL_VRANGE))
 
 /* Container value accessors */
 #define arrayvalue(o)	check_exp(ttisarray(o), gco2array(val_(o).gc))
 #define slicevalue(o)	check_exp(ttisslice(o), gco2slice(val_(o).gc))
 #define dictvalue(o)	check_exp(ttisdict(o), gco2dict(val_(o).gc))
 #define vectorvalue(o)	check_exp(ttisvector(o), gco2vector(val_(o).gc))
+#define rangevalue(o)	check_exp(ttisrange(o), gco2range(val_(o).gc))
 
 /* Alternative names for compatibility */
 #define arrvalue(o)     arrayvalue(o)
@@ -651,6 +655,11 @@ typedef struct Vector Vector;
 #define setvectorvalue(L,obj,x) \
   { TValue *io = (obj); Vector *x_ = (x); \
     val_(io).gc = obj2gco(x_); settt_(io, ctb(AQL_VVECTOR)); \
+    checkliveness(L,io); }
+
+#define setrangevalue(L,obj,x) \
+  { TValue *io = (obj); RangeObject *x_ = (x); \
+    val_(io).gc = obj2gco(x_); settt_(io, ctb(AQL_VRANGE)); \
     checkliveness(L,io); }
 
 /* }================================================================== */
@@ -698,6 +707,7 @@ typedef struct Table Table;
 #define gco2slice(o)  check_exp((o)->tt == AQL_TSLICE, (Slice *)(o))
 #define gco2dict(o)   check_exp((o)->tt == AQL_TDICT, (Dict *)(o))
 #define gco2vector(o) check_exp((o)->tt == AQL_TVECTOR, (Vector *)(o))
+#define gco2range(o)  check_exp((o)->tt == AQL_TRANGE, (RangeObject *)(o))
 
 /* Note: cast_u is defined in aconf.h */
 

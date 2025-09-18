@@ -137,6 +137,11 @@ int main(int argc, char *argv[]) {
     /* Debug configuration */
     int debug_flags = AQL_DEBUG_NONE;
     
+    /* Early exit configuration */
+    int stop_after_lex = 0;
+    int stop_after_parse = 0;
+    int stop_after_compile = 0;
+    
     /* Parse command line arguments */
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
@@ -163,6 +168,15 @@ int main(int argc, char *argv[]) {
             debug_flags |= AQL_DEBUG_GC;
         } else if (strcmp(argv[i], "-vd") == 0) {
             debug_flags |= AQL_DEBUG_REPL;
+        } else if (strcmp(argv[i], "-st") == 0) {
+            debug_flags |= AQL_DEBUG_LEX;
+            stop_after_lex = 1;
+        } else if (strcmp(argv[i], "-sa") == 0) {
+            debug_flags |= AQL_DEBUG_LEX | AQL_DEBUG_PARSE;
+            stop_after_parse = 1;
+        } else if (strcmp(argv[i], "-sb") == 0) {
+            debug_flags |= AQL_DEBUG_LEX | AQL_DEBUG_PARSE | AQL_DEBUG_CODE;
+            stop_after_compile = 1;
         } else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--interactive") == 0) {
             interactive = 1;
         } else if (strcmp(argv[i], "--test") == 0) {
@@ -210,7 +224,8 @@ int main(int argc, char *argv[]) {
     #if AQL_USE_JIT
     if (jit_mode > 0) {
         if (aqlJIT_init(L, JIT_BACKEND_NATIVE) == JIT_ERROR_NONE) {
-            printf("🚀 AQL JIT enabled\n");
+            //TODO: Add a message to the user that JIT is enabled
+            //printf("🚀 AQL JIT enabled\n");
         } else {
             fprintf(stderr, "Warning: JIT initialization failed\n");
             jit_mode = 0;

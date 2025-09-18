@@ -1,0 +1,7 @@
+// Range for loop with break
+for i in range(5, 15, 2) {
+    if i >= 10 {
+        break
+    }
+    print(i)
+}

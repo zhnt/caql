@@ -12,6 +12,7 @@
 #include "aobject.h"
 #include "astate.h"
 #include <string.h>
+#include <stdio.h>
 
 /* Temporary implementation of aql_index2addr - should be moved to aql.c later */
 static const TValue *aql_index2addr(aql_State *L, int idx) {
@@ -110,13 +111,20 @@ AQL_API Dict *aqlD_newcap(aql_State *L, DataType key_type, DataType value_type, 
   base->u.dict.hash_mask = capacity - 1;
   base->u.dict.load_factor = 0.75;
   
-  /* 分配并初始化条目数组 */
-  dict->entries = (DictEntry*)base->data;
+  /* 分配并初始化条目数组 - 使用独立内存避免冲突 */
+  dict->entries = (DictEntry*)aqlM_newvector(L, capacity, DictEntry);
+  if (dict->entries == NULL) {
+    /* TODO: 释放 base */
+    return NULL;
+  }
+  
+  /* 初始化所有条目为空 */
   for (size_t i = 0; i < capacity; i++) {
-    dict->entries[i].hash = 0;
-    dict->entries[i].distance = 0;
     setnilvalue(&dict->entries[i].key);
     setnilvalue(&dict->entries[i].value);
+    dict->entries[i].hash = 0;
+    dict->entries[i].distance = 0;
+    dict->entries[i].flags = 0;
   }
   
   return dict;
@@ -136,20 +144,39 @@ AQL_API void aqlD_free(aql_State *L, Dict *dict) {
 ** Find entry for key (Robin Hood hashing)
 */
 static DictEntry *findentry(const Dict *dict, const TValue *key) {
-  if (dict->capacity == 0) return NULL;
+  if (dict->capacity == 0) {
+    printf_debug("[DEBUG] findentry: dict capacity is 0\n");
+    return NULL;
+  }
   
   aql_Unsigned hash = aqlD_hash(key);
   size_t index = hash & dict->mask;
   aql_byte distance = 0;
   
+  if (ttisstring(key)) {
+    TString *keystr = tsvalue(key);
+    printf_debug("[DEBUG] findentry: searching for key '%s', hash=%u, index=%zu\n", 
+                getstr(keystr), hash, index);
+  }
+  
   while (1) {
     DictEntry *entry = &dict->entries[index];
     
     if (aqlD_entry_empty(entry)) {
+      printf_debug("[DEBUG] findentry: found empty entry at index %zu, key_type=%d\n", 
+                  index, ttype(&entry->key));
       return NULL;  /* Key not found */
     }
     
+    printf_debug("[DEBUG] findentry: checking entry at index %zu, hash=%llu, distance=%d\n", 
+                index, (unsigned long long)entry->hash, entry->distance);
+    if (ttisstring(&entry->key)) {
+      TString *entrystr = tsvalue(&entry->key);
+      printf_debug("[DEBUG] findentry: entry key is string '%s'\n", getstr(entrystr));
+    }
+    
     if (entry->hash == hash && aqlD_keyequal(&entry->key, key)) {
+      printf_debug("[DEBUG] findentry: found matching entry!\n");
       return entry;  /* Found */
     }
     
@@ -167,9 +194,23 @@ static DictEntry *findentry(const Dict *dict, const TValue *key) {
 ** Get value for key
 */
 AQL_API const TValue *aqlD_get(const Dict *dict, const TValue *key) {
-  if (dict == NULL || key == NULL) return NULL;
+  if (dict == NULL || key == NULL) {
+    printf_debug("[DEBUG] aqlD_get: dict=%p, key=%p\n", (void*)dict, (void*)key);
+    return NULL;
+  }
+  
+  if (ttisstring(key)) {
+    TString *keystr = tsvalue(key);
+    printf_debug("[DEBUG] aqlD_get: looking for key '%s', dict size=%zu, dict=%p\n", 
+                getstr(keystr), dict->size, (void*)dict);
+  }
   
   DictEntry *entry = findentry(dict, key);
+  if (entry) {
+    printf_debug("[DEBUG] aqlD_get: found entry, value type=%d\n", ttype(&entry->value));
+  } else {
+    printf_debug("[DEBUG] aqlD_get: entry not found\n");
+  }
   return entry ? &entry->value : NULL;
 }
 
@@ -217,7 +258,19 @@ static int dict_resize(aql_State *L, Dict *dict, size_t new_capacity) {
 ** Set key-value pair (Robin Hood hashing)
 */
 AQL_API int aqlD_set(aql_State *L, Dict *dict, const TValue *key, const TValue *value) {
-  if (dict == NULL || key == NULL || value == NULL) return 0;
+  if (dict == NULL || key == NULL || value == NULL) {
+    printf_debug("[DEBUG] aqlD_set: dict=%p, key=%p, value=%p\n", (void*)dict, (void*)key, (void*)value);
+    return 0;
+  }
+  
+  if (ttisstring(key)) {
+    TString *keystr = tsvalue(key);
+    printf_debug("[DEBUG] aqlD_set: setting key '%s', dict size=%zu, dict=%p\n", 
+                getstr(keystr), dict->size, (void*)dict);
+  }
+  if (ttisinteger(value)) {
+    printf_debug("[DEBUG] aqlD_set: value is integer %lld\n", (long long)ivalue(value));
+  }
   
   /* Check load factor and resize if necessary */
   if ((dict->size + 1) * 256 > dict->capacity * dict->load_factor) {
@@ -230,12 +283,22 @@ AQL_API int aqlD_set(aql_State *L, Dict *dict, const TValue *key, const TValue *
   size_t index = hash & dict->mask;
   aql_byte distance = 0;
   
+  if (ttisstring(key)) {
+    TString *keystr = tsvalue(key);
+    printf_debug("[DEBUG] aqlD_set: computed hash=%llu for key '%s'\n", 
+                (unsigned long long)hash, getstr(keystr));
+  }
+  
   /* Create entry to insert */
   DictEntry to_insert;
   to_insert.hash = hash;
   to_insert.distance = distance;
+  printf_debug("[DEBUG] aqlD_set: before setobj, hash=%llu\n", (unsigned long long)to_insert.hash);
   setobj(L, &to_insert.key, key);
   setobj(L, &to_insert.value, value);
+  printf_debug("[DEBUG] aqlD_set: after setobj, hash=%llu\n", (unsigned long long)to_insert.hash);
+  
+  printf_debug("[DEBUG] aqlD_set: created entry with hash=%llu\n", (unsigned long long)to_insert.hash);
   
   while (1) {
     DictEntry *entry = &dict->entries[index];
@@ -243,6 +306,8 @@ AQL_API int aqlD_set(aql_State *L, Dict *dict, const TValue *key, const TValue *
     if (aqlD_entry_empty(entry)) {
       /* Empty slot, insert here */
       *entry = to_insert;
+      printf_debug("[DEBUG] aqlD_set: stored entry at index %zu with hash=%llu\n", 
+                  index, (unsigned long long)entry->hash);
       dict->size++;
       dict->length = dict->size;  /* Keep length in sync */
       return 1;
@@ -259,6 +324,8 @@ AQL_API int aqlD_set(aql_State *L, Dict *dict, const TValue *key, const TValue *
       DictEntry temp = *entry;
       *entry = to_insert;
       to_insert = temp;
+      /* Update distance for the displaced entry */
+      to_insert.distance = distance;
     }
     
     to_insert.distance++;

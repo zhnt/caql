@@ -1,0 +1,40 @@
+// Edge cases for if statements
+let zero = 0
+let negative = -5
+let positive = 10
+
+// Test with zero
+if zero {
+    print("Zero is truthy")
+} else {
+    print("Zero is falsy")
+}
+
+// Test with negative numbers
+if negative {
+    print("Negative is truthy")
+} else {
+    print("Negative is falsy")
+}
+
+// Test with positive numbers
+if positive {
+    print("Positive is truthy")
+} else {
+    print("Positive is falsy")
+}
+
+// Test comparison with zero
+if zero == 0 {
+    print("Zero equals zero")
+}
+
+if negative < 0 {
+    print("Negative is less than zero")
+}
+
+if positive > 0 {
+    print("Positive is greater than zero")
+}
+
+print("Edge cases tested")

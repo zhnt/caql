@@ -17,15 +17,16 @@
 /*
 ===========================================================================
   AQL instructions are unsigned 32-bit integers.
-  All instructions have an opcode in the first 6 bits.
+  All instructions have an opcode in the first 7 bits.
   Instructions can have the following formats:
 
         3 3 2 2 2 2 2 2 2 2 2 2 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0
         1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
-iABC          C(9)     |      B(9)     |     A(8)      |   Op(6)     |
-iABx                Bx(18)               |     A(8)      |   Op(6)     |
-iAsBx              sBx (signed)(18)      |     A(8)      |   Op(6)     |
-iAx                           Ax(26)                     |   Op(6)     |
+iABC          C(8)     |      B(8)     |k|     A(8)     |   Op(7)     |
+iABCk         C(8)     |      B(8)     |k|     A(8)     |   Op(7)     |
+iABx                Bx(17)              |k|     A(8)     |   Op(7)     |
+iAsBx              sBx (signed)(17)     |k|     A(8)     |   Op(7)     |
+iAx                           Ax(25)                     |   Op(7)     |
 
   A signed argument is represented in excess K: the represented value is
   the written unsigned value minus K, where K is half the maximum for the
@@ -38,21 +39,25 @@ enum OpMode {iABC, iABx, iAsBx, iAx};  /* basic instruction formats */
 /*
 ** size and position of opcode arguments.
 */
-#define SIZE_C		9
-#define SIZE_B		9
-#define SIZE_Bx		(SIZE_C + SIZE_B)
+#define SIZE_C		8
+#define SIZE_B		8
+#define SIZE_Bx		(SIZE_C + SIZE_B + 1)
 #define SIZE_A		8
 #define SIZE_Ax		(SIZE_Bx + SIZE_A)
+#define SIZE_sJ		(SIZE_Bx + SIZE_A)
 
-#define SIZE_OP		6
+#define SIZE_OP		7
 
 #define POS_OP		0
 
 #define POS_A		(POS_OP + SIZE_OP)
-#define POS_C		(POS_A + SIZE_A)
-#define POS_B		(POS_C + SIZE_C)
-#define POS_Bx		POS_C
+#define POS_k		(POS_A + SIZE_A)
+#define POS_B		(POS_k + 1)
+#define POS_C		(POS_B + SIZE_B)
+
+#define POS_Bx		POS_k
 #define POS_Ax		POS_A
+#define POS_sJ		POS_A
 
 /*
 ** limits for opcode arguments.
@@ -70,7 +75,7 @@ enum OpMode {iABC, iABx, iAsBx, iAx};  /* basic instruction formats */
 #endif
 
 #define OFFSET_sBx	(MAXARG_Bx>>1)         /* 'sBx' is signed */
-#define MAXARG_sBx	OFFSET_sBx
+#define MAXARG_sBx	(MAXARG_Bx>>1)
 
 #if L_INTHASBITS(SIZE_Ax)
 #define MAXARG_Ax	((1<<SIZE_Ax)-1)
@@ -96,6 +101,11 @@ enum OpMode {iABC, iABx, iAsBx, iAx};  /* basic instruction formats */
 #define MAXARG_C	INT_MAX
 #endif
 
+#define OFFSET_sC	(MAXARG_C >> 1)
+
+#define int2sC(i)	((i) + OFFSET_sC)
+#define sC2int(i)	((i) - OFFSET_sC)
+
 /* creates a mask with 'n' 1 bits at position 'p' */
 #define MASK1(n,p)	((~((~(aql_Unsigned)0)<<(n)))<<(p))
 
@@ -118,10 +128,16 @@ enum OpMode {iABC, iABx, iAsBx, iAx};  /* basic instruction formats */
 #define SETARG_A(i,v)	setarg(i, v, POS_A, SIZE_A)
 
 #define GETARG_B(i)	getarg(i, POS_B, SIZE_B)
+#define GETARG_sB(i)	sC2int(GETARG_B(i))
 #define SETARG_B(i,v)	setarg(i, v, POS_B, SIZE_B)
 
 #define GETARG_C(i)	getarg(i, POS_C, SIZE_C)
+#define GETARG_sC(i)	sC2int(GETARG_C(i))
 #define SETARG_C(i,v)	setarg(i, v, POS_C, SIZE_C)
+
+#define TESTARG_k(i)	(cast_int(((i) & (1u << POS_k))))
+#define GETARG_k(i)	getarg(i, POS_k, 1)
+#define SETARG_k(i,v)	setarg(i, v, POS_k, 1)
 
 #define GETARG_Bx(i)	getarg(i, POS_Bx, SIZE_Bx)
 #define SETARG_Bx(i,v)	setarg(i, v, POS_Bx, SIZE_Bx)
@@ -242,15 +258,17 @@ OP_GETPROP,     /* A B C   R(A) := R(B).property[C] or R(B)[R(C)]        */
 OP_SETPROP,     /* A B C   R(A).property[B] := R(C) or R(A)[R(B)] := R(C) */
 OP_INVOKE,      /* A B C   R(A) := R(B):method[C](args...)               */
 
-/* === AQL扩展组 (60-63): AQL特有功能 === */
+/* === AQL扩展组 (60-65): AQL特有功能 === */
 OP_YIELD,       /* A B     yield R(A), R(A+1), ..., R(A+B-1)             */
 OP_RESUME,      /* A B C   R(A), ..., R(A+C-2) := resume(R(B))           */
 OP_BUILTIN,     /* A B C   R(A) := builtin_func[B](R(C), R(D))           */
-OP_VARARG       /* A C     R(A), R(A+1), ..., R(A+C-2) = vararg          */
+OP_VARARG,      /* A C     R(A), R(A+1), ..., R(A+C-2) = vararg          */
+OP_ITER_INIT,   /* A B     R(A) := iter_init(R(B))                       */
+OP_ITER_NEXT    /* A B C   R(C) := iter_next(R(A), R(B))                 */
 
 } OpCode;
 
-#define NUM_OPCODES	((int)(OP_VARARG) + 1)
+#define NUM_OPCODES	((int)(OP_ITER_NEXT) + 1)
 
 /*===========================================================================
   Notes:
@@ -353,6 +371,13 @@ AQL_API const char *const aql_opnames[NUM_OPCODES+1];  /* opcode names */
   | (cast(Instruction, a)<<POS_A) \
   | (cast(Instruction, b)<<POS_B) \
   | (cast(Instruction, c)<<POS_C))
+
+#define CREATE_ABCk(o,a,b,c,k) \
+  ((cast(Instruction, o)<<POS_OP) \
+  | (cast(Instruction, a)<<POS_A) \
+  | (cast(Instruction, b)<<POS_B) \
+  | (cast(Instruction, c)<<POS_C) \
+  | (cast(Instruction, k)<<POS_k))
 
 #define CREATE_ABx(o,a,bc) \
   ((cast(Instruction, o)<<POS_OP) \

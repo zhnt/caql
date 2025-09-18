@@ -83,11 +83,13 @@ const char *const aql_opnames[NUM_OPCODES+1] = {
   "SETPROP",      /* A B C   R(A).property[B] := R(C) or R(A)[R(B)] := R(C) */
   "INVOKE",       /* A B C   R(A) := R(B):method[C](args...)               */
 
-  /* === AQL扩展组 (60-63): AQL特有功能 === */
+  /* === AQL扩展组 (60-65): AQL特有功能 === */
   "YIELD",        /* A B     yield R(A), R(A+1), ..., R(A+B-1)             */
   "RESUME",       /* A B C   R(A), ..., R(A+C-2) := resume(R(B))           */
   "BUILTIN",      /* A B C   R(A) := builtin_func[B](R(C), R(D))           */
   "VARARG",       /* A C     R(A), R(A+1), ..., R(A+C-2) = vararg          */
+  "ITER_INIT",    /* A B     R(A) := iter_init(R(B))                       */
+  "ITER_NEXT",    /* A B C   R(C) := iter_next(R(A), R(B))                 */
   NULL
 };
 

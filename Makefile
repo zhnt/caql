@@ -15,9 +15,18 @@ SRC_DIR = src
 BUILD_DIR = build
 BIN_DIR = bin
 
+# Test directories
+TEST_DIR = test
+TEST_FRAMEWORK_DIR = $(TEST_DIR)/framework
+TEST_BUILD_DIR = build/test
+TEST_BIN_DIR = bin/test
+
 # Target executables
 TARGET_RELEASE = $(BIN_DIR)/aql
 TARGET_DEBUG = $(BIN_DIR)/aqld
+
+# Test executables
+TEST_RUNNER = $(TEST_BIN_DIR)/test_runner
 
 # Core source files (working modules)
 CORE_SOURCES = \
@@ -36,6 +45,7 @@ CORE_SOURCES = \
     $(SRC_DIR)/adatatype.c \
     $(SRC_DIR)/atype.c \
     $(SRC_DIR)/astring.c \
+    $(SRC_DIR)/arange.c \
     $(SRC_DIR)/adebug_internal.c \
     $(SRC_DIR)/adebug_user.c \
     $(SRC_DIR)/aperf.c \
@@ -129,9 +139,9 @@ clean:
 	@echo "✅ Clean complete"
 
 # Test target (run the executable)
-test: mvp1
-	@echo "Running AQL MVP1 test..."
-	./$(TARGET)
+test: debug
+	@echo "Running AQL debug test..."
+	./$(TARGET_DEBUG) --test
 
 # Test Phase 1
 TEST_SRC_DIR = test/src
@@ -219,22 +229,6 @@ clean_test:
 	rm -rf $(TEST_BUILD_DIR) $(TEST_BIN_DIR)
 	@echo "✅ Test clean complete"
 
-# Debug info
-info:
-	@echo "=== AQL MVP1 Build Configuration ==="
-	@echo "CC: $(CC)"
-	@echo "CFLAGS: $(CFLAGS)"
-	@echo "SRC_DIR: $(SRC_DIR)"
-	@echo "BUILD_DIR: $(BUILD_DIR)"
-	@echo "BIN_DIR: $(BIN_DIR)"
-	@echo "TARGET: $(TARGET)"
-	@echo ""
-	@echo "Core sources:"
-	@echo "$(CORE_SOURCES)" | tr ' ' '\n'
-	@echo ""
-	@echo "Problem sources (excluded):"
-	@echo "$(PROBLEM_SOURCES)" | tr ' ' '\n'
-
 # Individual module targets for debugging
 $(BUILD_DIR)/aconf.o: $(SRC_DIR)/aconf.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -305,11 +299,168 @@ help:
 	@echo "  proof_jit    - Build Phase 4 JIT proof test"
 	@echo "  clean        - Remove build artifacts"
 	@echo "  clean_test   - Remove test artifacts only"
-	@echo "  test         - Build and run AQL MVP1"
+	@echo "  test         - Build debug version and run tests"
 	@echo "  info         - Show build configuration"
 	@echo "  help         - Show this help"
 	@echo ""
+	@echo "Debug System targets:"
+	@echo "  debug        - Build AQL debug version (aqld)"
+	@echo "  release      - Build AQL release version (aql)"
+	@echo "  both         - Build both debug and release versions"
+	@echo "  dev          - Quick development mode (build debug + test)"
+	@echo "  quick-debug  - Build debug and run with -v examples/hello.aql"
+	@echo "  benchmark    - Compare performance of debug vs release"
+	@echo "  test-debug   - Test debug version only"
+	@echo "  test-release - Test release version only"
+	@echo "  test-both    - Test both versions"
+	@echo ""
+	@echo "Test Framework Commands:"
+	@echo "  alltest      - Run all tests (unit + regression + integration)"
+	@echo "  unittest     - Run unit tests only"
+	@echo "  rtest        - Run regression tests only"
+	@echo "  itest        - Run integration tests only"
+	@echo "  coverage     - Generate test coverage report"
+	@echo "  clean-test   - Clean test artifacts"
+	@echo ""
+	@echo "Cleaning Commands:"
+	@echo "  clean-all    - Complete clean including test artifacts"
+	@echo "  clean-bin    - Clean only executables (keep objects)"
+	@echo ""
 	@echo "Output locations:"
 	@echo "  Object files: $(BUILD_DIR)/"
-	@echo "  Executable:   $(TARGET)"
+	@echo "  Debug exe:    $(TARGET_DEBUG)"
+	@echo "  Release exe:  $(TARGET_RELEASE)"
 	@echo "  Test files:   $(TEST_BIN_DIR)/"
+
+# ===== 新增调试友好的测试目标 =====
+
+# 开发模式：快速构建调试版本并运行测试
+dev: debug
+	@echo "🚀 Development mode: building and testing..."
+	./$(TARGET_DEBUG) --test
+
+# 快速调试：构建并使用-v参数运行示例  
+quick-debug: debug
+	@echo "🔍 Quick debug mode..."
+	./$(TARGET_DEBUG) -v examples/hello.aql
+
+# 性能对比：同时构建并比较执行时间
+benchmark: both
+	@echo "⚡ Performance benchmark..."
+	@echo "Debug version:"
+	time ./$(TARGET_DEBUG) --test
+	@echo "\nRelease version:"
+	time ./$(TARGET_RELEASE) --test
+
+# 双版本测试
+test-both: debug release
+	@echo "=== Testing Debug Version ==="
+	./$(TARGET_DEBUG) --test
+	@echo "\n=== Testing Release Version ==="
+	./$(TARGET_RELEASE) --test
+
+# 调试版本测试
+test-debug: debug
+	@echo "Testing AQL Debug version..."
+	./$(TARGET_DEBUG) --test
+
+# 生产版本测试  
+test-release: release
+	@echo "Testing AQL Release version..."
+	./$(TARGET_RELEASE) --test
+
+# 增强清理目标 (已移动到测试框架部分)
+
+# 仅清理可执行文件（保留对象文件，加快重新构建）
+clean-bin:
+	@echo "Cleaning executables..."
+	rm -f $(TARGET_DEBUG) $(TARGET_RELEASE)
+	rm -f $(TEST_TARGET) $(TEST_PHASE2_TARGET) $(TEST_PHASE3_TARGET) $(TEST_PHASE4_TARGET)
+	@echo "✅ Executables cleaned"
+
+# ===== 测试框架集成 =====
+
+# Test framework source files
+TEST_FRAMEWORK_SOURCES = \
+    $(TEST_FRAMEWORK_DIR)/test_utils.c \
+    $(TEST_FRAMEWORK_DIR)/test_runner.c
+
+# Test framework object files
+TEST_FRAMEWORK_OBJS = $(TEST_FRAMEWORK_SOURCES:$(TEST_FRAMEWORK_DIR)/%.c=$(TEST_BUILD_DIR)/%.o)
+
+# Test framework compilation flags
+TEST_CFLAGS = $(DEBUG_CFLAGS) -I$(TEST_FRAMEWORK_DIR)
+
+# Build test framework objects
+$(TEST_BUILD_DIR)/%.o: $(TEST_FRAMEWORK_DIR)/%.c
+	@mkdir -p $(dir $@)
+	@echo "Compiling test framework: $<"
+	$(CC) $(TEST_CFLAGS) -c $< -o $@
+
+# Build test runner
+$(TEST_RUNNER): $(TEST_FRAMEWORK_OBJS) $(DEBUG_OBJS)
+	@mkdir -p $(dir $@)
+	@echo "Linking test runner..."
+	$(CC) $(TEST_CFLAGS) $^ -o $@ $(LDFLAGS)
+
+# ===== 主要测试命令 =====
+
+# 执行所有测试 (All Tests)
+.PHONY: alltest
+alltest: unittest rtest itest
+	@echo "========================================="
+	@echo "All tests completed!"
+	@echo "========================================="
+
+# 执行单元测试 (Unit Tests)
+.PHONY: unittest
+unittest: $(TEST_RUNNER)
+	@echo "========================================="
+	@echo "Running Unit Tests..."
+	@echo "========================================="
+	@$(TEST_RUNNER) unit $(TEST_DIR)/unit
+	@echo ""
+
+# 执行回归测试 (Regression Tests)
+.PHONY: rtest
+rtest: $(TEST_RUNNER) $(TARGET_DEBUG)
+	@echo "========================================="
+	@echo "Running Regression Tests..."
+	@echo "========================================="
+	@$(TEST_RUNNER) regression $(TEST_DIR)/regression $(TARGET_DEBUG)
+	@echo ""
+
+# 执行集成测试 (Integration Tests)
+.PHONY: itest
+itest: $(TEST_RUNNER) $(TARGET_DEBUG)
+	@echo "========================================="
+	@echo "Running Integration Tests..."
+	@echo "========================================="
+	@$(TEST_RUNNER) integration $(TEST_DIR)/integration $(TARGET_DEBUG)
+	@echo ""
+
+# 测试覆盖率
+.PHONY: coverage
+coverage: CFLAGS += --coverage
+coverage: alltest
+	@echo "Generating coverage report..."
+	@gcov $(SRC_DIR)/*.c
+	@lcov --capture --directory . --output-file coverage.info 2>/dev/null || true
+	@genhtml coverage.info --output-directory coverage_html 2>/dev/null || true
+	@echo "Coverage report generated in coverage_html/"
+
+# 清理测试文件
+.PHONY: clean-test
+clean-test:
+	@echo "Cleaning test artifacts..."
+	rm -rf $(TEST_BUILD_DIR) $(TEST_BIN_DIR)
+	rm -f coverage.info
+	rm -rf coverage_html
+	@echo "✅ Test artifacts cleaned"
+
+# 更新clean-all目标以包含测试清理
+clean-all: clean clean-test
+	@echo "Cleaning all build artifacts..."
+	rm -rf $(BUILD_DIR)
+	rm -rf $(BIN_DIR)
+	@echo "✅ Complete clean finished"

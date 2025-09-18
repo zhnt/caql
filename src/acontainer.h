@@ -27,6 +27,7 @@ extern "C" {
 
 /* 容器类型枚举 */
 typedef enum {
+    CONTAINER_NONE = 0, /* 非容器类型 */
     CONTAINER_ARRAY,    /* 动态数组 */
     CONTAINER_SLICE,    /* 切片视图 */
     CONTAINER_VECTOR,   /* 固定大小向量 */

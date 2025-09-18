@@ -1,0 +1,11 @@
+// Multiple let statements in nested blocks
+{
+    let x = 1
+    {
+        let a = x * 100
+        let b = x * 10
+        print("inner: a=" + a + ", b=" + b)
+        print("a again=" + a)
+    }
+    print("outer: x=" + x)
+}

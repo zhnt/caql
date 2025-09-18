@@ -1,0 +1,4 @@
+// Negative numeric for loop test (descending, no explicit step)
+for i = 5, 2 {
+    print(i)
+}

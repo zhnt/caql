@@ -1,0 +1,4 @@
+// Negative range for loop test (descending)
+for i in range(5, 2, -1) {
+    print(i)
+}

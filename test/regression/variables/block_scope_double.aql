@@ -1,0 +1,11 @@
+// Double nested block scope test
+let x = 10
+{
+    let y = 20
+    {
+        let z = 30
+        print("inner block: x=" + x + ", y=" + y + ", z=" + z)
+    }
+    print("outer block: x=" + x + ", y=" + y)
+}
+print("global: x=" + x)

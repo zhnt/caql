@@ -1,0 +1,7 @@
+Zero is falsy
+Negative is truthy
+Positive is truthy
+Zero equals zero
+Negative is less than zero
+Positive is greater than zero
+Edge cases tested

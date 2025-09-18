@@ -1,0 +1,9 @@
+// Nested loops: outer variable as inner loop parameter
+let sum = 0
+for i = 1, 4, 1 {
+    for j = i, i + 2, 1 {
+        sum = sum + i * 10 + j
+        print(i * 10 + j)
+    }
+}
+print(sum)

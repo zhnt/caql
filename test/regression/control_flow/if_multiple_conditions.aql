@@ -1,0 +1,17 @@
+// If with multiple conditions and logical operators
+let age = 25
+let country = "US"
+
+if age >= 18 {
+    print("Adult")
+    if country == "US" {
+        print("Can vote in US")
+    } else {
+        print("Check local voting laws")
+    }
+} else {
+    print("Minor")
+}
+
+print("Age check complete")
+

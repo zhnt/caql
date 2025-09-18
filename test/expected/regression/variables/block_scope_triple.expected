@@ -1,0 +1,5 @@
+deepest: x=10, y=20, z=30, w=40
+middle: x=10, y=20, z=30
+outer: x=10, y=20
+global: x=10
+

@@ -12,6 +12,15 @@
 
 #include "aql.h"
 
+/* Buffer size and alignment macros */
+#ifndef AQLAI_BUFFERSIZE
+#define AQLAI_BUFFERSIZE 8192
+#endif
+
+#ifndef AQLAI_MAXALIGN
+#define AQLAI_MAXALIGN double u; void *s; long l; aql_Number n;
+#endif
+
 /* global table */
 #define AQL_GNAME	"_G"
 

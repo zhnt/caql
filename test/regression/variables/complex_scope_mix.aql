@@ -1,0 +1,19 @@
+// Complex mix of modification and shadowing
+let a = 1
+let b = 2
+print("level0: a=" + a + ", b=" + b)
+{
+    a = 10  // modify outer a
+    let b = 20  // shadow outer b
+    let c = 3
+    print("level1: a=" + a + ", b=" + b + ", c=" + c)
+    {
+        let a = 100  // shadow modified a
+        b = 200  // modify level1 b (not outer b)
+        c = c + a  // modify level1 c using level2 a
+        print("level2: a=" + a + ", b=" + b + ", c=" + c)
+    }
+    print("back to level1: a=" + a + ", b=" + b + ", c=" + c)
+}
+print("back to level0: a=" + a + ", b=" + b)
+

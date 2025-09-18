@@ -1,0 +1,7 @@
+// Numeric for loop with variables
+let start = 2
+let limit = 5
+let step = 1
+for i = start, limit, step {
+    print(i)
+}

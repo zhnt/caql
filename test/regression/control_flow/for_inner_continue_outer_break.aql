@@ -1,0 +1,11 @@
+// Nested loops: inner continue, outer break
+let sum = 0
+for i = 1, 5, 1 {
+    if i == 3 { break }
+    for j = 1, 5, 1 {
+        if j == 3 { continue }
+        sum = sum + i * 10 + j
+        print(i * 10 + j)
+    }
+}
+print(sum)

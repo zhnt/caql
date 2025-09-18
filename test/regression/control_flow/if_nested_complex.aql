@@ -1,0 +1,45 @@
+// Complex nested if-elif-else statements
+let temperature = 25
+let humidity = 60
+let season = "summer"
+
+if temperature > 30 {
+    print("Hot day")
+    if humidity > 70 {
+        print("Very humid")
+        if season == "summer" {
+            print("Typical summer weather")
+        } else {
+            print("Unusual for this season")
+        }
+    } elif humidity > 50 {
+        print("Moderately humid")
+    } else {
+        print("Dry heat")
+    }
+} elif temperature > 20 {
+    print("Warm day")
+    if humidity > 80 {
+        print("Very humid warm day")
+    } elif humidity > 60 {
+        print("Humid warm day")
+    } else {
+        print("Pleasant warm day")
+    }
+} elif temperature > 10 {
+    print("Cool day")
+    if season == "winter" {
+        print("Normal winter day")
+    } else {
+        print("Cool for the season")
+    }
+} else {
+    print("Cold day")
+    if temperature < 0 {
+        print("Freezing!")
+    } else {
+        print("Just cold")
+    }
+}
+
+print("Weather analysis complete")

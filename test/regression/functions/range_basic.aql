@@ -1,0 +1,4 @@
+// Basic range test
+let r = range(1, 4, 1)
+print(r)
+

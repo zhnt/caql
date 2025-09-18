@@ -1,0 +1,16 @@
+// Comparison: normal block vs for loop behavior
+print("=== Normal block (should work) ===")
+{
+    let a = 1 * 100
+    let b = 2 * 10
+    print("block: a=" + a + ", b=" + b)
+    print("check a again=" + a)
+}
+
+print("=== For loop (currently has issues) ===")
+for i = 1, 2, 1 {
+    let a = i * 100
+    let b = i * 10
+    print("for: a=" + a + ", b=" + b)
+    print("check a again=" + a)
+}

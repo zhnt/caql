@@ -1,0 +1,7 @@
+// Numeric for loop with continue
+for i = 1, 6, 1 {
+    if i == 3 {
+        continue
+    }
+    print(i)
+}

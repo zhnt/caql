@@ -1,0 +1,7 @@
+// Numeric for loop with break
+for i = 1, 10, 1 {
+    if i == 4 {
+        break
+    }
+    print(i)
+}

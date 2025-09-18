@@ -1,0 +1,28 @@
+// For loops nested inside if statements
+let mode = "count_evens"
+let count = 0
+
+if mode == "count_evens" {
+    print("Counting even numbers")
+    for i = 1, 20, 1 {
+        if i % 2 == 0 {
+            count = count + 1
+        }
+    }
+    print("Even count: " + string(count))
+} elif mode == "count_odds" {
+    print("Counting odd numbers")
+    for i = 1, 20, 1 {
+        if i % 2 == 1 {
+            count = count + 1
+        }
+    }
+    print("Odd count: " + string(count))
+} else {
+    print("Unknown mode")
+    for i = 1, 5, 1 {
+        print("Default: " + string(i))
+    }
+}
+
+print("Nested test complete")

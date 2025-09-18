@@ -14,38 +14,54 @@ AQL (AI Query Language) 是一个面向AI时代的原生编程语言，基于Lua
 src/                    # 核心源码
 ├── aql.c              # 主程序入口
 ├── a*.c/h             # 核心组件 (遵循Lua命名约定)
-│   ├── avm.c          # 虚拟机核心
-│   ├── alex.c         # 词法分析器
-│   ├── aparser.c      # 语法分析器
-│   ├── acode.c        # 代码生成器
-│   ├── amem.c         # 内存管理
-│   ├── agc.c          # 垃圾回收器
-│   ├── aarray.c       # 数组容器
-│   ├── aslice.c       # 切片容器
-│   ├── adict.c        # 字典容器
-│   └── avector.c      # 向量容器
+│   ├── avm.c/h        # 虚拟机核心
+│   ├── alex.c/h       # 词法分析器
+│   ├── aparser.c/h    # 语法分析器
+│   ├── acode.c/h      # 代码生成器
+│   ├── amem.c/h       # 内存管理
+│   ├── agc.c/h        # 垃圾回收器
+│   ├── aarray.c/h     # 数组容器
+│   ├── aslice.c/h     # 切片容器
+│   ├── adict.c/h      # 字典容器
+│   ├── avector.c/h    # 向量容器
+│   ├── aobject.c/h    # 对象系统
+│   ├── aopcodes.c/h   # 操作码定义
+│   ├── arepl.c/h      # 交互式解释器
+│   ├── astring.c/h    # 字符串处理
+│   ├── aerror.c/h     # 错误处理
+│   └── ado.c/h        # 数据操作
 ├── ai_*.c/h           # AI扩展组件
-└── lua548/            # Lua 5.4源码依赖
+└── lua548/            # Lua 5.4源码和文档，供借鉴学习使用
 
-examples/              # 示例代码
-├── hello.aql          # Hello World示例
+test/                  # 测试代码
+└── *.aql              # 测试代码
 
 docs/                  # 设计文档
 ├── arch.md            # 架构设计
 ├── design.md          # 详细设计
-└── req.md             # 需求文档
+├── req.md             # 需求文档
+└── design_*.md        # 其他设计文档
 
-build/                 # 构建输出
-bin/                   # 可执行文件
+bin/                   # 可执行文件目录
+├── aql                # 生产版本：高性能，零调试开销
+└── aqld               # 调试版本：完整调试信息和分析工具
+
+Makefile               # 构建系统（支持make debug/release）
 ```
 
 ## 构建系统
-- **构建工具**: CMake 3.12+
+- **构建工具**: Makefile + CMake 3.12+
 - **编译标准**: C11
 - **编译选项**: 
   - Debug: `-g -O0 -DAQL_DEBUG`
   - Release: `-O3 -DNDEBUG`
-- **构建命令**:
+- **快速构建命令**:
+  ```bash
+  make debug           # 构建调试版本（aqld）
+  make release         # 构建生产版本（aql）
+  make                 # 构建两个版本
+  ```
+- **传统CMake构建**:
   ```bash
   mkdir build && cd build
   cmake .. -DCMAKE_BUILD_TYPE=Release
@@ -80,10 +96,15 @@ bin/                   # 可执行文件
 
 ## 调试指南
 
-### 编译调试版本
+### 快速调试（推荐）
+修改代码后，使用调试版本进行开发和测试：
 ```bash
-cmake .. -DCMAKE_BUILD_TYPE=Debug
-make -j$(nproc)
+make debug                    # 构建调试版本
+./bin/aqld -v test.aql       # 显示完整编译和执行过程
+./bin/aqld -vt test.aql      # 仅查看词法分析
+./bin/aqld -va test.aql      # 查看语法分析（AST）
+./bin/aqld -vb test.aql      # 查看字节码生成
+./bin/aqld -st test.aql      # 词法分析后停止
 ```
 
 ### 调试工具
@@ -113,7 +134,9 @@ make -j$(nproc)
 ### 测试命令
 ```bash
 make test          # 运行所有测试
-./aql examples/hello.aql  # 运行示例
+./bin/aql examples/hello.aql    # 运行示例（生产版本）
+./bin/aqld examples/hello.aql   # 调试运行（详细输出）
+./bin/aqld -v examples/hello.aql # 显示完整调试信息
 ```
 
 ## 嵌入API使用

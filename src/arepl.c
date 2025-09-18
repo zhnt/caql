@@ -26,54 +26,116 @@
 #include "azio.h"
 
 /*
+** Check if return value should be suppressed for side-effect functions
+*/
+static int should_suppress_return_value(const char *line, const TValue *result) {
+  if (!line || !result) return 0;
+  
+  /* Skip whitespace at the beginning */
+  while (*line == ' ' || *line == '\t') line++;
+  
+  /* Side-effect functions that shouldn't show return values */
+  if (strncmp(line, "print(", 6) == 0) {
+    /* print() already produced output, suppress nil return value */
+    return (ttisnil(result));
+  }
+  
+  /* Future side-effect functions can be added here:
+   * - debug functions that output to console
+   * - file write operations  
+   * - system commands
+   */
+  
+  return 0;  /* Don't suppress by default */
+}
+
+/*
 ** Try to compile line as 'return <line>;' and execute it.
 ** This is only used for REPL single-line input to show expression results.
 ** Similar to Lua's addreturn() + docall()
 */
 static int aql_addreturn(aql_State *L, const char *line) {
+  printf_debug("[DEBUG] aql_addreturn: entering with line='%s'\n", line ? line : "NULL");
+  
+  /* Safety checks */
+  if (!L || !line) {
+    printf_debug("[Error] Internal error: NULL pointer in aql_addreturn\n");
+    return -1;
+  }
+  
+  printf_debug("[DEBUG] aql_addreturn: safety checks passed\n");
+  
   /* Follow Lua's approach: always try adding 'return' first */
   size_t line_len = strlen(line);
   size_t ret_len = line_len + 10;  /* "return " + line + ";" + null terminator */
   char *retline = malloc(ret_len);
-  if (!retline) return -1;
+  if (!retline) {
+    printf("[Error] Memory allocation failed in aql_addreturn\n");
+    return -1;
+  }
   
   snprintf(retline, ret_len, "return %s;", line);
-  //AQL_DEBUG(AQL_DEBUG_REPL, "aql_addreturn: trying with return: '%s'", retline);
-  //fflush(stdout);
+  printf_debug("[DEBUG] aql_addreturn: created retline='%s'\n", retline);
   
   /* Try to compile as return statement */
+  printf_debug("[DEBUG] aql_addreturn: calling aqlP_compile_string\n");
   int status = aqlP_compile_string(L, retline, strlen(retline), "=stdin");
-  //AQL_DEBUG(AQL_DEBUG_REPL, "aql_addreturn: compile returned status=%d", status);
-  //fflush(stdout);
+  printf_debug("[DEBUG] aql_addreturn: aqlP_compile_string returned status=%d\n", status);
   
   if (status == 0) {
+    /* Check if there were any errors reported despite status=0 */
+    if (aqlE_has_errors(aqlE_get_global_context())) {
+      printf_debug("[DEBUG] aql_addreturn: compilation returned success but has errors, treating as failure\n");
+      /* Clear any errors from this attempt (Lua style) */
+      aqlE_clear_errors(aqlE_get_global_context());
+      free(retline);
+      return -1;  /* Treat as compilation failure */
+    }
+    
     /* Compilation successful - execute the compiled code */
-    //AQL_DEBUG(AQL_DEBUG_REPL, "aql_addreturn: compilation successful, executing");
-    //fflush(stdout);
+    printf_debug("[DEBUG] aql_addreturn: compilation successful, executing\n");
     status = aqlP_execute_compiled(L, 0, 1);  /* 0 args, 1 result expected */
-    //AQL_DEBUG(AQL_DEBUG_REPL, "aql_addreturn: execute returned status=%d", status);
-    //fflush(stdout);
+    printf_debug("[DEBUG] aql_addreturn: aqlP_execute_compiled returned status=%d\n", status);
     
     if (status == 1) {  /* aqlV_execute returns 1 for successful completion */
       /* Print the result from stack */
       //AQL_DEBUG(AQL_DEBUG_REPL, "aql_addreturn: checking for result on stack, L->top=%p, L->ci->func=%p", 
                //(void*)L->top, (void*)L->ci->func);
       //fflush(stdout);
+      
+      /* Safety checks for stack access */
+      if (!L->top || !L->ci || !L->ci->func) {
+        printf_debug("[Error] Invalid stack state after execution\n");
+        free(retline);
+        return -1;
+      }
+      
       if (L->top > L->ci->func + 1) {  /* Has result? */
         TValue *result = s2v(L->top - 1);
-        //AQL_DEBUG(AQL_DEBUG_REPL, "aql_addreturn: found result on stack, printing");
-        //fflush(stdout);
-        aqlP_print_value(result);
-        printf("\n");
+        if (result) {
+          /* Check if we should suppress return value display */
+          if (should_suppress_return_value(line, result)) {
+            printf_debug("[DEBUG] aql_addreturn: suppressing return value for side-effect function\n");
+          } else {
+            //AQL_DEBUG(AQL_DEBUG_REPL, "aql_addreturn: found result on stack, printing");
+            //fflush(stdout);
+            aqlP_print_value(result);
+            printf("\n");
+          }
+        } else {
+          printf_debug("[Error] Invalid result pointer\n");
+        }
       } else {
         //AQL_DEBUG(AQL_DEBUG_REPL, "aql_addreturn: no result on stack");
         //fflush(stdout);
       }
       
-      /* Clean up stack */
-      L->top = L->ci->func + 1;
-      //AQL_DEBUG(AQL_DEBUG_REPL, "aql_addreturn: cleaned up stack, L->top reset");
-      //fflush(stdout);
+      /* Clean up stack safely */
+      if (L->ci && L->ci->func) {
+        L->top = L->ci->func + 1;
+        //AQL_DEBUG(AQL_DEBUG_REPL, "aql_addreturn: cleaned up stack, L->top reset");
+        //fflush(stdout);
+      }
       
       free(retline);
       return 0;  /* Success */
@@ -83,16 +145,22 @@ static int aql_addreturn(aql_State *L, const char *line) {
     }
     
     /* Clean up stack for failed execution */
-    L->top = L->ci->func + 1;
-    //AQL_DEBUG(AQL_DEBUG_REPL, "aql_addreturn: cleaned up stack after execution failure");
-    //fflush(stdout);
+    if (L->ci && L->ci->func) {
+      L->top = L->ci->func + 1;
+      //AQL_DEBUG(AQL_DEBUG_REPL, "aql_addreturn: cleaned up stack after execution failure");
+      //fflush(stdout);
+    } else {
+      printf_debug("[Warning] Cannot clean up stack: invalid call info\n");
+    }
   } else {
-    //AQL_DEBUG(AQL_DEBUG_REPL, "aql_addreturn: compilation failed, will try as statement");
-    //fflush(stdout);
+    printf_debug("[DEBUG] aql_addreturn: compilation failed, will try as statement\n");
   }
   
+  /* Clear any errors from this attempt (Lua style) */
+  aqlE_clear_errors(aqlE_get_global_context());
+  
   free(retline);
-  return status;  /* Return compilation/execution status */
+  return -1;  /* Failed - let multiline try as statement */
 }
 
 /*
@@ -100,18 +168,32 @@ static int aql_addreturn(aql_State *L, const char *line) {
 ** Similar to Lua's multiline()
 */
 static int aql_multiline(aql_State *L, const char *line) {
-  /* Try to compile and execute as statement (without 'return') */
-  AQL_DEBUG(AQL_DEBUG_REPL, "aql_multiline: trying to compile as statement: '%s'", line);
-  fflush(stdout);
+  printf_debug("[DEBUG] aql_multiline: entering with line='%s'\n", line ? line : "NULL");
   
+  /* Safety checks */
+  if (!L || !line) {
+    printf("[Error] Internal error: NULL pointer in aql_multiline\n");
+    return -1;
+  }
+  
+  printf_debug("[DEBUG] aql_multiline: safety checks passed\n");
+  
+  /* Try to compile and execute as statement (without 'return') */
+  printf_debug("[DEBUG] aql_multiline: calling aqlP_compile_string with line='%s', len=%zu\n", line, strlen(line));
   int status = aqlP_compile_string(L, line, strlen(line), "=stdin");
-  AQL_DEBUG(AQL_DEBUG_REPL, "aql_multiline: compile returned status=%d", status);
-  fflush(stdout);
+  printf_debug("[DEBUG] aql_multiline: aqlP_compile_string returned status=%d\n", status);
   
   if (status == 0) {
+    /* Check if there were any errors reported despite status=0 */
+    if (aqlE_has_errors(aqlE_get_global_context())) {
+      printf_debug("[DEBUG] aql_multiline: compilation returned success but has errors, treating as failure\n");
+      /* Print the actual errors for debugging */
+      aqlE_print_error_report(aqlE_get_global_context());
+      return -1;  /* Treat as compilation failure */
+    }
+    
     /* Compilation successful - execute the compiled code */
-    AQL_DEBUG(AQL_DEBUG_REPL, "aql_multiline: compilation successful, executing");
-    fflush(stdout);
+    printf_debug("[DEBUG] aql_multiline: compilation successful, executing\n");
     status = aqlP_execute_compiled(L, 0, 0);  /* 0 args, 0 results for statements */
     AQL_DEBUG(AQL_DEBUG_REPL, "aql_multiline: execute returned status=%d", status);
     fflush(stdout);
@@ -136,11 +218,10 @@ static int aql_multiline(aql_State *L, const char *line) {
     AQL_DEBUG(AQL_DEBUG_REPL, "aql_multiline: cleaned up stack after execution failure");
     fflush(stdout);
   } else {
-    AQL_DEBUG(AQL_DEBUG_REPL, "aql_multiline: compilation failed");
-    fflush(stdout);
+    printf_debug("[DEBUG] aql_multiline: compilation failed\n");
   }
   
-  return status;  /* Return compilation/execution status */
+  return -1;  /* Failed */
 }
 
 /*
@@ -228,7 +309,15 @@ static int aql_is_incomplete(const char *line) {
 ** Similar to Lua's loadline()
 */
 static int aql_loadline(aql_State *L, const char *line) {
+  printf_debug("[DEBUG] aql_loadline: entering with line='%s'\n", line ? line : "NULL");
+  
   int status;
+  
+  /* Safety checks */
+  if (!L) {
+    printf("[Error] Internal error: NULL state in aql_loadline\n");
+    return -1;
+  }
   
   /* Skip empty lines */
   if (!line || strlen(line) == 0) return 0;
@@ -267,6 +356,9 @@ static void aql_print_results(aql_State *L) {
 */
 void aqlREPL_run(aql_State *L) {
   if (!L) return;
+  
+  /* Disable immediate error printing for cleaner REPL experience */
+  aqlE_set_immediate_print(0);
   
   printf("AQL %s Interactive Mode\n", AQL_VERSION);
   printf("Type 'exit' or press Ctrl+C to quit.\n");
@@ -348,22 +440,34 @@ void aqlREPL_run(aql_State *L) {
     }
     
     /* Process single-line input using Lua-style loadline */
-    int status = aql_loadline(L, line);
+    int status = -1;
+    
+    /* Wrap in error handling to prevent segfaults */
+    if (L && L->ci) {
+      status = aql_loadline(L, line);
+    } else {
+      printf("[Error] Invalid interpreter state\n");
+      continue;
+    }
     
     if (status == 0) {
       /* Success - print results */
-      aql_print_results(L);
+      if (L && L->ci) {
+        aql_print_results(L);
+      }
     } else if (status == 1) {
       /* Input was incomplete, start multi-line mode */
       strcpy(multiline_buffer, line);
       in_multiline = true;
     } else {
-      printf("Error: Failed to parse input\n");
+      printf_debug("[DEBUG] Failed to parse input (status=%d)\n", status);
+      /* Error already reported during compilation, no need for additional message */
     }
     
-    /* Report any accumulated errors */
+    /* Clear any accumulated errors for REPL (don't print detailed reports) */
     if (aqlE_has_errors(aqlE_get_global_context())) {
-      aqlE_print_error_report(aqlE_get_global_context());
+      printf_debug("[DEBUG] Clearing %d accumulated errors\n", aqlE_get_error_count(aqlE_get_global_context()));
+      aqlE_clear_errors(aqlE_get_global_context());
     }
   }
   

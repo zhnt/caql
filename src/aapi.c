@@ -152,12 +152,15 @@ AQL_API int aql_loadfile_with_return(aql_State *L, const char *filename) {
         end--;
       }
       
-      /* Check if it's not a statement keyword */
+      /* Check if it's not a statement keyword or block delimiter */
       int is_stmt = (strncmp(line_copy, "let ", 4) == 0 ||
                      strncmp(line_copy, "if ", 3) == 0 ||
                      strncmp(line_copy, "while ", 6) == 0 ||
+                     strncmp(line_copy, "for ", 4) == 0 ||
                      strncmp(line_copy, "return ", 7) == 0 ||
-                     strstr(line_copy, ":=") != NULL);
+                     strstr(line_copy, ":=") != NULL ||
+                     strcmp(line_copy, "}") == 0 ||
+                     strcmp(line_copy, "{") == 0);
       
       if (!is_stmt && strlen(line_copy) > 0) {
         /* Last line is an expression, modify buffer to add return */

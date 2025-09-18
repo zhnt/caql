@@ -1,0 +1,15 @@
+// Triple nested block scope test
+let x = 10
+{
+    let y = 20
+    {
+        let z = 30
+        {
+            let w = 40
+            print("deepest: x=" + x + ", y=" + y + ", z=" + z + ", w=" + w)
+        }
+        print("middle: x=" + x + ", y=" + y + ", z=" + z)
+    }
+    print("outer: x=" + x + ", y=" + y)
+}
+print("global: x=" + x)

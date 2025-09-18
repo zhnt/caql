@@ -1,0 +1,6 @@
+// Numeric for loop with sum calculation
+let sum = 0
+for i = 1, 5, 1 {
+    sum = sum + i
+}
+print(sum)

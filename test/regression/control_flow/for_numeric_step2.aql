@@ -1,0 +1,4 @@
+// Numeric for loop with step 2
+for i = 1, 8, 2 {
+    print(i)
+}

@@ -1,0 +1,21 @@
+// Simple nested if statements
+let x = 10
+let y = 20
+
+if x > 5 {
+    print("x > 5")
+    if y > 15 {
+        print("y > 15")
+        if x + y > 25 {
+            print("x + y > 25")
+        } else {
+            print("x + y <= 25")
+        }
+    } else {
+        print("y <= 15")
+    }
+} else {
+    print("x <= 5")
+}
+
+print("nested test done")

@@ -119,15 +119,42 @@ AQL_API int aqlE_get_error_count(const AQL_ErrorContext *ctx);
 #define AQLE_REPORT_WARNING(line, msg, suggestion) \
   aqlE_report_error(AQL_ERROR_SYNTAX, AQL_ERROR_LEVEL_WARNING, line, msg, suggestion)
 
+
+/*
+** ============================================================================
+** 便利宏定义 (使用 aerror.h 模块)
+** ============================================================================
+*/
+
+/* 便捷的错误报告宏 */
+#define REPORT_SYNTAX_ERROR(line, msg, suggestion) \
+  aqlE_report_error(AQL_ERROR_SYNTAX, AQL_ERROR_LEVEL_ERROR, line, msg, suggestion)
+
+#define REPORT_NAME_ERROR(line, msg, suggestion) \
+  aqlE_report_error(AQL_ERROR_NAME, AQL_ERROR_LEVEL_ERROR, line, msg, suggestion)
+
+#define REPORT_RUNTIME_ERROR(line, msg, suggestion) \
+  aqlE_report_error(AQL_ERROR_RUNTIME, AQL_ERROR_LEVEL_ERROR, line, msg, suggestion)
+
+#define REPORT_WARNING(line, msg, suggestion) \
+  aqlE_report_error(AQL_ERROR_SYNTAX, AQL_ERROR_LEVEL_WARNING, line, msg, suggestion)
+  
+
 /*
 ** 全局错误上下文访问
 */
 AQL_API AQL_ErrorContext *aqlE_get_global_context(void);
 
 /*
+** 控制错误打印行为
+*/
+AQL_API void aqlE_set_immediate_print(int enable);
+AQL_API int aqlE_get_immediate_print(void);
+
+/*
 ** 词法分析器错误报告接口
 */
-AQL_API void aqlE_report_lexical_error(int line, const char *message, 
+AQL_API void aqlE_report_lexical_error(int line, const char *message,
                                        const char *suggestion, const char *near_token);
 
 /*

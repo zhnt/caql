@@ -10,6 +10,9 @@
 #include "alimits.h"
 #include "aobject.h"
 #include "azio.h"
+#include "atype.h"
+#include "acontainer.h"
+#include <stdbool.h>
 
 /* kinds of variables/expressions */
 typedef enum {
@@ -47,7 +50,8 @@ typedef enum {
   VRELOC,      /* expression can put result in any register;
                    info = instruction pc */
   VCALL,       /* expression is a function call; info = instruction pc */
-  VVARARG      /* vararg expression; info = instruction pc */
+  VVARARG,     /* vararg expression; info = instruction pc */
+  VBUILTIN     /* builtin function; info = builtin function id */
 } expkind;
 
 #define vkisvar(k)     (VLOCAL <= (k) && (k) <= VINDEXSTR)
@@ -74,15 +78,41 @@ typedef struct expdesc {
 } expdesc;
 
 /* kinds of variables */
+/* kinds of variables */
 #define VDKREG		0   /* regular */
 #define RDKCONST	1   /* constant */
 #define RDKTOCLOSE	2   /* to-be-closed */
 #define RDKCTC		3   /* compile-time constant */
 
 /*
-** description of active local variable
+** AQL enhancements for variable management
+** These enums extend Lua's basic variable system with:
+** - Type inference support
+** - Container integration  
+** - Multi-mode execution (Script/JIT/AOT)
+** - Zero-cost debugging
+*/
+
+/* AQL Type inference levels */
+typedef enum AQLTypeLevel {
+  AQL_TYPE_NONE = 0,      /* No type information */
+  AQL_TYPE_INFERRED,      /* Type inferred from usage */
+  AQL_TYPE_ANNOTATED,     /* Explicitly annotated type */
+  AQL_TYPE_STATIC         /* Statically verified type */
+} AQLTypeLevel;
+
+/* AQL Execution modes for variables */
+typedef enum AQLExecMode {
+  AQL_MODE_SCRIPT = 0,    /* Script mode (Lua-compatible) */
+  AQL_MODE_JIT,           /* JIT compilation mode */
+  AQL_MODE_AOT            /* AOT compilation mode */
+} AQLExecMode;
+
+/*
+** description of active local variable (Lua-compatible with AQL enhancements)
 */
 typedef union Vardesc {
+  /* Lua-compatible core structure */
   struct {
     TValuefields;      /* constant value */
     aql_byte kind;
@@ -90,7 +120,36 @@ typedef union Vardesc {
     short pidx;  /* index in the Proto's 'locvars' array */
     TString *name;  /* variable name */
   } vd;
-  TValue k;  /* constant value */
+  
+  /* AQL enhanced structure (same memory layout as vd for compatibility) */
+  struct {
+    TValuefields;      /* constant value (same as vd) */
+    aql_byte kind;     /* variable kind (same as vd) */
+    aql_byte ridx;     /* register index (same as vd) */
+    short pidx;        /* debug index (same as vd) */
+    TString *name;     /* variable name (same as vd) */
+    
+    /* AQL enhancements (additional fields) */
+    AQLTypeLevel type_level;      /* Type inference level */
+    TypeCategory inferred_type;   /* Inferred type */
+    aql_byte confidence;          /* Type confidence (0-100) */
+    AQLExecMode exec_mode;        /* Execution mode */
+    
+    /* Container information */
+    ContainerType container_type; /* Container type */
+    size_t container_capacity;    /* Container capacity */
+    aql_byte container_flags;     /* is_container:1, is_mutable:1, etc. */
+    
+    #ifdef AQL_DEBUG_BUILD
+    /* Debug information (zero-cost in release) */
+    int declaration_line;         /* Declaration line */
+    int declaration_column;       /* Declaration column */
+    aql_uint32 access_count;      /* Access count */
+    aql_uint32 modification_count; /* Modification count */
+    #endif
+  } aql;
+  
+  TValue k;  /* constant value (Lua-compatible) */
 } Vardesc;
 
 /*
@@ -122,8 +181,30 @@ typedef struct Dyndata {
     int n;
     int size;
   } actvar;
+  
   LabelList gt;  /* list of pending gotos */
   LabelList label;   /* list of active labels */
+  
+  /* AQL enhancements for dynamic data */
+  struct {
+    /* Type inference cache */
+    struct {
+      TypeCategory *type_cache;    /* Cached type information */
+      int cache_size;         /* Cache capacity */
+      int cache_used;         /* Cache usage */
+    } types;
+    
+    /* Container registry */
+    struct {
+      Container **containers; /* Active container instances */
+      int container_count;    /* Number of active containers */
+      int container_capacity; /* Container array capacity */
+    } containers;
+    
+    /* Execution mode tracking */
+    AQLExecMode current_mode;   /* Current execution mode */
+    bool mode_locked;           /* Is mode locked for this scope? */
+  } aql;
 } Dyndata;
 
 /*

@@ -50,9 +50,7 @@ static void fixjump (FuncState *fs, int pc, int dest);
 /* Check whether expression 'e' has any jump lists. */
 #define hasjumps(e)	((e)->t != (e)->f)
 
-/* Macros for test instructions (k is the lowest bit of C field) */
-#define GETARG_k(i)	(GETARG_C(i) & 1)
-#define SETARG_k(i,v)	((i) = (((i) & ~MASK1(1, POS_C)) | ((v) << POS_C)))
+/* Note: GETARG_k and SETARG_k are now defined in aopcodes.h */
 
 /*
 ** If expression is a numeric constant, fills 'v' with its value
@@ -155,6 +153,19 @@ void aqlK_setoneret (FuncState *fs, expdesc *e) {
 ** (Expression still may have jump lists.)
 */
 void aqlK_dischargevars (FuncState *fs, expdesc *e) {
+  printf_debug("[DEBUG] aqlK_dischargevars: entering, e->k=%d\n", e->k);
+  
+  if (!fs) {
+    printf_debug("[ERROR] aqlK_dischargevars: fs is NULL\n");
+    return;
+  }
+  
+  if (!e) {
+    printf_debug("[ERROR] aqlK_dischargevars: e is NULL\n");
+    return;
+  }
+  
+  printf_debug("[DEBUG] aqlK_dischargevars: switching on e->k=%d\n", e->k);
   switch (e->k) {
     case VLOCAL: {  /* already in a register */
       e->u.info = e->u.var.ridx;
@@ -162,36 +173,48 @@ void aqlK_dischargevars (FuncState *fs, expdesc *e) {
       break;
     }
     case VUPVAL: {  /* move value to some (pending) register */
-      e->u.info = aqlK_codeABC(fs, OP_GETUPVAL, 0, e->u.info, 0);
+      int reg = fs->freereg++;  /* allocate register for result */
+      printf_debug("[DEBUG] aqlK_dischargevars: VUPVAL using register %d (freereg was %d)\n", reg, fs->freereg - 1);
+      e->u.info = aqlK_codeABC(fs, OP_GETUPVAL, reg, e->u.info, 0);
       e->k = VRELOC;
       break;
     }
     case VINDEXUP: {
-      e->u.info = aqlK_codeABC(fs, OP_GETTABUP, 0, e->u.ind.t, e->u.ind.idx);
+      int reg = fs->freereg++;  /* allocate register for result */
+      printf_debug("[DEBUG] aqlK_dischargevars: VINDEXUP using register %d (freereg was %d)\n", reg, fs->freereg - 1);
+      e->u.info = aqlK_codeABC(fs, OP_GETTABUP, reg, e->u.ind.t, e->u.ind.idx);
       e->k = VRELOC;
       break;
     }
     case VINDEXED: {
-      aqlK_codeABC(fs, OP_GETTABUP, 0, e->u.ind.t, e->u.ind.idx);
+      int reg = fs->freereg++;  /* allocate register for result */
+      printf_debug("[DEBUG] aqlK_dischargevars: VINDEXED using register %d (freereg was %d)\n", reg, fs->freereg - 1);
+      aqlK_codeABC(fs, OP_GETTABUP, reg, e->u.ind.t, e->u.ind.idx);
       e->u.info = fs->pc - 1;
       e->k = VRELOC;
       break;
     }
     case VINDEXI: {
       /* Use GETTABUP for integer indexing */
-      aqlK_codeABC(fs, OP_GETTABUP, 0, e->u.ind.t, e->u.ind.idx);
+      int reg = fs->freereg++;  /* allocate register for result */
+      printf_debug("[DEBUG] aqlK_dischargevars: VINDEXI using register %d (freereg was %d)\n", reg, fs->freereg - 1);
+      aqlK_codeABC(fs, OP_GETTABUP, reg, e->u.ind.t, e->u.ind.idx);
       e->u.info = fs->pc - 1;
       e->k = VRELOC;
       break;
     }
     case VINDEXSTR: {
       /* Use GETTABUP for string indexing */
-      aqlK_codeABC(fs, OP_GETTABUP, 0, e->u.ind.t, e->u.ind.idx);
+      int reg = fs->freereg++;  /* allocate register for result */
+      printf_debug("[DEBUG] aqlK_dischargevars: VINDEXSTR using register %d (freereg was %d)\n", reg, fs->freereg - 1);
+      aqlK_codeABC(fs, OP_GETTABUP, reg, e->u.ind.t, e->u.ind.idx);
       e->u.info = fs->pc - 1;
       e->k = VRELOC;
       break;
     }
-    default: break;  /* there is one value available (somewhere) */
+    default: 
+      printf_debug("[DEBUG] aqlK_dischargevars: default case for e->k=%d\n", e->k);
+      break;  /* there is one value available (somewhere) */
   }
 }
 
@@ -346,10 +369,29 @@ static void codebinexpval (FuncState *fs, OpCode op,
                            expdesc *e1, expdesc *e2, int line) {
   int rk1 = aqlK_exp2RK(fs, e1);  /* both operands are "RK" */
   int rk2 = aqlK_exp2RK(fs, e2);
+  
+  /* Save current freereg before freeing expressions */
+  int saved_freereg = fs->freereg;
+  
   aqlK_freeexp(fs, e2);
   aqlK_freeexp(fs, e1);
-  e1->u.info = aqlK_codeABC(fs, op, 0, rk1, rk2);  /* generate opcode */
-  e1->k = VRELOC;  /* all those operations are relocatable */
+  
+  /* Allocate target register, starting from saved freereg */
+  int target_reg = saved_freereg;
+  
+  /* Skip registers that conflict with source operands */
+  while (target_reg == rk1 || target_reg == rk2) {
+    target_reg++;  /* try next register */
+  }
+  
+  /* Update freereg to point past the allocated register */
+  fs->freereg = target_reg + 1;
+  
+  printf_debug("[DEBUG] codebinexpval: op=%d, rk1=%d, rk2=%d, target_reg=%d, freereg=%d (saved=%d)\n", 
+               op, rk1, rk2, target_reg, fs->freereg, saved_freereg);
+  aqlK_codeABC(fs, op, target_reg, rk1, rk2);  /* generate opcode */
+  e1->u.info = target_reg;  /* result is in target_reg */
+  e1->k = VNONRELOC;  /* result is in a specific register */
   aqlK_fixline(fs, line);
 }
 
@@ -497,10 +539,23 @@ void aqlK_posfix (FuncState *fs, BinOpr opr,
       codecomp(fs, opr, e1, e2, line);
       break;
     }
-    case OPR_NE: case OPR_GT: case OPR_GE: {
-      /* '(a ~= b)' ==> '~(a == b)' */
-      codecomp(fs, (BinOpr)(opr - OPR_NE + OPR_EQ), e1, e2, line);
-      negatecondition(fs, e1);
+    case OPR_GT: case OPR_GE: {
+      printf_debug("[DEBUG] aqlK_posfix: handling GT/GE, opr=%d\n", opr);
+      /* '(a > b)' <=> '(b < a)';  '(a >= b)' <=> '(b <= a)' */
+      /* Swap operands */
+      expdesc temp = *e1;
+      *e1 = *e2;
+      *e2 = temp;
+      /* Convert operator: OPR_GT -> OPR_LT, OPR_GE -> OPR_LE */
+      BinOpr new_opr = (BinOpr)((opr - OPR_GT) + OPR_LT);
+      printf_debug("[DEBUG] aqlK_posfix: swapped operands, converted opr %d to %d\n", opr, new_opr);
+      codecomp(fs, new_opr, e1, e2, line);
+      break;
+    }
+    case OPR_NE: {
+      printf_debug("[DEBUG] aqlK_posfix: handling NE, opr=%d\n", opr);
+      /* Use codecomp directly with the original operator - it handles negation internally */
+      codecomp(fs, opr, e1, e2, line);
       break;
     }
     default: aql_assert(0);
@@ -559,6 +614,7 @@ int aqlK_codeABx (FuncState *fs, OpCode o, int a, unsigned int bc) {
 */
 int aqlK_codeAsBx (FuncState *fs, OpCode o, int a, int bc) {
   unsigned int b = bc + MAXARG_sBx;
+  printf_debug("[DEBUG] aqlK_codeAsBx: o=%d, a=%d, bc=%d, b=%u\n", o, a, bc, b);
   aql_assert(getOpMode(o) == iAsBx);
   aql_assert(getCMode(o) == OpArgN && (bc >= -MAXARG_sBx && bc <= MAXARG_sBx));
   aql_assert(a <= MAXARG_A);
@@ -757,7 +813,11 @@ static int aql_numisinteger(aql_Number f, aql_Integer *p) {
 ** If the integer fits in sBx, use LOADI; otherwise, add it to constants.
 */
 void aqlK_int (FuncState *fs, int reg, aql_Integer i) {
+  printf_debug("[DEBUG] aqlK_int: reg=%d, i=%lld, fitsBx=%d\n", reg, (long long)i, fitsBx(i));
+  printf_debug("[DEBUG] aqlK_int: MAXARG_Bx=%d, OFFSET_sBx=%d, MAXARG_sBx=%d\n", 
+               MAXARG_Bx, OFFSET_sBx, MAXARG_sBx);
   if (fitsBx(i)) {
+    printf_debug("[DEBUG] aqlK_int: calling aqlK_codeAsBx with i=%lld\n", (long long)i);
     aqlK_codeAsBx(fs, OP_LOADI, reg, cast_int(i));
   } else {
     int k = aqlK_intK(fs, i);
@@ -886,6 +946,8 @@ int aqlK_exp2RK (FuncState *fs, expdesc *e) {
 ** Generate code to store result of expression 'ex' into variable 'var'.
 */
 void aqlK_storevar (FuncState *fs, expdesc *var, expdesc *ex) {
+  printf_debug("[DEBUG] aqlK_storevar: entering, var->k=%d, ex->k=%d\n", var->k, ex->k);
+  printf_debug("[DEBUG] aqlK_storevar: VINDEXUP=%d, VLOCAL=%d, VUPVAL=%d\n", VINDEXUP, VLOCAL, VUPVAL);
   
   switch (var->k) {
     case VLOCAL: {
@@ -900,8 +962,11 @@ void aqlK_storevar (FuncState *fs, expdesc *var, expdesc *ex) {
       break;
     }
     case VINDEXUP: {
+      printf_debug("[DEBUG] aqlK_storevar: VINDEXUP case, generating SETTABUP\n");
       int e = aqlK_exp2RK(fs, ex);
+      printf_debug("[DEBUG] aqlK_storevar: calling aqlK_codeABC(OP_SETTABUP, %d, %d, %d)\n", var->u.ind.t, var->u.ind.idx, e);
       aqlK_codeABC(fs, OP_SETTABUP, var->u.ind.t, var->u.ind.idx, e);
+      printf_debug("[DEBUG] aqlK_storevar: SETTABUP instruction generated\n");
       break;
     }
     case VINDEXED: {
@@ -922,17 +987,30 @@ void aqlK_storevar (FuncState *fs, expdesc *var, expdesc *ex) {
     case VRELOC: {
       /* Variable is the result of a previous instruction (like OP_GETTABUP) */
       /* We need to generate OP_SETTABUP to store the value */
+      printf_debug("[DEBUG] aqlK_storevar: VRELOC case, handling global assignment\n");
       
-      /* For VRELOC from aqlK_indexed, we need to extract the table and key info */
-      /* This is a complex case - for now, let's convert to any register and handle as VNONRELOC */
-      aqlK_exp2anyreg(fs, var);
-      /* Fall through to handle as register-based assignment */
-      /* TODO: Implement proper VRELOC -> global assignment */
+      /* For VRELOC from aqlK_indexed, the previous instruction should be OP_GETTABUP */
+      /* We need to generate a corresponding OP_SETTABUP instruction */
+      Instruction *previous = &fs->f->code[var->u.info];
+      OpCode op = GET_OPCODE(*previous);
+      printf_debug("[DEBUG] aqlK_storevar: previous instruction opcode=%d (OP_GETTABUP=%d)\n", op, OP_GETTABUP);
       
-      /* For now, just ignore the assignment - this is a temporary fix */
+      if (op == OP_GETTABUP) {
+        /* Extract table and key from the previous GETTABUP instruction */
+        int table = GETARG_B(*previous);
+        int key = GETARG_C(*previous);
+        int value = aqlK_exp2RK(fs, ex);
+        printf_debug("[DEBUG] aqlK_storevar: generating SETTABUP with table=%d, key=%d, value=%d\n", table, key, value);
+        aqlK_codeABC(fs, OP_SETTABUP, table, key, value);
+      } else {
+        printf_debug("[DEBUG] aqlK_storevar: unexpected previous instruction, falling back\n");
+        /* Fallback: convert to any register */
+        aqlK_exp2anyreg(fs, var);
+      }
       break;
     }
     default: 
+      printf_debug("[DEBUG] aqlK_storevar: default case, var->k=%d (invalid)\n", var->k);
       aql_assert(0);  /* invalid var kind to store */
   }
   aqlK_freeexp(fs, ex);
@@ -981,7 +1059,7 @@ static int jumponcond (FuncState *fs, expdesc *e, int cond) {
   }
   discharge2anyreg(fs, e);
   aqlK_freeexp(fs, e);
-  return condjump(fs, OP_TESTSET, NO_REG, e->u.info, cond, 0);
+  return condjump(fs, OP_TESTSET, NO_REG, e->u.info, 0, cond);
 }
 
 /*
@@ -1014,8 +1092,42 @@ void aqlK_goiftrue (FuncState *fs, expdesc *e) {
 ** Emit code to go through if 'e' is false, jump otherwise.
 */
 void aqlK_goiffalse (FuncState *fs, expdesc *e) {
+  printf_debug("[DEBUG] aqlK_goiffalse: entering\n");
   int pc;  /* pc of new jump */
+  
+  if (!fs) {
+    printf_debug("[ERROR] aqlK_goiffalse: fs is NULL\n");
+    return;
+  }
+  
+  if (!e) {
+    printf_debug("[ERROR] aqlK_goiffalse: e is NULL\n");
+    return;
+  }
+  
+  printf_debug("[DEBUG] aqlK_goiffalse: calling aqlK_dischargevars\n");
   aqlK_dischargevars(fs, e);
+  printf_debug("[DEBUG] aqlK_goiffalse: aqlK_dischargevars completed, e->k=%d\n", e->k);
+  
+  /* Handle VJMP case early to avoid switch statement issues */
+  if (e->k == VJMP) {
+    printf_debug("[DEBUG] aqlK_goiffalse: detected VJMP, handling specially\n");
+    negatecondition(fs, e);  /* jump when it is false */
+    printf_debug("[DEBUG] aqlK_goiffalse: negatecondition called\n");
+    pc = e->u.info;  /* save jump position */
+    printf_debug("[DEBUG] aqlK_goiffalse: calling aqlK_concat with pc=%d\n", pc);
+    aqlK_concat(fs, &e->t, pc);  /* insert new jump in 't' list */
+    printf_debug("[DEBUG] aqlK_goiffalse: aqlK_concat completed, calling aqlK_patchtohere\n");
+    aqlK_patchtohere(fs, e->f);  /* false list jumps to here (to go through) */
+    printf_debug("[DEBUG] aqlK_goiffalse: aqlK_patchtohere completed\n");
+    /* After negation, the true list becomes the false list */
+    e->f = e->t;  /* false list is now the negated true list */
+    e->t = NO_JUMP;
+    printf_debug("[DEBUG] aqlK_goiffalse: VJMP handling completed, e->f=%d\n", e->f);
+    return;
+  }
+  
+  printf_debug("[DEBUG] aqlK_goiffalse: about to enter switch statement\n");
   switch (e->k) {
     case VJMP: {
       pc = e->u.info;  /* already jump if true */
@@ -1025,8 +1137,16 @@ void aqlK_goiffalse (FuncState *fs, expdesc *e) {
       pc = NO_JUMP;  /* always false; do nothing */
       break;
     }
-    default: {
+    case VVARARG: {
+      printf_debug("[DEBUG] aqlK_goiffalse: handling VVARARG case\n");
+      /* VVARARG should not appear in condition expressions, but handle it gracefully */
       pc = jumponcond(fs, e, 1);  /* jump when true */
+      break;
+    }
+    default: {
+      printf_debug("[DEBUG] aqlK_goiffalse: default case, calling jumponcond with e->k=%d\n", e->k);
+      pc = jumponcond(fs, e, 0);  /* jump when false */
+      printf_debug("[DEBUG] aqlK_goiffalse: jumponcond completed, pc=%d\n", pc);
       break;
     }
   }
@@ -1080,10 +1200,12 @@ void aqlK_indexed (FuncState *fs, expdesc *t, expdesc *k) {
     str2K(fs, k);
   aql_assert(!hasjumps(t) &&
              (vkisinreg(t->k) || t->k == VUPVAL));
+  int reg = fs->freereg++;  /* allocate register for result */
+  printf_debug("[DEBUG] aqlK_indexed: using register %d (freereg was %d)\n", reg, fs->freereg - 1);
   if (t->k == VUPVAL && !vkisvar(k->k))  /* upvalue indexed by constant? */
-    aqlK_codeABC(fs, OP_GETTABUP, 0, t->u.info, aqlK_exp2RK(fs, k));
+    aqlK_codeABC(fs, OP_GETTABUP, reg, t->u.info, aqlK_exp2RK(fs, k));
   else  /* register indexed by constant/register */
-    aqlK_codeABC(fs, OP_GETTABUP, 0, t->u.info, aqlK_exp2RK(fs, k));
+    aqlK_codeABC(fs, OP_GETTABUP, reg, t->u.info, aqlK_exp2RK(fs, k));
   t->k = VRELOC;
   t->u.info = fs->pc - 1;  /* point to the OP_GETTABLE instruction */
 }
@@ -1094,37 +1216,56 @@ void aqlK_indexed (FuncState *fs, expdesc *t, expdesc *k) {
 ** 'e1' was already put in R/K form by 'luaK_infix'.
 */
 static void codecomp (FuncState *fs, BinOpr opr, expdesc *e1, expdesc *e2, int line) {
-  int rk1 = (e1->k == VK) ? RKASK(e1->u.info)
-                          : check_exp(e1->k == VNONRELOC, e1->u.info);
+  printf_debug("[DEBUG] codecomp: e1->k=%d, e1->u.info=%d, e2->k=%d, e2->u.info=%d\n", 
+    e1->k, e1->u.info, e2->k, e2->u.info);
+  
+  /* Ensure both operands are in R/K form */
+  int rk1 = aqlK_exp2RK(fs, e1);
   int rk2 = aqlK_exp2RK(fs, e2);
+  printf_debug("[DEBUG] codecomp: rk1=%d, rk2=%d, freereg=%d\n", rk1, rk2, fs->freereg);
   aqlK_freeexp(fs, e2);
+  
+  /* Map comparison operators to VM instructions */
+  OpCode op;
+  int k = 1;  /* default: jump when condition is true */
+  
+  printf_debug("[DEBUG] codecomp: operator=%d (OPR_NE=%d)\n", opr, OPR_NE);
   switch (opr) {
-    case OPR_EQ: case OPR_NE: {
-      Instruction ie = aqlK_codeABC(fs, OP_EQ, 0, rk1, rk2);
-      if (opr == OPR_NE)  /* '~=' is '~(==)' */
-        SETARG_k(ie, 1);  /* negate result */
-      e1->u.info = ie;
+    case OPR_EQ:
+      op = OP_EQ;
+      k = 1;  /* jump when equal */
+      printf_debug("[DEBUG] codecomp: OPR_EQ -> OP_EQ, k=1\n");
       break;
-    }
-    case OPR_LT: case OPR_GE: {
-      Instruction ie = aqlK_codeABC(fs, OP_LT, 0, rk1, rk2);
-      if (opr == OPR_GE)  /* '>=' is '~(<)' */
-        SETARG_k(ie, 1);  /* negate result */
-      e1->u.info = ie;
+    case OPR_NE:
+      op = OP_EQ;
+      k = 0;  /* jump when not equal (i.e., when EQ is false) */
+      printf_debug("[DEBUG] codecomp: OPR_NE -> OP_EQ, k=0\n");
       break;
-    }
-    case OPR_LE: case OPR_GT: {
-      /* '(a <= b)' <=> '(b >= a)' <=> '~(b < a)' */
-      Instruction ie = aqlK_codeABC(fs, OP_LT, 0, rk2, rk1);
-      if (opr == OPR_GT)  /* '>' is '~(<=)' */
-        SETARG_k(ie, 1);  /* negate result */
-      e1->u.info = ie;
+    case OPR_LT:
+      op = OP_LT;
+      k = 1;  /* jump when less than */
+      printf_debug("[DEBUG] codecomp: OPR_LT -> OP_LT, k=1\n");
       break;
-    }
-    default: aql_assert(0);
+    case OPR_LE:
+      op = OP_LE;
+      k = 1;  /* jump when less or equal */
+      printf_debug("[DEBUG] codecomp: OPR_LE -> OP_LE, k=1\n");
+      break;
+    default: 
+      printf_debug("[DEBUG] codecomp: unknown operator %d, defaulting to EQ\n", opr);
+      aql_assert(0);
+      op = OP_EQ;
+      k = 1;
   }
-  aqlK_freeexp(fs, e1);
-  e1->k = VJMP;
+  
+  /* Generate conditional jump instruction using condjump */
+  printf_debug("[DEBUG] codecomp: generating conditional jump with %s, k=%d\n", 
+    (op == OP_EQ) ? "EQ" : (op == OP_LT) ? "LT" : "LE", k);
+  
+  e1->u.info = condjump(fs, op, 0, rk1, rk2, k);  /* A=0 (unused), B=rk1, C=rk2, k=condition */
+  e1->k = VJMP;  /* mark as jump expression */
+  
+  printf_debug("[DEBUG] codecomp: generated VJMP expression with jump at PC=%d\n", e1->u.info);
   aqlK_fixline(fs, line);
 }
 
@@ -1209,8 +1350,8 @@ int aqlK_ret (FuncState *fs, int first, int nret) {
 ** false, will jump to 'dest'. If 'v' is true, will fall through.
 */
 static int condjump (FuncState *fs, OpCode op, int a, int b, int c, int k) {
-  /* For comparison operations, encode k in the C field */
-  int inst = aqlK_codeABC(fs, op, a, b, c | (k << 8));
+  /* Use AQL's CREATE_ABCk macro for proper k bit encoding */
+  int inst = aqlK_code(fs, CREATE_ABCk(op, a, b, c, k));
   return aqlK_jump(fs);
 }
 
@@ -1289,8 +1430,20 @@ static void patchlistaux (FuncState *fs, int list, int vtarget, int reg,
 ** pending jumps
 */
 void aqlK_patchtohere (FuncState *fs, int list) {
+  printf_debug("[DEBUG] aqlK_patchtohere: entering with list=%d\n", list);
+  
+  if (!fs) {
+    printf_debug("[ERROR] aqlK_patchtohere: fs is NULL\n");
+    return;
+  }
+  
+  printf_debug("[DEBUG] aqlK_patchtohere: calling aqlK_getlabel\n");
   int hr = aqlK_getlabel(fs);  /* mark "here" as a jump target */
+  printf_debug("[DEBUG] aqlK_patchtohere: aqlK_getlabel returned hr=%d\n", hr);
+  
+  printf_debug("[DEBUG] aqlK_patchtohere: calling aqlK_patchlist\n");
   aqlK_patchlist(fs, list, hr);
+  printf_debug("[DEBUG] aqlK_patchtohere: aqlK_patchlist completed\n");
 }
 
 /*
@@ -1299,12 +1452,22 @@ void aqlK_patchtohere (FuncState *fs, int list) {
 ** because we only know addresses once code is generated.)
 */
 void aqlK_patchlist (FuncState *fs, int list, int target) {
-  if (target == fs->pc)  /* 'target' is current position? */
-    aqlK_patchtohere(fs, list);  /* add list to pending jumps */
-  else {
+  printf_debug("[DEBUG] aqlK_patchlist: entering with list=%d, target=%d, fs->pc=%d\n", list, target, fs->pc);
+  
+  if (list == NO_JUMP) {
+    printf_debug("[DEBUG] aqlK_patchlist: list is NO_JUMP, returning\n");
+    return;  /* nothing to patch */
+  }
+  
+  if (target == fs->pc) {
+    printf_debug("[DEBUG] aqlK_patchlist: target == fs->pc, this would cause recursion - using patchlistaux instead\n");
+    /* Don't call aqlK_patchtohere to avoid infinite recursion */
+    patchlistaux(fs, list, target, NO_REG, target);
+  } else {
     aql_assert(target < fs->pc);
     patchlistaux(fs, list, target, NO_REG, target);
   }
+  printf_debug("[DEBUG] aqlK_patchlist: completed\n");
 }
 
 /*
@@ -1413,10 +1576,19 @@ void aqlK_exp2val (FuncState *fs, expdesc *e) {
 */
 static int getjump (FuncState *fs, int pc) {
   int offset = GETARG_sBx(fs->f->code[pc]);
+  printf_debug("[DEBUG] getjump: pc=%d, offset=%d\n", pc, offset);
   if (offset == NO_JUMP)  /* point to itself represents end of list */
     return NO_JUMP;  /* end of list */
-  else
-    return (pc+1)+offset;  /* turn offset into absolute position */
+  else {
+    int next = (pc+1)+offset;
+    printf_debug("[DEBUG] getjump: next=%d\n", next);
+    /* Detect potential infinite loops */
+    if (next == pc) {
+      printf_debug("[ERROR] getjump: detected self-reference at pc=%d\n", pc);
+      return NO_JUMP;  /* break the loop */
+    }
+    return next;  /* turn offset into absolute position */
+  }
 }
 
 /*
@@ -1426,11 +1598,17 @@ static int getjump (FuncState *fs, int pc) {
 static void fixjump (FuncState *fs, int pc, int dest) {
   Instruction *jmp = &fs->f->code[pc];
   int offset = dest - (pc + 1);
+  printf_debug("[DEBUG] fixjump: pc=%d, dest=%d, offset=%d\n", pc, dest, offset);
+  printf_debug("[DEBUG] fixjump: OFFSET_sBx=%d, MAXARG_sBx=%d\n", OFFSET_sBx, MAXARG_sBx);
+  printf_debug("[DEBUG] fixjump: range check: %d <= %d <= %d\n", 
+               -OFFSET_sBx, offset, OFFSET_sBx);
+  
   aql_assert(dest != NO_JUMP);
-  if (!(-OFFSET_sBx <= offset && offset <= MAXARG_sBx - OFFSET_sBx))
+  if (!(-OFFSET_sBx <= offset && offset <= OFFSET_sBx))
     aqlX_syntaxerror(fs->ls, "control structure too long");
   aql_assert(GET_OPCODE(*jmp) == OP_JMP);
   SETARG_sBx(*jmp, offset);
+  printf_debug("[DEBUG] fixjump: set sBx=%d for instruction at pc=%d\n", offset, pc);
 }
 
 /*

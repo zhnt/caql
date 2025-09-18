@@ -1,0 +1,4 @@
+inner block: x=10, y=20, z=30
+outer block: x=10, y=20
+global: x=10
+

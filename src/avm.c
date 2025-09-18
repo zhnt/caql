@@ -17,6 +17,7 @@
 
 #include "aconf.h"
 #include "adebug_user.h"
+#include "aparser.h"
 
 /* Debug build macro for conditional compilation */
 #ifdef AQL_DEBUG_BUILD
@@ -31,6 +32,12 @@
 #include "aopcodes.h"
 #include "avm.h"
 #include "azio.h"
+#include "arange.h"
+
+/* Execution tracing control */
+#ifdef AQL_DEBUG_BUILD
+static int trace_execution = 1;  /* Enable execution tracing by default in debug builds */
+#endif
 
 /* Register tracking function */
 #ifdef AQL_DEBUG_BUILD
@@ -90,13 +97,15 @@ static int aqlV_toboolean(const TValue *obj);
 
 /*
 ** Convert TValue to boolean according to AQL rules:
-** - nil and false are falsy
-** - everything else is truthy (including 0, empty string, empty containers)
+** - nil, false, and 0 are falsy
+** - everything else is truthy (including empty string, empty containers)
 */
 static int aqlV_toboolean(const TValue *obj) {
   switch (rawtt(obj)) {
     case AQL_TNIL: return 0;
     case AQL_TBOOLEAN: return bvalue(obj);
+    case AQL_VNUMINT: return ivalue(obj) != 0;  /* 0 is falsy, non-zero is truthy */
+    case AQL_VNUMFLT: return fltvalue(obj) != 0.0;  /* 0.0 is falsy, non-zero is truthy */
     default: return 1;  /* All other values are truthy */
   }
 }
@@ -115,9 +124,43 @@ static int aqlV_toboolean(const TValue *obj) {
 #define iAsBx(i)    cast_int(GETARG_sBx(i))
 #define iAx(i)      cast_int(GETARG_Ax(i))
 
-#define RA(i)   (base + iABC(i))
-#define RB(i)   (base + GETARG_B(i))
-#define RC(i)   (base + GETARG_C(i))
+/////* Extract k flag from instruction (for negated comparisons) */
+//#define GETARG_k(i)	(GETARG_C(i) & 1)
+
+/* Safe register access with bounds checking */
+static StkId safe_RA(StkId base, Instruction i, aql_State *L) {
+  int reg = GETARG_A(i);
+  StkId result = base + reg;
+  if (result < L->stack || result >= L->stack_last) {
+    printf_debug("[ERROR] RA register %d out of bounds\n", reg);
+    return NULL;
+  }
+  return result;
+}
+
+static StkId safe_RB(StkId base, Instruction i, aql_State *L) {
+  int reg = GETARG_B(i);
+  StkId result = base + reg;
+  if (result < L->stack || result >= L->stack_last) {
+    printf_debug("[ERROR] RB register %d out of bounds\n", reg);
+    return NULL;
+  }
+  return result;
+}
+
+static StkId safe_RC(StkId base, Instruction i, aql_State *L) {
+  int reg = GETARG_C(i);
+  StkId result = base + reg;
+  if (result < L->stack || result >= L->stack_last) {
+    printf_debug("[ERROR] RC register %d out of bounds\n", reg);
+    return NULL;
+  }
+  return result;
+}
+
+#define RA(i)   safe_RA(base, i, L)
+#define RB(i)   safe_RB(base, i, L)
+#define RC(i)   safe_RC(base, i, L)
 #define RKB(i)  (ISK(GETARG_B(i)) ? k + INDEXK(GETARG_B(i)) : base + GETARG_B(i))
 #define RKC(i)  (ISK(GETARG_C(i)) ? k + INDEXK(GETARG_C(i)) : base + GETARG_C(i))
 #define vRA(i)  s2v(RA(i))  /* Convert StkId to TValue* */
@@ -145,22 +188,62 @@ static int aqlV_toboolean(const TValue *obj) {
 
 #define ARITH_OP_I(op) do { \
   TValue kval; \
-  setivalue(&kval, GETARG_C(i)); \
+  setivalue(&kval, sC2int(GETARG_C(i))); \
+  printf_debug("[DEBUG] ARITH_OP_I: GETARG_C(i)=%d, sC2int(C)=%d, kval=%lld\n", GETARG_C(i), sC2int(GETARG_C(i)), ivalue(&kval)); \
   arith_op(L, s2v(RA(i)), s2v(RB(i)), &kval, TM_##op); \
 } while(0)
 
 /* Bitwise operations */
 #define BITWISE_OP(op) do { \
-  arith_op(L, s2v(RA(i)), s2v(RB(i)), s2v(RC(i)), TM_##op); \
+  printf_debug("[DEBUG] BITWISE_OP: executing %s, A=%d, B=%d, C=%d\n", #op, GETARG_A(i), GETARG_B(i), GETARG_C(i)); \
+  const TValue *rb = vRKB(i); \
+  const TValue *rc = vRKC(i); \
+  printf_debug("[DEBUG] BITWISE_OP: rb type=%d, rc type=%d\n", rawtt(rb), rawtt(rc)); \
+  if (ttisinteger(rb) && ttisinteger(rc)) { \
+    aql_Integer result; \
+    switch (TM_##op) { \
+      case TM_BAND: result = ivalue(rb) & ivalue(rc); break; \
+      case TM_BOR:  result = ivalue(rb) | ivalue(rc); break; \
+      case TM_BXOR: result = ivalue(rb) ^ ivalue(rc); break; \
+      case TM_SHL:  result = aqlV_shiftl(ivalue(rb), ivalue(rc)); break; \
+      case TM_SHR:  result = aqlV_shiftl(ivalue(rb), -ivalue(rc)); break; \
+      default: aql_assert(0); result = 0; \
+    } \
+    printf_debug("[DEBUG] BITWISE_OP: %s(%lld, %lld) = %lld\n", #op, (long long)ivalue(rb), (long long)ivalue(rc), (long long)result); \
+    setivalue(s2v(RA(i)), result); \
+  } else { \
+    aqlG_runerror(L, "attempt to perform bitwise operation on non-integer values"); \
+  } \
   continue; \
 } while(0)
 
 /* Comparison operations */
 #define CMP_OP(cmpfunc) do { \
+  StkId ra = RA(i); \
+  if (!ra) { \
+    printf_debug("[ERROR] CMP_OP: RA register out of bounds\n"); \
+    return 0; \
+  } \
+  printf_debug("[DEBUG] CMP_OP: GETARG_B(i)=%d, ISK(B)=%d, GETARG_C(i)=%d, ISK(C)=%d\n", \
+    GETARG_B(i), ISK(GETARG_B(i)), GETARG_C(i), ISK(GETARG_C(i))); \
   const TValue *rb = vRKB(i); \
   const TValue *rc = vRKC(i); \
-  int cond = cmpfunc(L, rb, rc) == GETARG_A(i); \
-  if (cond) pc++; \
+  printf_debug("[DEBUG] CMP_OP: rb type=%d, rc type=%d\n", rawtt(rb), rawtt(rc)); \
+  printf_debug("[DEBUG] CMP_OP: rb value = %d, rc value = %d\n", \
+    ttisinteger(rb) ? (int)ivalue(rb) : -999, \
+    ttisinteger(rc) ? (int)ivalue(rc) : -999); \
+  int cond; \
+  cond = cmpfunc(L, rb, rc); \
+  printf_debug("[DEBUG] CMP_OP: %s(rb, rc) = %d\n", #cmpfunc, cond); \
+  /* Note: Negation for >=, >, != is handled by using different operator combinations */ \
+  /* The k flag is not used due to conflicts with RKASK encoding */ \
+  printf_debug("[DEBUG] CMP_OP: final result = %d\n", cond); \
+  /* Store boolean result in register A */ \
+  if (cond) { \
+    setbtvalue(s2v(ra)); \
+  } else { \
+    setbfvalue(s2v(ra)); \
+  } \
   continue; \
 } while(0)
 
@@ -254,6 +337,92 @@ static void arith_op (aql_State *L, TValue *ra, const TValue *rb, const TValue *
       default: aql_assert(0); res = 0;  /* to avoid warnings */
     }
     setfltvalue(ra, res);
+  } else if (ttisstring(rb) && ttisstring(rc) && op == TM_ADD) {
+    /* String concatenation */
+    AQL_DEBUG(AQL_DEBUG_VM, "arith_op: performing string concatenation");
+    
+    TString *sb = tsvalue(rb);
+    TString *sc = tsvalue(rc);
+    size_t lb = tsslen(sb);
+    size_t lc = tsslen(sc);
+    size_t total_len = lb + lc;
+    
+    /* Create new string with concatenated content */
+    char *buffer = (char*)malloc(total_len + 1);
+    if (buffer == NULL) {
+      aqlG_runerror(L, "not enough memory for string concatenation");
+      return;
+    }
+    
+    memcpy(buffer, getstr(sb), lb);
+    memcpy(buffer + lb, getstr(sc), lc);
+    buffer[total_len] = '\0';
+    
+    /* Create new TString and set result */
+    TString *result = aqlStr_newlstr(L, buffer, total_len);
+    free(buffer);
+    
+    setsvalue(L, ra, result);
+    AQL_DEBUG(AQL_DEBUG_VM, "arith_op: string concatenation result='%s'", getstr(result));
+  } else if ((ttisstring(rb) && ttisinteger(rc)) || (ttisinteger(rb) && ttisstring(rc))) {
+    /* String + Integer concatenation */
+    if (op != TM_ADD) {
+      aqlG_runerror(L, "attempt to perform arithmetic on a %s and a %s",
+                    aqlL_typename(L, rb), aqlL_typename(L, rc));
+      return;
+    }
+    
+    AQL_DEBUG(AQL_DEBUG_VM, "arith_op: performing string+integer concatenation");
+    
+    const char *str_part;
+    size_t str_len;
+    aql_Integer int_part;
+    
+    if (ttisstring(rb)) {
+      /* string + integer */
+      TString *sb = tsvalue(rb);
+      str_part = getstr(sb);
+      str_len = tsslen(sb);
+      int_part = ivalue(rc);
+    } else {
+      /* integer + string */
+      TString *sc = tsvalue(rc);
+      str_part = getstr(sc);
+      str_len = tsslen(sc);
+      int_part = ivalue(rb);
+    }
+    
+    /* Convert integer to string */
+    char int_buffer[32];
+    int int_len = snprintf(int_buffer, sizeof(int_buffer), "%lld", (long long)int_part);
+    
+    /* Calculate total length */
+    size_t total_len = str_len + int_len;
+    
+    /* Create concatenated string */
+    char *buffer = (char*)malloc(total_len + 1);
+    if (buffer == NULL) {
+      aqlG_runerror(L, "not enough memory for string concatenation");
+      return;
+    }
+    
+    if (ttisstring(rb)) {
+      /* string + integer: str_part + int_buffer */
+      memcpy(buffer, str_part, str_len);
+      memcpy(buffer + str_len, int_buffer, int_len);
+    } else {
+      /* integer + string: int_buffer + str_part */
+      memcpy(buffer, int_buffer, int_len);
+      memcpy(buffer + int_len, str_part, str_len);
+    }
+    buffer[total_len] = '\0';
+    
+    /* Create new TString and set result */
+    TString *result = aqlStr_newlstr(L, buffer, total_len);
+    free(buffer);
+    
+    setsvalue(L, ra, result);
+    AQL_DEBUG(AQL_DEBUG_VM, "arith_op: string+integer concatenation result='%s'", getstr(result));
   } else {
     aqlG_runerror(L, "attempt to perform arithmetic on a %s and a %s",
                   aqlL_typename(L, rb), aqlL_typename(L, rc));
@@ -338,16 +507,61 @@ static void create_vector (aql_State *L, StkId ra, int length, DataType dtype) {
 ** Main VM execution function
 */
 AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
+  printf_debug("[DEBUG] aqlV_execute: entering VM execution\n");
+  
+  /* Critical safety checks */
+  if (!L) {
+    printf_debug("[ERROR] aqlV_execute: L is NULL\n");
+    return 0;  /* Execution failed */
+  }
+  
+  if (!ci) {
+    printf_debug("[ERROR] aqlV_execute: ci is NULL\n");
+    return 0;  /* Execution failed */
+  }
+  
+  if (ci != L->ci) {
+    printf_debug("[ERROR] aqlV_execute: ci != L->ci\n");
+    return 0;  /* Execution failed */
+  }
+  
+  if (!ci->func) {
+    printf_debug("[ERROR] aqlV_execute: ci->func is NULL\n");
+    return 0;  /* Execution failed */
+  }
+  
+  TValue *func_val = s2v(ci->func);
+  if (!ttisclosure(func_val)) {
+    printf_debug("[ERROR] aqlV_execute: function is not a closure\n");
+    return 0;  /* Execution failed */
+  }
+  
   LClosure *cl;
   TValue *k;
   StkId base;
   const Instruction *pc;
   
-  aql_assert(ci == L->ci);
-  cl = clLvalue(s2v(ci->func));
+  cl = clLvalue(func_val);
+  if (!cl) {
+    printf_debug("[ERROR] aqlV_execute: cl is NULL\n");
+    return 0;  /* Execution failed */
+  }
+  
+  if (!cl->p) {
+    printf_debug("[ERROR] aqlV_execute: cl->p is NULL\n");
+    return 0;  /* Execution failed */
+  }
+  
+  if (!cl->p->code) {
+    printf_debug("[ERROR] aqlV_execute: cl->p->code is NULL\n");
+    return 0;  /* Execution failed */
+  }
+  
   base = ci->func + 1;
   pc = ci->u.l.savedpc;
   k = cl->p->k;
+  
+  printf_debug("[DEBUG] aqlV_execute: safety checks passed, starting execution\n");
   
   AQL_DEBUG(AQL_DEBUG_VM, "aqlV_execute: starting execution loop");
   
@@ -376,12 +590,47 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
   }
 #endif
   
+#ifdef AQL_DEBUG_BUILD
+  /* Print execution header if tracing is enabled */
+  if (trace_execution) {
+    aqlD_print_execution_header();
+  }
+#endif
   
   for (;;) {
+    /* Safety check: ensure pc is within bounds */
+    if (pc < cl->p->code || pc >= cl->p->code + cl->p->sizecode) {
+      printf_debug("[ERROR] aqlV_execute: PC out of bounds\n");
+      return 0;  /* Execution failed */
+    }
+    
     Instruction i = *pc++;
     StkId ra;
     OpCode op = GET_OPCODE(i);
     int current_pc = (int)(pc - cl->p->code - 1);  /* Calculate current PC */
+    
+    /* Safety check: validate opcode */
+    if (op >= NUM_OPCODES) {
+      printf_debug("[ERROR] aqlV_execute: invalid opcode %d at pc=%d\n", op, current_pc);
+      return 0;  /* Execution failed */
+    }
+    
+    /* Print debug info based on instruction format */
+    if (op == OP_LOADI || op == OP_LOADF || op == OP_JMP || op == OP_FORPREP || op == OP_FORLOOP) {
+      /* iAsBx format */
+      printf_debug("[DEBUG] aqlV_execute: PC=%d, opcode=%d (%s), A=%d, sBx=%d\n", 
+        current_pc, op, aql_opnames[op], GETARG_A(i), GETARG_sBx(i));
+    } else if (op == OP_LOADK) {
+      /* iABx format */
+      printf_debug("[DEBUG] aqlV_execute: PC=%d, opcode=%d (%s), A=%d, Bx=%d\n", 
+        current_pc, op, aql_opnames[op], GETARG_A(i), GETARG_Bx(i));
+    } else {
+      /* iABC format */
+      printf_debug("[DEBUG] aqlV_execute: PC=%d, opcode=%d (%s), A=%d, B=%d, C=%d\n", 
+        current_pc, op, aql_opnames[op], GETARG_A(i), GETARG_B(i), GETARG_C(i));
+    }
+    
+    /* Debug: Only check critical register conflicts */
     
     //AQL_DEBUG(AQL_DEBUG_VM, "aqlV_execute: executing instruction opcode=%d A=%d B=%d C=%d", 
      //      op, GETARG_A(i), GETARG_B(i), GETARG_C(i));
@@ -420,6 +669,26 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
           snprintf(desc_buf, sizeof(desc_buf), "DIV R(%d) := R(%d) / R(%d)", 
                    GETARG_A(i), GETARG_B(i), GETARG_C(i));
           break;
+        case OP_FORPREP:
+          snprintf(desc_buf, sizeof(desc_buf), "FORPREP A=%d B=%d C=%d", 
+                   GETARG_A(i), GETARG_B(i), GETARG_C(i));
+          break;
+        case OP_FORLOOP:
+          snprintf(desc_buf, sizeof(desc_buf), "FORLOOP A=%d B=%d C=%d", 
+                   GETARG_A(i), GETARG_B(i), GETARG_C(i));
+          break;
+        case OP_BUILTIN:
+          snprintf(desc_buf, sizeof(desc_buf), "BUILTIN A=%d B=%d C=%d", 
+                   GETARG_A(i), GETARG_B(i), GETARG_C(i));
+          break;
+        case OP_GETTABUP:
+          snprintf(desc_buf, sizeof(desc_buf), "GETTABUP R(%d) := UPVAL[%d][R(%d)]", 
+                   GETARG_A(i), GETARG_B(i), GETARG_C(i));
+          break;
+        case OP_SETTABUP:
+          snprintf(desc_buf, sizeof(desc_buf), "SETTABUP UPVAL[%d][R(%d)] := R(%d)", 
+                   GETARG_B(i), GETARG_C(i), GETARG_A(i));
+          break;
         case OP_RET_ONE:
           snprintf(desc_buf, sizeof(desc_buf), "RET_ONE return R(%d)", GETARG_A(i));
           break;
@@ -439,10 +708,22 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       
       aqlD_print_vm_state(&vm_state);
       
-      /* Print register states (first few registers) for execution trace */
+      /* Print register states BEFORE instruction execution */
       int reg_count = (int)(L->top - base);
       if (reg_count > 0 && trace_execution) {
-        aqlD_print_registers(s2v(base), reg_count);
+        printf("  Before: ");
+        /* Print registers directly without debug flag check */
+        printf("📊 Registers: ");
+        for (int j = 0; j < reg_count && j < 8; j++) {
+          TValue *val = &s2v(base)[j];
+          char buffer[32];
+          aqlD_format_value(val, buffer, sizeof(buffer));
+          printf("R%d=%s ", j, buffer);
+        }
+        if (reg_count > 8) {
+          printf("... (%d more)", reg_count - 8);
+        }
+        printf("\n");
       }
     }
     
@@ -458,10 +739,37 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       /* Base operations */
       case OP_MOVE: {
         setobj2s(L, RA(i), s2v(RB(i)));
+#ifdef AQL_DEBUG_BUILD
+        if (trace_execution) {
+          int reg_count = (int)(L->top - base);
+          if (reg_count > 0) {
+            printf("  After:  📊 Registers: ");
+            for (int j = 0; j < reg_count && j < 8; j++) {
+              TValue *val = &s2v(base)[j];
+              char buffer[32];
+              aqlD_format_value(val, buffer, sizeof(buffer));
+              printf("R%d=%s ", j, buffer);
+            }
+            if (reg_count > 8) {
+              printf("... (%d more)", reg_count - 8);
+            }
+            printf("\n");
+          }
+        }
+#endif
         continue;
       }
       case OP_LOADI: {
         setivalue(s2v(RA(i)), iAsBx(i));
+#ifdef AQL_DEBUG_BUILD
+        if (trace_execution) {
+          int reg_count = (int)(L->top - base);
+          if (reg_count > 0) {
+            printf("  After:  ");
+            aqlD_print_registers(s2v(base), reg_count);
+          }
+        }
+#endif
         continue;
       }
       case OP_LOADF: {
@@ -513,13 +821,45 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       }
       
       /* Arithmetic operations */
-      case OP_ADD: ARITH_OP(ADD); continue;
+      case OP_ADD: {
+        TValue *rb = vRKB(i);
+        TValue *rc = vRKC(i);
+        printf_debug("[DEBUG] OP_ADD: A=%d, B=%d, C=%d, rb_val=%lld, rc_val=%lld\n", 
+                     GETARG_A(i), GETARG_B(i), GETARG_C(i), 
+                     ttisinteger(rb) ? (long long)ivalue(rb) : -999,
+                     ttisinteger(rc) ? (long long)ivalue(rc) : -999);
+        ARITH_OP(ADD); 
+        printf_debug("[DEBUG] OP_ADD result: %lld\n", 
+                     ttisinteger(s2v(RA(i))) ? (long long)ivalue(s2v(RA(i))) : -999);
+        continue;
+      }
       case OP_ADDK: ARITH_OP_K(ADD); continue;
-      case OP_ADDI: ARITH_OP_I(ADD); continue;
+      case OP_ADDI: {
+        printf_debug("[DEBUG] OP_ADDI: A=%d, B=%d, C=%d, sC2int(C)=%d\n", 
+                     GETARG_A(i), GETARG_B(i), GETARG_C(i), sC2int(GETARG_C(i)));
+        printf_debug("[DEBUG] OP_ADDI: before - R[%d]=%lld\n", 
+                     GETARG_A(i), ttisinteger(s2v(RA(i))) ? (long long)ivalue(s2v(RA(i))) : -999);
+        ARITH_OP_I(ADD); 
+        printf_debug("[DEBUG] OP_ADDI: after - R[%d]=%lld\n", 
+                     GETARG_A(i), ttisinteger(s2v(RA(i))) ? (long long)ivalue(s2v(RA(i))) : -999);
+        continue;
+      }
       case OP_SUB: ARITH_OP(SUB); continue;
       case OP_SUBK: ARITH_OP_K(SUB); continue;
       case OP_SUBI: ARITH_OP_I(SUB); continue;
-      case OP_MUL: ARITH_OP(MUL); continue;
+      case OP_MUL: {
+        ARITH_OP(MUL);
+#ifdef AQL_DEBUG_BUILD
+        if (trace_execution) {
+          int reg_count = (int)(L->top - base);
+          if (reg_count > 0) {
+            printf("  After:  ");
+            aqlD_print_registers(s2v(base), reg_count);
+          }
+        }
+#endif
+        continue;
+      }
       case OP_MULK: ARITH_OP_K(MUL); continue;
       case OP_MULI: ARITH_OP_I(MUL); continue;
       case OP_DIV: ARITH_OP(DIV); continue;
@@ -530,12 +870,13 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       
       /* Unary operations */
       case OP_UNM: {
-        if (ttisinteger(s2v(RB(i)))) {
-          setivalue(s2v(RA(i)), intop(-, 0, ivalue(s2v(RB(i)))));
-        } else if (ttisfloat(s2v(RB(i)))) {
-          setfltvalue(s2v(RA(i)), -fltvalue(s2v(RB(i))));
+        const TValue *rb = vRKB(i);
+        if (ttisinteger(rb)) {
+          setivalue(s2v(RA(i)), intop(-, 0, ivalue(rb)));
+        } else if (ttisfloat(rb)) {
+          setfltvalue(s2v(RA(i)), -fltvalue(rb));
         } else {
-          aqlG_runerror(L, "attempt to negate a %s", aqlL_typename(L, s2v(RB(i))));
+          aqlG_runerror(L, "attempt to negate a %s", aqlL_typename(L, rb));
         }
         continue;
       }
@@ -574,11 +915,71 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       }
       
       /* Bitwise operations */
-      case OP_BAND: BITWISE_OP(BAND);
-      case OP_BOR: BITWISE_OP(BOR);
-      case OP_BXOR: BITWISE_OP(BXOR);
-      case OP_SHL: BITWISE_OP(SHL);
-      case OP_SHR: BITWISE_OP(SHR);
+      case OP_BAND: {
+        printf_debug("[DEBUG] VM: executing OP_BAND\n");
+        const TValue *rb = vRKB(i);
+        const TValue *rc = vRKC(i);
+        if (ttisinteger(rb) && ttisinteger(rc)) {
+          aql_Integer result = ivalue(rb) & ivalue(rc);
+          printf_debug("[DEBUG] OP_BAND: %lld & %lld = %lld\n", (long long)ivalue(rb), (long long)ivalue(rc), (long long)result);
+          setivalue(s2v(RA(i)), result);
+        } else {
+          aqlG_runerror(L, "attempt to perform bitwise operation on non-integer values");
+        }
+        continue;
+      }
+      case OP_BOR: {
+        printf_debug("[DEBUG] VM: executing OP_BOR\n");
+        const TValue *rb = vRKB(i);
+        const TValue *rc = vRKC(i);
+        if (ttisinteger(rb) && ttisinteger(rc)) {
+          aql_Integer result = ivalue(rb) | ivalue(rc);
+          printf_debug("[DEBUG] OP_BOR: %lld | %lld = %lld\n", (long long)ivalue(rb), (long long)ivalue(rc), (long long)result);
+          setivalue(s2v(RA(i)), result);
+        } else {
+          aqlG_runerror(L, "attempt to perform bitwise operation on non-integer values");
+        }
+        continue;
+      }
+      case OP_BXOR: {
+        printf_debug("[DEBUG] VM: executing OP_BXOR\n");
+        const TValue *rb = vRKB(i);
+        const TValue *rc = vRKC(i);
+        if (ttisinteger(rb) && ttisinteger(rc)) {
+          aql_Integer result = ivalue(rb) ^ ivalue(rc);
+          printf_debug("[DEBUG] OP_BXOR: %lld ^ %lld = %lld\n", (long long)ivalue(rb), (long long)ivalue(rc), (long long)result);
+          setivalue(s2v(RA(i)), result);
+        } else {
+          aqlG_runerror(L, "attempt to perform bitwise operation on non-integer values");
+        }
+        continue;
+      }
+      case OP_SHL: {
+        printf_debug("[DEBUG] VM: executing OP_SHL\n");
+        const TValue *rb = vRKB(i);
+        const TValue *rc = vRKC(i);
+        if (ttisinteger(rb) && ttisinteger(rc)) {
+          aql_Integer result = aqlV_shiftl(ivalue(rb), ivalue(rc));
+          printf_debug("[DEBUG] OP_SHL: %lld << %lld = %lld\n", (long long)ivalue(rb), (long long)ivalue(rc), (long long)result);
+          setivalue(s2v(RA(i)), result);
+        } else {
+          aqlG_runerror(L, "attempt to perform bitwise operation on non-integer values");
+        }
+        continue;
+      }
+      case OP_SHR: {
+        printf_debug("[DEBUG] VM: executing OP_SHR\n");
+        const TValue *rb = vRKB(i);
+        const TValue *rc = vRKC(i);
+        if (ttisinteger(rb) && ttisinteger(rc)) {
+          aql_Integer result = aqlV_shiftl(ivalue(rb), -ivalue(rc));
+          printf_debug("[DEBUG] OP_SHR: %lld >> %lld = %lld\n", (long long)ivalue(rb), (long long)ivalue(rc), (long long)result);
+          setivalue(s2v(RA(i)), result);
+        } else {
+          aqlG_runerror(L, "attempt to perform bitwise operation on non-integer values");
+        }
+        continue;
+      }
       case OP_BNOT: {
         if (ttisinteger(s2v(RB(i)))) {
           setivalue(s2v(RA(i)), ~ivalue(s2v(RB(i))));
@@ -589,7 +990,12 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         continue;
       }
       case OP_NOT: {
-        setbvalue(s2v(RA(i)), !aqlV_toboolean(s2v(RB(i))));
+        printf_debug("[DEBUG] VM: executing OP_NOT\n");
+        TValue *rb = s2v(RB(i));
+        int bool_val = aqlV_toboolean(rb);
+        int result = !bool_val;
+        printf_debug("[DEBUG] OP_NOT: RB boolean value = %d, result = %d\n", bool_val, result);
+        setbvalue(s2v(RA(i)), result);
         continue;
       }
       case OP_SHRI: {
@@ -603,9 +1009,84 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       }
       
       /* Comparison operations */
-      case OP_EQ: CMP_OP(aqlV_equalobj);
-      case OP_LT: CMP_OP(aqlV_lessthan_internal);
-      case OP_LE: CMP_OP(aqlV_lessequal_internal);
+      case OP_EQ: {
+        printf_debug("[DEBUG] VM: executing OP_EQ\n");
+        const TValue *rb = vRKB(i);
+        const TValue *rc = vRKC(i);
+        int cond = aqlV_equalobj(L, rb, rc);
+        printf_debug("[DEBUG] OP_EQ: aqlV_equalobj(rb, rc) = %d\n", cond);
+        
+        /* Store comparison result in register A for TEST instruction */
+        StkId ra = RA(i);
+        if (cond) {
+          setbtvalue(s2v(ra));
+        } else {
+          setbfvalue(s2v(ra));
+        }
+        
+        /* docondjump: Lua-style conditional jump */
+        int k = GETARG_k(i);
+        printf_debug("[DEBUG] OP_EQ: cond=%d, k=%d, %s\n", cond, k, 
+                     (cond != k) ? "skipping next instruction" : "executing next instruction");
+        if (cond != k) {
+          pc++;  /* skip next instruction (JMP) */
+          printf_debug("[DEBUG] OP_EQ: skipped JMP, new PC=%d\n", (int)(pc - cl->p->code));
+        }
+        /* else: execute next instruction (JMP) */
+        continue;
+      }
+      case OP_LT: {
+        printf_debug("[DEBUG] VM: executing OP_LT\n");
+        const TValue *rb = vRKB(i);
+        const TValue *rc = vRKC(i);
+        int cond = aqlV_lessthan_internal(L, rb, rc);
+        printf_debug("[DEBUG] OP_LT: aqlV_lessthan_internal(rb, rc) = %d\n", cond);
+        
+        /* Store comparison result in register A for TEST instruction */
+        StkId ra = RA(i);
+        if (cond) {
+          setbtvalue(s2v(ra));
+        } else {
+          setbfvalue(s2v(ra));
+        }
+        
+        /* docondjump: Lua-style conditional jump */
+        int k = GETARG_k(i);
+        printf_debug("[DEBUG] OP_LT: cond=%d, k=%d, %s\n", cond, k, 
+                     (cond != k) ? "skipping next instruction" : "executing next instruction");
+        if (cond != k) {
+          pc++;  /* skip next instruction (JMP) */
+          printf_debug("[DEBUG] OP_LT: skipped JMP, new PC=%d\n", (int)(pc - cl->p->code));
+        }
+        /* else: execute next instruction (JMP) */
+        continue;
+      }
+      case OP_LE: {
+        printf_debug("[DEBUG] VM: executing OP_LE\n");
+        const TValue *rb = vRKB(i);
+        const TValue *rc = vRKC(i);
+        int cond = aqlV_lessequal_internal(L, rb, rc);
+        printf_debug("[DEBUG] OP_LE: aqlV_lessequal_internal(rb, rc) = %d\n", cond);
+        
+        /* Store comparison result in register A for TEST instruction */
+        StkId ra = RA(i);
+        if (cond) {
+          setbtvalue(s2v(ra));
+        } else {
+          setbfvalue(s2v(ra));
+        }
+        
+        /* docondjump: Lua-style conditional jump */
+        int k = GETARG_k(i);
+        printf_debug("[DEBUG] OP_LE: cond=%d, k=%d, %s\n", cond, k, 
+                     (cond != k) ? "skipping next instruction" : "executing next instruction");
+        if (cond != k) {
+          pc++;  /* skip next instruction (JMP) */
+          printf_debug("[DEBUG] OP_LE: skipped JMP, new PC=%d\n", (int)(pc - cl->p->code));
+        }
+        /* else: execute next instruction (JMP) */
+        continue;
+      }
       case OP_EQI: {
         TValue *ra = s2v(RA(i));
         aql_Integer imm = GETARG_B(i);
@@ -622,17 +1103,36 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       }
       case OP_TEST: {
         TValue *ra = s2v(RA(i));
-        int cond = (!aqlV_toboolean(ra)) == GETARG_B(i);
-        if (cond) pc++;
+        int k = GETARG_k(i);
+        int isfalse = aqlV_toboolean(ra) == 0;  /* ra is false? */
+        printf_debug("[DEBUG] OP_TEST: ra=%s, k=%d, isfalse=%d\n", 
+                     aqlV_toboolean(ra) ? "true" : "false", k, isfalse);
+        
+        if (isfalse == k) {
+          /* condition matches k, skip next instruction */
+          pc++;
+          printf_debug("[DEBUG] OP_TEST: condition matches k, skipping next (pc++)\n");
+        } else {
+          printf_debug("[DEBUG] OP_TEST: condition doesn't match k, will execute next instruction\n");
+        }
         continue;
       }
       case OP_TESTSET: {
+        StkId ra = RA(i);
         TValue *rb = s2v(RB(i));
-        int cond = (!aqlV_toboolean(rb)) == GETARG_C(i);
-        if (cond) {
+        int k = GETARG_k(i);
+        int isfalse = aqlV_toboolean(rb) == 0;  /* rb is false? */
+        printf_debug("[DEBUG] OP_TESTSET: rb=%s, k=%d, isfalse=%d\n", 
+                     aqlV_toboolean(rb) ? "true" : "false", k, isfalse);
+        
+        if (isfalse == k) {
+          /* condition matches k, skip next instruction */
           pc++;
+          printf_debug("[DEBUG] OP_TESTSET: condition matches k, skipping next (pc++)\n");
         } else {
-          setobj2s(L, RA(i), rb);
+          /* condition doesn't match k, set register and execute next jump */
+          setobj2s(L, ra, rb);
+          printf_debug("[DEBUG] OP_TESTSET: condition doesn't match k, copied value and will execute next JMP\n");
         }
         continue;
       }
@@ -771,32 +1271,132 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       /* Iteration */
       case OP_FORLOOP: {
         StkId ra = RA(i);
-        if (ttisinteger(s2v(ra))) {
-          aql_Integer idx = ivalue(s2v(ra));
-          setivalue(s2v(ra), idx + 1);
-          pc += iAsBx(i);
+        if (ttisinteger(s2v(ra + 2))) {  /* integer loop? */
+          aql_Integer count = ivalue(s2v(ra + 1));  /* iteration counter */
+          aql_Integer step = ivalue(s2v(ra + 2));
+          aql_Integer idx = ivalue(s2v(ra));  /* internal index */
+          aql_Integer old_control = ivalue(s2v(ra + 3));  /* old control variable */
+          
+          printf_debug("[DEBUG] OP_FORLOOP: count=%lld, step=%lld, idx=%lld, old_control=%lld\n", 
+                       (long long)count, (long long)step, (long long)idx, (long long)old_control);
+          
+          /* Decrement counter first */
+          count--;
+          setivalue(s2v(ra + 1), count);  /* update counter */
+          
+          if (count > 0) {  /* still more iterations? */
+            idx += step;  /* add step to index */
+            setivalue(s2v(ra), idx);  /* update internal index */
+            
+            printf_debug("[DEBUG] OP_FORLOOP: before update ra+3, addr=%p, val=%lld\n", 
+                         (void*)s2v(ra + 3), (long long)ivalue(s2v(ra + 3)));
+            
+            setivalue(s2v(ra + 3), idx);  /* update control variable */
+            
+            printf_debug("[DEBUG] OP_FORLOOP: after update ra+3, addr=%p, val=%lld\n", 
+                         (void*)s2v(ra + 3), (long long)ivalue(s2v(ra + 3)));
+            printf_debug("[DEBUG] OP_FORLOOP: new_idx=%lld, new_control=%lld, remaining_count=%lld\n", 
+                         (long long)idx, (long long)ivalue(s2v(ra + 3)), (long long)count);
+            
+            pc -= GETARG_sBx(i);  /* jump back to loop start */
+          }
+          /* else: loop finished, continue to next instruction */
         }
+#ifdef AQL_DEBUG_BUILD
+        if (trace_execution) {
+          int reg_count = (int)(L->top - base);
+          if (reg_count > 0) {
+            printf("  After:  ");
+            aqlD_print_registers(s2v(base), reg_count);
+          }
+        }
+#endif
         continue;
       }
       case OP_FORPREP: {
         StkId ra = RA(i);
-        TValue *init = s2v(ra);
-        TValue *limit = s2v(ra + 1);
-        TValue *step = s2v(ra + 2);
+        TValue *pinit = s2v(ra);
+        TValue *plimit = s2v(ra + 1);
+        TValue *pstep = s2v(ra + 2);
         
-        /* Check if we should run the loop at all */
-        aql_Integer init_val = ttisinteger(init) ? ivalue(init) : 0;
-        aql_Integer limit_val = ttisinteger(limit) ? ivalue(limit) : 0;
-        aql_Integer step_val = ttisinteger(step) ? ivalue(step) : 1;
-        
-        if ((step_val > 0 && init_val <= limit_val) ||
-            (step_val < 0 && init_val >= limit_val)) {
-          /* Loop will run, continue to loop body */
-          pc += iAsBx(i);
+        if (ttisinteger(pinit) && ttisinteger(plimit)) {
+          aql_Integer init = ivalue(pinit);
+          aql_Integer limit = ivalue(plimit);
+          aql_Integer step;
+          
+          printf_debug("[DEBUG] OP_FORPREP: init=%lld, limit=%lld\n", (long long)init, (long long)limit);
+          
+          // 智能步长推断
+          if (ttisinteger(pstep)) {
+            // 用户提供了步长，使用用户指定的
+            step = ivalue(pstep);
+            printf_debug("[DEBUG] OP_FORPREP: explicit step=%lld\n", (long long)step);
+          } else if (ttisnil(pstep)) {
+            // 未提供步长，智能推断
+            step = (init > limit) ? -1 : 1;
+            // 更新寄存器中的步长值
+            setivalue(s2v(ra + 2), step);
+            printf_debug("[DEBUG] OP_FORPREP: smart step inference, step=%lld\n", (long long)step);
+          } else {
+            printf_debug("[DEBUG] OP_FORPREP: invalid step type, ttag=%d\n", ttypetag(pstep));
+            aqlG_runerror(L, "'for' step must be an integer or omitted");
+            continue;
+          }
+          
+          if (step == 0) {
+            aqlG_runerror(L, "'for' step is zero");
+            continue;
+          }
+          
+          /* Set control variable to init */
+          setivalue(s2v(ra + 3), init);  /* control variable */
+          
+          /* Check if loop should run at all */
+          if ((step > 0 && init > limit) || (step < 0 && init < limit)) {
+            int jump_offset = GETARG_sBx(i);
+            int old_pc_offset = pc - cl->p->code;
+            pc += jump_offset;  /* skip the loop (like OP_JMP) */
+            int new_pc_offset = pc - cl->p->code;
+            printf_debug("[DEBUG] OP_FORPREP: skipping loop, jump_offset=%d, PC=%d -> PC=%d\n", 
+                         jump_offset, old_pc_offset, new_pc_offset);
         } else {
-          /* Loop won't run, skip to end */
-          pc += iAsBx(i) + 1;
+            /* Calculate iteration count for half-open interval [init, limit) - Python style */
+            aql_Unsigned count;
+            if (step > 0) {  /* ascending loop */
+              /* For half-open interval: count = ceil((limit - init) / step) */
+              if (init < limit) {
+                count = ((aql_Unsigned)(limit - init) + (aql_Unsigned)step - 1) / (aql_Unsigned)step;
+              } else {
+                count = 0;  /* no iterations */
+              }
+            } else {  /* descending loop - step < 0 */
+              /* For half-open interval: count = ceil((init - limit) / |step|) */
+              if (init > limit) {
+                count = ((aql_Unsigned)(init - limit) + (aql_Unsigned)(-step) - 1) / (aql_Unsigned)(-step);
+              } else {
+                count = 0;  /* no iterations */
+              }
+            }
+            /* Store counter in place of limit */
+            setivalue(s2v(ra + 1), (aql_Integer)count);
+            /* Internal index starts at init */
+            setivalue(s2v(ra), init);
+            /* Initialize control variable to init */
+            setivalue(s2v(ra + 3), init);
+          }
+          /* else: continue to loop body */
+        } else {
+          aqlG_runerror(L, "'for' initial value, limit and step must be integers");
         }
+#ifdef AQL_DEBUG_BUILD
+        if (trace_execution) {
+          int reg_count = (int)(L->top - base);
+          if (reg_count > 0) {
+            printf("  After:  ");
+            aqlD_print_registers(s2v(base), reg_count);
+          }
+        }
+#endif
         continue;
       }
       
@@ -808,15 +1408,58 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       }
       
       case OP_BUILTIN: {
+        ra = base + GETARG_A(i);  /* 初始化ra */
         int builtin_id = GETARG_B(i);
-        TValue *arg1 = s2v(RC(i));
-        TValue *arg2 = s2v(base + GETARG_Ax(*pc++));
         
         switch (builtin_id) {
-          case 0: /* print */
-            /* TODO: Implement aqlB_print */
-            aqlG_runerror(L, "print builtin not yet implemented");
+          case 0: /* print */ {
+            int nargs = GETARG_C(i);  /* 参数数量 */
+            StkId func_base = ra - nargs;  /* 参数在结果寄存器之前 */
+            printf_debug("[DEBUG] print: nargs=%d, ra=%p, func_base=%p\n", 
+                         nargs, (void*)ra, (void*)func_base);
+            for (int j = 0; j < nargs; j++) {
+              if (j > 0) printf("\t");
+              printf_debug("[DEBUG] print: arg[%d] from register %p\n", 
+                           j, (void*)(func_base + j));
+              
+              /* Print value without quotes for strings */
+              TValue *val = s2v(func_base + j);
+              int tag = ttypetag(val);
+              switch (tag) {
+                case AQL_VNUMINT:
+                  printf("%lld", (long long)ivalue(val));
+                  break;
+                case AQL_VNUMFLT:
+                  printf("%.6g", fltvalue(val));
+                  break;
+                case AQL_VSHRSTR:
+                case AQL_VLNGSTR: {
+                  TString *ts = tsvalue(val);
+                  const char *str = getstr(ts);
+                  size_t len = tsslen(ts);
+                  printf("%.*s", (int)len, str);  /* No quotes for print */
+                  break;
+                }
+                case AQL_VNIL:
+                  printf("nil");
+                  break;
+                case AQL_VFALSE:
+                  printf("false");
+                  break;
+                case AQL_VTRUE:
+                  printf("true");
+                  break;
+                default:
+                  /* For other types, fall back to aqlP_print_value */
+                  aqlP_print_value(val);
+                  break;
+              }
+            }
+            printf("\n");
+            /* Set return value to nil (Lua-compatible behavior) */
+            setnilvalue(s2v(ra));
             break;
+          }
           case 1: /* type */
             /* TODO: Implement aqlB_type */
             aqlG_runerror(L, "type builtin not yet implemented");
@@ -825,13 +1468,143 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
             /* TODO: Implement aqlB_len */
             aqlG_runerror(L, "len builtin not yet implemented");
             break;
-          case 3: /* tostring */
-            /* TODO: Implement aqlB_tostring */
-            aqlG_runerror(L, "tostring builtin not yet implemented");
+          case 3: /* tostring/string */ {
+            int nargs = GETARG_C(i);
+            StkId func_base = ra - nargs;
+            
+            printf_debug("[DEBUG] string: nargs=%d, ra=%p, func_base=%p\n", 
+                         nargs, (void*)ra, (void*)func_base);
+            
+            if (nargs != 1) {
+              aqlG_runerror(L, "string() takes exactly 1 argument (%d given)", nargs);
+              return 0;
+            }
+            
+            TValue *arg = s2v(func_base);
+            printf_debug("[DEBUG] string: arg type=%d\n", ttypetag(arg));
+            
+            /* Convert value to string based on type */
+            switch (ttypetag(arg)) {
+              case AQL_VNUMINT: {
+                /* Integer to string */
+                aql_Integer val = ivalue(arg);
+                char buffer[32];
+                snprintf(buffer, sizeof(buffer), "%lld", (long long)val);
+                TString *ts = aqlStr_new(L, buffer);
+                setsvalue2s(L, ra, ts);
+                printf_debug("[DEBUG] string: converted integer %lld to string '%s'\n", 
+                             (long long)val, buffer);
+                break;
+              }
+              case AQL_VNUMFLT: {
+                /* Float to string */
+                aql_Number val = fltvalue(arg);
+                char buffer[32];
+                snprintf(buffer, sizeof(buffer), "%.6g", val);
+                TString *ts = aqlStr_new(L, buffer);
+                setsvalue2s(L, ra, ts);
+                printf_debug("[DEBUG] string: converted float %.6g to string '%s'\n", 
+                             val, buffer);
+                break;
+              }
+              case AQL_VSHRSTR:
+              case AQL_VLNGSTR: {
+                /* String to string (copy) */
+                setobj2s(L, ra, arg);
+                printf_debug("[DEBUG] string: copied string value\n");
+                break;
+              }
+              case AQL_VNIL: {
+                /* nil to "nil" */
+                TString *ts = aqlStr_new(L, "nil");
+                setsvalue2s(L, ra, ts);
+                printf_debug("[DEBUG] string: converted nil to 'nil'\n");
+                break;
+              }
+              case AQL_VFALSE: {
+                /* false to "false" */
+                TString *ts = aqlStr_new(L, "false");
+                setsvalue2s(L, ra, ts);
+                printf_debug("[DEBUG] string: converted false to 'false'\n");
+                break;
+              }
+              case AQL_VTRUE: {
+                /* true to "true" */
+                TString *ts = aqlStr_new(L, "true");
+                setsvalue2s(L, ra, ts);
+                printf_debug("[DEBUG] string: converted true to 'true'\n");
+                break;
+              }
+              default: {
+                /* Other types: use type name + address */
+                char buffer[64];
+                snprintf(buffer, sizeof(buffer), "other: %p", (void*)arg);
+                TString *ts = aqlStr_new(L, buffer);
+                setsvalue2s(L, ra, ts);
+                printf_debug("[DEBUG] string: converted other type to '%s'\n", buffer);
+                break;
+              }
+            }
             break;
+          }
           case 4: /* tonumber */
             /* TODO: Implement aqlB_tonumber */
             aqlG_runerror(L, "tonumber builtin not yet implemented");
+            break;
+          case 5: /* range */
+            /* Handle range function based on number of arguments */
+            {
+              int nargs = GETARG_C(i);  /* Get number of arguments */
+              StkId func_base = ra - nargs;  /* 参数在结果寄存器之前 */
+              
+              printf("[DEBUG] OP_BUILTIN range: nargs=%d, ra=%p, func_base=%p\n", 
+                     nargs, (void*)ra, (void*)func_base);
+              
+              /* Read arguments directly from registers */
+              aql_Integer args[3];
+              for (int j = 0; j < nargs && j < 3; j++) {
+                TValue *arg = s2v(func_base + j);
+                printf("[DEBUG] Reading arg[%d] from register %p\n", j, (void*)(func_base + j));
+                if (!ttisinteger(arg)) {
+                  aqlG_runerror(L, "range() argument #%d must be an integer", j + 1);
+                  return 0;
+                }
+                args[j] = ivalue(arg);
+                printf("[DEBUG] arg[%d] = %lld\n", j, (long long)args[j]);
+              }
+              
+              /* Create range object directly */
+              RangeObject *range = NULL;
+              printf("[DEBUG] Creating range object...\n");
+              switch (nargs) {
+                case 1:
+                  range = aqlR_new(L, 0, args[0], 1);  /* range(stop) */
+                  printf("[DEBUG] Created range(0, %lld, 1)\n", (long long)args[0]);
+                  break;
+                case 2:
+                  range = aqlR_new(L, args[0], args[1], aqlR_infer_step(args[0], args[1]));  /* range(start, stop) */
+                  printf("[DEBUG] Created range(%lld, %lld, auto)\n", (long long)args[0], (long long)args[1]);
+                  break;
+                case 3:
+                  range = aqlR_new(L, args[0], args[1], args[2]);  /* range(start, stop, step) */
+                  printf("[DEBUG] Created range(%lld, %lld, %lld)\n", (long long)args[0], (long long)args[1], (long long)args[2]);
+                  break;
+                default:
+                  aqlG_runerror(L, "range() takes 1, 2, or 3 arguments (%d given)", nargs);
+                  return 0;
+              }
+              
+              if (range == NULL) {
+                printf("[DEBUG] Range creation failed!\n");
+                return 0;  /* Error occurred */
+              }
+              
+              printf("[DEBUG] Range created successfully, storing in ra\n");
+              /* Store result in result register */
+              setrangevalue(L, s2v(ra), range);
+              printf("[DEBUG] Range stored, continuing execution\n");
+              printf("[DEBUG] About to break from OP_BUILTIN, PC should be %d\n", (int)(pc - cl->p->code));
+            }
             break;
           default:
             setnilvalue(s2v(RA(i)));
@@ -894,7 +1667,7 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         }
         
         const TValue *upval = cl->upvals[GETARG_B(i)]->v.p;
-        TValue *key = k + GETARG_C(i);
+        const TValue *key = vRKC(i);  /* Use RK(C) for key */
         
         AQL_DEBUG(AQL_DEBUG_VM, "OP_GETTABUP: upval type=%d, key type=%d", ttype(upval), ttype(key));
         
@@ -902,6 +1675,13 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         /* Check if upval is a dict (global environment) */
         if (ttisdict(upval)) {
           AQL_DEBUG(AQL_DEBUG_VM, "OP_GETTABUP: accessing global dict with key");
+          
+          /* Debug key information */
+          if (ttisstring(key)) {
+            TString *keystr = tsvalue(key);
+            printf_debug("[DEBUG] OP_GETTABUP: key is string '%s', length=%d\n", 
+                        getstr(keystr), (int)tsslen(keystr));
+          }
           
           const TValue *result = aqlD_get(dictvalue(upval), key);
           if (result != NULL) {
@@ -975,11 +1755,20 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         
         
         TValue *upval = cl->upvals[GETARG_A(i)]->v.p;
-        TValue *key = k + GETARG_B(i);
-        TValue *val = k + GETARG_C(i);
+        TValue *key = vRKB(i);  /* Use RK(B) for key, consistent with GETTABUP */
+        TValue *val = vRKC(i);  /* Use RK(C) for value */
         
         AQL_DEBUG(AQL_DEBUG_VM, "OP_SETTABUP: upval type=%d, key type=%d, val type=%d", ttype(upval), ttype(key), ttype(val));
         
+        /* Debug key and value information */
+        if (ttisstring(key)) {
+          TString *keystr = tsvalue(key);
+          printf_debug("[DEBUG] OP_SETTABUP: key is string '%s', length=%d\n", 
+                      getstr(keystr), (int)tsslen(keystr));
+        }
+        if (ttisinteger(val)) {
+          printf_debug("[DEBUG] OP_SETTABUP: value is integer %lld\n", (long long)ivalue(val));
+        }
         
         /* Check if upval is a dict (global environment) */
         if (ttisdict(upval)) {
@@ -998,6 +1787,16 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
           Dict *globals_dict = get_globals_dict(L);
           if (globals_dict) {
             AQL_DEBUG(AQL_DEBUG_VM, "OP_SETTABUP: setting global variable in globals dict");
+            
+            /* Debug key and value information */
+            if (ttisstring(key)) {
+              TString *keystr = tsvalue(key);
+              printf_debug("[DEBUG] OP_SETTABUP: key is string '%s', length=%d\n", 
+                          getstr(keystr), (int)tsslen(keystr));
+            }
+            if (ttisinteger(val)) {
+              printf_debug("[DEBUG] OP_SETTABUP: value is integer %lld\n", (long long)ivalue(val));
+            }
             
             aqlD_set(L, globals_dict, key, val);
             
@@ -1065,6 +1864,32 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
           } else {
             aqlG_runerror(L, "method '%s' not found in dict", svalue(method_name));
           }
+        } else if (ttisrange(obj)) {
+          /* Range objects support iterator protocol methods */
+          RangeObject *range = rangevalue(obj);
+          if (strcmp(getstr(tsvalue(method_name)), "__iter") == 0) {
+            /* __iter method returns the iterator (self) */
+            setobj2s(L, RA(i), obj);  /* Return self as iterator */
+            continue;
+          } else if (strcmp(getstr(tsvalue(method_name)), "__next") == 0) {
+            /* __next method returns next value or nil */
+            if (range->finished || range->count <= 0) {
+              /* Iteration finished, return nil */
+              setnilvalue(s2v(RA(i)));
+            } else {
+              /* Return current value */
+              setivalue(s2v(RA(i)), range->current);
+              /* Advance iterator */
+              range->current += range->step;
+              range->count--;
+              if (range->count <= 0) {
+                range->finished = 1;
+              }
+            }
+            continue;
+          } else {
+            aqlG_runerror(L, "range object does not support method '%s'", svalue(method_name));
+          }
         } else if (ttisarray(obj) || ttisslice(obj) || ttisvector(obj)) {
           /* Arrays, slices, and vectors are data containers, not objects with methods */
           aqlG_runerror(L, "attempt to call method on data container %s", aqlL_typename(L, obj));
@@ -1089,6 +1914,104 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
           }
         } else {
           aqlG_runerror(L, "attempt to resume a %s", aqlL_typename(L, co));
+        }
+        continue;
+      }
+      
+      /* Iterator operations */
+      case OP_ITER_INIT: {
+        StkId ra = RA(i);
+        TValue *iterable = s2v(RB(i));
+        
+        printf_debug("[DEBUG] OP_ITER_INIT: initializing iterator for type %d\n", rawtt(iterable));
+        
+        /* Initialize iterator based on container type */
+        if (ttisarray(iterable)) {
+          /* Array iterator */
+          Array *arr = arrayvalue(iterable);
+          setivalue(s2v(ra), 0);  /* index = 0 */
+          setobj2s(L, ra + 1, iterable);  /* store array reference */
+          printf_debug("[DEBUG] OP_ITER_INIT: array iterator initialized, length=%zu\n", arr->length);
+        } else if (ttisdict(iterable)) {
+          /* Dict iterator */
+          Dict *dict = dictvalue(iterable);
+          setivalue(s2v(ra), 0);  /* index = 0 */
+          setobj2s(L, ra + 1, iterable);  /* store dict reference */
+          printf_debug("[DEBUG] OP_ITER_INIT: dict iterator initialized, size=%zu\n", dict->size);
+        } else if (ttisrange(iterable)) {
+          /* Range iterator - already has built-in iteration */
+          RangeObject *range = rangevalue(iterable);
+          setivalue(s2v(ra), range->current);  /* current value */
+          setobj2s(L, ra + 1, iterable);  /* store range reference */
+          printf_debug("[DEBUG] OP_ITER_INIT: range iterator initialized, current=%lld\n", (long long)range->current);
+        } else {
+          aqlG_runerror(L, "attempt to iterate over non-iterable type %s", aqlL_typename(L, iterable));
+        }
+        continue;
+      }
+      
+      case OP_ITER_NEXT: {
+        StkId ra = RA(i);      /* iterator state */
+        StkId rb = base + GETARG_B(i);  /* state register (unused for now) */
+        StkId rc = base + GETARG_C(i);  /* value register */
+        
+        TValue *container = s2v(ra + 1);  /* container reference */
+        
+        printf_debug("[DEBUG] OP_ITER_NEXT: getting next value for type %d\n", rawtt(container));
+        
+        if (ttisarray(container)) {
+          /* Array iteration */
+          Array *arr = arrayvalue(container);
+          aql_Integer index = ivalue(s2v(ra));
+          
+          if (index >= (aql_Integer)arr->length) {
+            setnilvalue(s2v(rc));  /* end of iteration */
+            printf_debug("[DEBUG] OP_ITER_NEXT: array iteration finished at index %lld\n", (long long)index);
+          } else {
+            setobj2s(L, rc, &arr->data[index]);  /* get current element */
+            setivalue(s2v(ra), index + 1);  /* increment index */
+            printf_debug("[DEBUG] OP_ITER_NEXT: array element at index %lld\n", (long long)index);
+          }
+        } else if (ttisdict(container)) {
+          /* Dict iteration */
+          Dict *dict = dictvalue(container);
+          aql_Integer index = ivalue(s2v(ra));
+          
+          /* Find next non-empty entry */
+          while (index < (aql_Integer)dict->capacity) {
+            DictEntry *entry = &dict->entries[index];
+            if (!aqlD_entry_empty(entry)) {
+              setobj2s(L, rc, &entry->value);  /* return value (could also return key) */
+              setivalue(s2v(ra), index + 1);  /* increment index */
+              printf_debug("[DEBUG] OP_ITER_NEXT: dict entry at index %lld\n", (long long)index);
+              break;
+            }
+            index++;
+          }
+          
+          if (index >= (aql_Integer)dict->capacity) {
+            setnilvalue(s2v(rc));  /* end of iteration */
+            printf_debug("[DEBUG] OP_ITER_NEXT: dict iteration finished\n");
+          }
+        } else if (ttisrange(container)) {
+          /* Range iteration */
+          RangeObject *range = rangevalue(container);
+          
+          if (range->finished || range->count <= 0) {
+            setnilvalue(s2v(rc));  /* end of iteration */
+            printf_debug("[DEBUG] OP_ITER_NEXT: range iteration finished\n");
+          } else {
+            setivalue(s2v(rc), range->current);  /* return current value */
+            range->current += range->step;  /* advance */
+            range->count--;
+            if (range->count <= 0) {
+              range->finished = 1;
+            }
+            printf_debug("[DEBUG] OP_ITER_NEXT: range value %lld\n", (long long)ivalue(s2v(rc)));
+          }
+        } else {
+          setnilvalue(s2v(rc));  /* unknown type, end iteration */
+          printf_debug("[DEBUG] OP_ITER_NEXT: unknown container type, ending iteration\n");
         }
         continue;
       }

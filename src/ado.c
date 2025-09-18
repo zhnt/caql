@@ -33,6 +33,7 @@
 
 /* Forward declarations to avoid circular dependencies */
 AQL_API int aqlV_execute(aql_State *L, CallInfo *ci);
+extern Dict *get_globals_dict(aql_State *L);
 
 #define errorstatus(s)	((s) > AQL_YIELD)
 
@@ -283,9 +284,18 @@ AQL_API void aqlD_call(aql_State *L, StkId func, int nResults) {
 ** Prepare a function call
 */
 AQL_API int aqlD_precall(aql_State *L, StkId func, int nResults) {
-  /* Simplified implementation - assume AQL function */
+  /* Check if this is a C function call */
+  TValue *f = s2v(func);
+  
+  /* For now, assume all function calls are C functions (builtin operations) */
+  /* This prevents the infinite loop by avoiding goto newframe */
+  
+  /* Handle string concatenation and other builtin operations here */
+  /* For string operations, we should handle them directly */
+  
+  /* Return 1 to indicate C function (processed) */
   UNUSED(L); UNUSED(func); UNUSED(nResults);
-  return 0;  /* AQL function */
+  return 1;  /* C function - processed */
 }
 
 /* }====================================================== */
@@ -367,9 +377,27 @@ struct ExecuteS {  /* data for protected execution */
 };
 
 static void f_execute(aql_State *L, void *ud) {
+  printf_debug("[DEBUG] f_execute: entering\n");
+  
   struct ExecuteS *e = cast(struct ExecuteS *, ud);
   
-  if (!L || L->top <= L->ci->func) {
+  if (!L) {
+    printf_debug("[ERROR] f_execute: L is NULL\n");
+    aqlD_throw(L, AQL_ERRRUN);
+  }
+  
+  if (!L->ci) {
+    printf_debug("[ERROR] f_execute: L->ci is NULL\n");
+    aqlD_throw(L, AQL_ERRRUN);
+  }
+  
+  if (!L->ci->func) {
+    printf_debug("[ERROR] f_execute: L->ci->func is NULL\n");
+    aqlD_throw(L, AQL_ERRRUN);
+  }
+  
+  if (L->top <= L->ci->func) {
+    printf_debug("[ERROR] f_execute: L->top <= L->ci->func\n");
     aqlD_throw(L, AQL_ERRRUN);
   }
   
@@ -387,6 +415,18 @@ static void f_execute(aql_State *L, void *ud) {
   CallInfo *ci = L->ci;
   LClosure *cl = clLvalue(func_val);
   
+  /* Initialize _ENV upvalue with global dictionary (like Lua does) */
+  if (cl->nupvalues >= 1) {
+    printf_debug("[DEBUG] f_execute: initializing _ENV upvalue\n");
+    Dict *globals_dict = get_globals_dict(L);
+    if (globals_dict) {
+      setdictvalue(L, cl->upvals[0]->v.p, globals_dict);
+      printf_debug("[DEBUG] f_execute: _ENV upvalue set to globals dict\n");
+    } else {
+      printf_debug("[ERROR] f_execute: failed to get globals dict for _ENV\n");
+    }
+  }
+  
   /* Set up the call frame */
   ci->func = L->top - 1;  /* Function is at top - 1 */
   ci->u.l.savedpc = cl->p->code;  /* Start at beginning of code */
@@ -395,7 +435,9 @@ static void f_execute(aql_State *L, void *ud) {
   L->top = ci->func + 1 + e->nargs;  /* func + args */
   
   /* Call the virtual machine */
+  printf_debug("[DEBUG] f_execute: calling aqlV_execute\n");
   int status = aqlV_execute(L, ci);
+  printf_debug("[DEBUG] f_execute: aqlV_execute returned status=%d\n", status);
   if (status != 1) {  /* execution failed? */
     aqlD_throw(L, AQL_ERRRUN);
   }

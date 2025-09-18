@@ -1,0 +1,15 @@
+// Complex variables in deep nested blocks
+let x = 1
+{
+    let y = 2
+    {
+        let z = 3
+        {
+            let a = x * 100
+            let b = y * 10
+            let c = z * 1
+            print("a=" + a + ", b=" + b + ", c=" + c)
+            print("sum=" + (a + b + c))
+        }
+    }
+}

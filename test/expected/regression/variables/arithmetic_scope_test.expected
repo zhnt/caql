@@ -1,0 +1,4 @@
+inner: a=10, b=6, c=6, d=19
+middle: a=8, b=6, c=6
+outer: a=8, b=6
+

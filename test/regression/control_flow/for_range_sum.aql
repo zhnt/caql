@@ -1,0 +1,6 @@
+// Range for loop with sum calculation
+let sum = 0
+for i in range(2, 6, 1) {
+    sum = sum + i * 2
+}
+print(sum)

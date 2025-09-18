@@ -1,0 +1,10 @@
+Inside if: global
+Inside if: block
+Nested if: global
+Nested if: block
+Nested if: nested
+After nested: modified_global
+After nested: modified_block
+Final global: modified_global
+Variable scope test done
+
