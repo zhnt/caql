@@ -47,6 +47,9 @@ static int tointegerns (const TValue *obj, aql_Integer *p);
 static int getjump (FuncState *fs, int pc);
 static void fixjump (FuncState *fs, int pc, int dest);
 
+/* External function from aparser.c for register stack management */
+int aqlY_nvarstack (FuncState *fs);
+
 /* Check whether expression 'e' has any jump lists. */
 #define hasjumps(e)	((e)->t != (e)->f)
 
@@ -331,10 +334,6 @@ void aqlK_infix (FuncState *fs, BinOpr op, expdesc *v) {
       aqlK_goiffalse(fs, v);  /* go ahead only if 'v' is false */
       break;
     }
-    case OPR_CONCAT: {
-      aqlK_exp2nextreg(fs, v);  /* operand must be in a register */
-      break;
-    }
     case OPR_ADD: case OPR_SUB:
     case OPR_MUL: case OPR_DIV: case OPR_IDIV:
     case OPR_MOD: case OPR_POW:
@@ -376,19 +375,20 @@ static void codebinexpval (FuncState *fs, OpCode op,
   aqlK_freeexp(fs, e2);
   aqlK_freeexp(fs, e1);
   
-  /* Allocate target register, starting from saved freereg */
-  int target_reg = saved_freereg;
+  /* CRITICAL FIX: Ensure target register doesn't conflict with active variables */
+  int active_var_level = aqlY_nvarstack(fs);  /* Level of active variables */
+  int target_reg = (saved_freereg > active_var_level) ? saved_freereg : active_var_level;
   
-  /* Skip registers that conflict with source operands */
-  while (target_reg == rk1 || target_reg == rk2) {
+  /* Skip registers that conflict with source operands or active variables */
+  while (target_reg == rk1 || target_reg == rk2 || target_reg < active_var_level) {
     target_reg++;  /* try next register */
   }
   
   /* Update freereg to point past the allocated register */
   fs->freereg = target_reg + 1;
   
-  printf_debug("[DEBUG] codebinexpval: op=%d, rk1=%d, rk2=%d, target_reg=%d, freereg=%d (saved=%d)\n", 
-               op, rk1, rk2, target_reg, fs->freereg, saved_freereg);
+  printf_debug("[DEBUG] codebinexpval: op=%d, rk1=%d, rk2=%d, target_reg=%d, freereg=%d (saved=%d, active_vars=%d)\n", 
+               op, rk1, rk2, target_reg, fs->freereg, saved_freereg, active_var_level);
   aqlK_codeABC(fs, op, target_reg, rk1, rk2);  /* generate opcode */
   e1->u.info = target_reg;  /* result is in target_reg */
   e1->k = VNONRELOC;  /* result is in a specific register */
@@ -496,21 +496,6 @@ void aqlK_posfix (FuncState *fs, BinOpr opr,
       *e1 = *e2;
       break;
     }
-    case OPR_CONCAT: {  /* e1 .. e2 */
-      aqlK_exp2val(fs, e2);
-      if (e2->k == VRELOC && GET_OPCODE(*getinstruction(fs, e2)) == OP_CONCAT) {
-        Instruction *inst = getinstruction(fs, e2);
-        aql_assert(e1->u.info == GETARG_B(*inst)-1);
-        aqlK_freeexp(fs, e1);
-        *inst = CREATE_ABC(GET_OPCODE(*inst), GETARG_A(*inst), e1->u.info, GETARG_C(*inst));
-        e1->k = VRELOC; e1->u.info = e2->u.info;
-      }
-      else {
-        aqlK_exp2nextreg(fs, e2);  /* operand must be in register */
-        codebinexpval(fs, OP_CONCAT, e1, e2, line);
-      }
-      break;
-    }
     case OPR_ADD: case OPR_SUB: case OPR_MUL: case OPR_DIV:
     case OPR_IDIV: case OPR_MOD: case OPR_POW:
     case OPR_BAND: case OPR_BOR: case OPR_BXOR:
@@ -522,7 +507,7 @@ void aqlK_posfix (FuncState *fs, BinOpr opr,
         case OPR_SUB: op = OP_SUB; break;
         case OPR_MUL: op = OP_MUL; break;
         case OPR_DIV: op = OP_DIV; break;
-        case OPR_IDIV: op = OP_DIV; break;  /* Use OP_DIV for now, TODO: implement OP_IDIV */
+        case OPR_IDIV: op = OP_IDIV; break;
         case OPR_MOD: op = OP_MOD; break;
         case OPR_POW: op = OP_POW; break;
         case OPR_BAND: op = OP_BAND; break;
@@ -1053,13 +1038,29 @@ static int jumponcond (FuncState *fs, expdesc *e, int cond) {
     Instruction ie = *getinstruction(fs, e);
     if (GET_OPCODE(ie) == OP_NOT) {
       removelastinstruction(fs);  /* remove previous OP_NOT */
-      return condjump(fs, OP_TEST, GETARG_B(ie), 0, !cond, GETARG_k(ie));
+      
+      /* CRITICAL FIX: Allocate a safe register for TEST result */
+      int active_var_level = aqlY_nvarstack(fs);
+      int result_reg = (fs->freereg > active_var_level) ? fs->freereg : active_var_level;
+      
+      /* Update freereg to point past the allocated register */
+      fs->freereg = result_reg + 1;
+      
+      return condjump(fs, OP_TEST, result_reg, GETARG_B(ie), !cond, GETARG_k(ie));
     }
     /* else go through */
   }
   discharge2anyreg(fs, e);
   aqlK_freeexp(fs, e);
-  return condjump(fs, OP_TESTSET, NO_REG, e->u.info, 0, cond);
+  
+  /* CRITICAL FIX: Allocate a safe register for TESTSET result */
+  int active_var_level = aqlY_nvarstack(fs);
+  int result_reg = (fs->freereg > active_var_level) ? fs->freereg : active_var_level;
+  
+  /* Update freereg to point past the allocated register */
+  fs->freereg = result_reg + 1;
+  
+  return condjump(fs, OP_TESTSET, result_reg, e->u.info, 0, cond);
 }
 
 /*
@@ -1177,8 +1178,17 @@ static void codenot (FuncState *fs, expdesc *e) {
     case VNONRELOC: {
       discharge2anyreg(fs, e);
       aqlK_freeexp(fs, e);
-      e->u.info = aqlK_codeABC(fs, OP_NOT, 0, e->u.info, 0);
+      
+      /* CRITICAL FIX: Allocate a safe register for NOT result */
+      /* Don't use register 0 as it may contain active local variables */
+      int active_var_level = aqlY_nvarstack(fs);  /* Level of active variables */
+      int result_reg = (fs->freereg > active_var_level) ? fs->freereg : active_var_level;
+      
+      e->u.info = aqlK_codeABC(fs, OP_NOT, result_reg, e->u.info, 0);
       e->k = VRELOC;
+      
+      /* Update freereg to point past the allocated register */
+      fs->freereg = result_reg + 1;
       break;
     }
     default: aql_assert(0);  /* cannot happen */
@@ -1262,7 +1272,15 @@ static void codecomp (FuncState *fs, BinOpr opr, expdesc *e1, expdesc *e2, int l
   printf_debug("[DEBUG] codecomp: generating conditional jump with %s, k=%d\n", 
     (op == OP_EQ) ? "EQ" : (op == OP_LT) ? "LT" : "LE", k);
   
-  e1->u.info = condjump(fs, op, 0, rk1, rk2, k);  /* A=0 (unused), B=rk1, C=rk2, k=condition */
+  /* CRITICAL FIX: Allocate a safe register for comparison result */
+  /* Don't use register 0 as it may contain active local variables */
+  int active_var_level = aqlY_nvarstack(fs);  /* Level of active variables */
+  int result_reg = (fs->freereg > active_var_level) ? fs->freereg : active_var_level;
+  
+  printf_debug("[DEBUG] codecomp: using register %d for comparison result (active_vars=%d, freereg=%d)\n", 
+               result_reg, active_var_level, fs->freereg);
+  
+  e1->u.info = condjump(fs, op, result_reg, rk1, rk2, k);  /* A=result_reg, B=rk1, C=rk2, k=condition */
   e1->k = VJMP;  /* mark as jump expression */
   
   printf_debug("[DEBUG] codecomp: generated VJMP expression with jump at PC=%d\n", e1->u.info);

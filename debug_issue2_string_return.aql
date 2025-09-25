@@ -1,0 +1,20 @@
+// Debug issue 2: String return value problem
+
+function test_string_return(text) {
+    let len = 4
+    let upper = "UPPER"
+    let lower = "lower"
+    print("Inside function:")
+    print("  len = " + string(len))
+    print("  upper = " + upper)
+    print("  lower = " + lower)
+    return len, upper, lower
+}
+
+print("=== Testing String Return Values ===")
+let r1, r2, r3 = test_string_return("test")
+print("Outside function:")
+print("  r1 = " + string(r1))
+print("  r2 = " + r2)
+print("  r3 = " + r3)
+

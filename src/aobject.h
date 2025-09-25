@@ -785,7 +785,7 @@ AQL_API void aqlG_runerror (aql_State *L, const char *fmt, ...);
 /*
 ** Function call declarations (placeholder)
 */
-AQL_API int aqlD_precall (aql_State *L, StkId func, int nResults);
+AQL_API struct CallInfo *aqlD_precall (aql_State *L, StkId func, int nResults);
 AQL_API int aqlD_poscall (aql_State *L, struct CallInfo *ci, int nres);
 AQL_API int aqlD_pretailcall (aql_State *L, struct CallInfo *ci, StkId func, int narg1, int delta);
 

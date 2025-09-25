@@ -1,0 +1,36 @@
+// Test single return with direct expression vs variable
+
+function test_single_direct(x, y) {
+    return x - y  // Direct expression
+}
+
+function test_single_variable(x, y) {
+    let diff = x - y
+    return diff  // Variable
+}
+
+print("=== Testing Single Return: Direct vs Variable ===")
+
+print("Single direct expression return:")
+let result1 = test_single_direct(8, 3)
+print("  result1 = " + string(result1))
+
+print("Single variable return:")
+let result2 = test_single_variable(8, 3)
+print("  result2 = " + string(result2))
+
+// Also test with more complex expressions
+function test_complex_direct(a, b) {
+    return a * 2 + b - 1  // Complex direct expression
+}
+
+function test_complex_variable(a, b) {
+    let result = a * 2 + b - 1
+    return result  // Variable
+}
+
+print("Complex expression tests:")
+let comp1 = test_complex_direct(5, 3)
+let comp2 = test_complex_variable(5, 3)
+print("  complex direct = " + string(comp1))
+print("  complex variable = " + string(comp2))

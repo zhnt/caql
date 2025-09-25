@@ -126,9 +126,6 @@ static const char *const aql_tokens [] = {
   } else { \
     ls->column++; \
   } \
-  AQL_DEBUG(AQL_DEBUG_LEX, "next: %c (%d) -> %c (%d)", \
-         (old_current >= 32 && old_current < 127) ? old_current : '?', old_current, \
-         (ls->current >= 32 && ls->current < 127) ? ls->current : '?', ls->current); \
 } while(0)
 #define currIsNewline(ls)	(ls->current == '\n' || ls->current == '\r')
 
@@ -290,6 +287,7 @@ static int isreserved(TString *ts) {
   if (strcmp(s, "let") == 0) return TK_LET;
   if (strcmp(s, "const") == 0) return TK_CONST;
   if (strcmp(s, "var") == 0) return TK_VAR;
+  if (strcmp(s, "function") == 0) return TK_FUNCTION;
   if (strcmp(s, "true") == 0) return TK_TRUE;
   if (strcmp(s, "false") == 0) return TK_FALSE;
   if (strcmp(s, "nil") == 0) return TK_NIL;
@@ -367,9 +365,6 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
         } else {
           snprintf(num_buf, sizeof(num_buf), "%.2f", seminfo->r);
         }
-        #ifdef AQL_DEBUG_BUILD
-        add_debug_token(token_type, num_buf, ls->linenumber, start_col);
-        #endif
         return token_type;
       }
       
@@ -377,9 +372,6 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
       case '+': {
         int start_col = ls->column;
         next(ls);
-        #ifdef AQL_DEBUG_BUILD
-        add_debug_token(TK_PLUS, NULL, ls->linenumber, start_col);
-        #endif
         return TK_PLUS;
       }
       case '-': {
@@ -448,18 +440,14 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
         else return TK_ASSIGN;  /* '=' */
       }
       case '>': {
-        printf_debug("[DEBUG] alex: found '>', checking for compound operators\n");
         next(ls);
         if (check_next1(ls, '=')) {
-          printf_debug("[DEBUG] alex: found '>=', returning TK_GE\n");
           return TK_GE;  /* '>=' */
         }
         else if (check_next1(ls, '>')) {
-          printf_debug("[DEBUG] alex: found '>>', returning TK_SHR\n");
           return TK_SHR;  /* '>>' */
         }
         else {
-          printf_debug("[DEBUG] alex: found '>', returning TK_GT\n");
           return TK_GT;  /* '>' */
         }
       }
@@ -507,6 +495,27 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
         else if (check_next1(ls, '=')) return TK_ASSIGN;  /* ':=' */
         else return TK_COLON;  /* ':' */
       }
+      
+      /* Dot operators */
+    case '.': {
+      next(ls);
+      if (ls->current == '.') {
+        next(ls);
+        if (ls->current == '.') {
+          next(ls);
+          return TK_DOTS;  /* '...' */
+        } else {
+          /* '..' is no longer supported, treat as two separate dots */
+          ls->current = '.';  /* Put back the second dot */
+          return TK_DOT;  /* Return first '.' */
+        }
+      } else if (aqlX_isdigit(ls->current)) {
+        /* Number starting with '.' */
+        return read_numeral(ls, seminfo);
+      } else {
+        return TK_DOT;  /* '.' */
+      }
+    }
       
       /* Strings */
       case '"': case '\'': {

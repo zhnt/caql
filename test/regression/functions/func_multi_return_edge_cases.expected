@@ -1,0 +1,7 @@
+=== Edge Cases Multi-Return Tests ===
+Constants: 1, 2, 3, four, 5
+Nested: 6, 16, 7, 21, 4
+Strings: 7, 7, num7, 15, 8
+Single: 99
+Conditional true: yes, 1, true
+Conditional false: no, 0, false

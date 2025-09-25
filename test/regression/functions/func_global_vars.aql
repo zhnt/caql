@@ -1,0 +1,17 @@
+let global_counter = 0
+
+function increment() {
+    global_counter = global_counter + 1
+    print("Global counter: " + string(global_counter))
+}
+
+function show_global() {
+    print("Current global: " + string(global_counter))
+}
+
+show_global()
+increment()
+increment()
+show_global()
+
+

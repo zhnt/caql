@@ -1,0 +1,7 @@
+Loop 0: outer
+Loop 0: iteration_0
+Loop 1: outer
+Loop 1: iteration_1
+Loop 2: outer
+Loop 2: iteration_2
+Final: outer, counter=3

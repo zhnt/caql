@@ -1,0 +1,4 @@
+Global x in function: 100
+Global x before local: 100
+Local x: 5
+Global x in function: 100

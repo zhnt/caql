@@ -1,0 +1,34 @@
+// Test the original pattern: variables + direct expression
+
+function inner_calc(a, b) {
+    return a + b, a * b
+}
+
+function test_mixed_pattern(x, y) {
+    let sum, product = inner_calc(x, y)
+    return sum, product, x - y  // Two variables + one direct expression
+}
+
+function test_all_variables(x, y) {
+    let sum, product = inner_calc(x, y)
+    let diff = x - y
+    return sum, product, diff  // All variables
+}
+
+function test_all_direct(x, y) {
+    return x + y, x * y, x - y  // All direct expressions (no inner_calc)
+}
+
+print("=== Testing Original Pattern ===")
+
+print("Mixed (vars + direct):")
+let s1, p1, d1 = test_mixed_pattern(8, 3)
+print("  s1=" + string(s1) + ", p1=" + string(p1) + ", d1=" + string(d1))
+
+print("All variables:")
+let s2, p2, d2 = test_all_variables(8, 3)
+print("  s2=" + string(s2) + ", p2=" + string(p2) + ", d2=" + string(d2))
+
+print("All direct expressions:")
+let s3, p3, d3 = test_all_direct(8, 3)
+print("  s3=" + string(s3) + ", p3=" + string(p3) + ", d3=" + string(d3))

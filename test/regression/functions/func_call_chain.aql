@@ -1,0 +1,19 @@
+function level3() {
+    print("Level 3 function")
+}
+
+function level2() {
+    print("Level 2 start")
+    level3()
+    print("Level 2 end")
+}
+
+function level1() {
+    print("Level 1 start")
+    level2()
+    print("Level 1 end")
+}
+
+print("Main start")
+level1()
+print("Main end")

@@ -1,0 +1,14 @@
+function multiply(x, y) {
+    let result = x * y
+    print("multiply(" + string(x) + ", " + string(y) + ") = " + string(result))
+    return result
+}
+
+function divide(a, b) {
+    let result = a / b
+    print("divide(" + string(a) + ", " + string(b) + ") = " + string(result))
+    return result
+}
+
+multiply(6, 7)
+divide(100, 5)

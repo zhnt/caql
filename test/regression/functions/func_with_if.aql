@@ -1,0 +1,10 @@
+function check_number() {
+    let x = 5
+    if x > 3 {
+        print("Number is greater than 3")
+    } else {
+        print("Number is not greater than 3")
+    }
+}
+
+check_number()

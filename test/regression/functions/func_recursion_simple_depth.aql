@@ -1,0 +1,14 @@
+// Recursion depth test cases (non-tail call)
+
+// Sum function (non-tail recursive)
+function sum_to_n(n) {
+    if n <= 0 {
+        return 0
+    }
+    return n + sum_to_n(n - 1)  // Non-tail recursive
+}
+
+print("=== Recursion Depth Tests ===")
+
+let s15 = sum_to_n(15)
+print("sum_to_n(15) = " + string(s15))

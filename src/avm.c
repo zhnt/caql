@@ -132,8 +132,10 @@ static StkId safe_RA(StkId base, Instruction i, aql_State *L) {
   int reg = GETARG_A(i);
   StkId result = base + reg;
   if (result < L->stack || result >= L->stack_last) {
-    printf_debug("[ERROR] RA register %d out of bounds\n", reg);
-    return NULL;
+    printf_debug("[ERROR] RA register %d out of bounds (base=%p, result=%p, stack_last=%p)\n", 
+                 reg, (void*)base, (void*)result, (void*)L->stack_last);
+    aqlG_runerror(L, "register access out of bounds");
+    return NULL;  /* This line won't be reached due to aqlG_runerror */
   }
   return result;
 }
@@ -562,6 +564,8 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
   k = cl->p->k;
   
   printf_debug("[DEBUG] aqlV_execute: safety checks passed, starting execution\n");
+  printf_debug("[DEBUG] aqlV_execute: initial base=%p, ci->func=%p, L->stack=%p, L->stack_last=%p\n", 
+               (void*)base, (void*)ci->func, (void*)L->stack, (void*)L->stack_last);
   
   AQL_DEBUG(AQL_DEBUG_VM, "aqlV_execute: starting execution loop");
   
@@ -583,9 +587,14 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
   int max_registers = 32;  /* Initial estimate */
   if (trace_registers) {
     prev_registers = (TValue*)malloc(max_registers * sizeof(TValue));
-    /* Initialize previous registers to nil */
-    for (int i = 0; i < max_registers; i++) {
-      setnilvalue(&prev_registers[i]);
+    if (prev_registers == NULL) {
+      printf_debug("[ERROR] aqlV_execute: failed to allocate memory for register tracking\n");
+      trace_registers = 0;  /* Disable register tracing */
+    } else {
+      /* Initialize previous registers to nil */
+      for (int i = 0; i < max_registers; i++) {
+        setnilvalue(&prev_registers[i]);
+      }
     }
   }
 #endif
@@ -598,16 +607,34 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
 #endif
   
   for (;;) {
+    /* Debug: Check cl and cl->p validity before each instruction */
+    printf_debug("[DEBUG] aqlV_execute: cl=%p, cl->p=%p, cl->p->code=%p, cl->p->sizecode=%d\n", 
+                 (void*)cl, (void*)cl->p, (void*)cl->p->code, cl->p->sizecode);
+    
     /* Safety check: ensure pc is within bounds */
     if (pc < cl->p->code || pc >= cl->p->code + cl->p->sizecode) {
-      printf_debug("[ERROR] aqlV_execute: PC out of bounds\n");
+      printf_debug("[ERROR] aqlV_execute: PC out of bounds - pc=%p, code_start=%p, code_end=%p\n",
+                   (void*)pc, (void*)cl->p->code, (void*)(cl->p->code + cl->p->sizecode));
       return 0;  /* Execution failed */
     }
     
+    printf_debug("[DEBUG] aqlV_execute: about to fetch instruction at PC=%ld\n", pc - cl->p->code);
+    
     Instruction i = *pc++;
+    printf_debug("[DEBUG] aqlV_execute: successfully fetched instruction 0x%lx\n", (unsigned long)i);
     StkId ra;
     OpCode op = GET_OPCODE(i);
     int current_pc = (int)(pc - cl->p->code - 1);  /* Calculate current PC */
+    
+    /* Debug: Manual instruction decoding */
+    int manual_op = (i >> 0) & 0x7F;
+    int manual_a = (i >> 7) & 0xFF;
+    int manual_b = (i >> 16) & 0xFF;
+    int manual_c = (i >> 24) & 0xFF;
+    printf_debug("[DEBUG] aqlV_execute: manual decode - op=%d, A=%d, B=%d, C=%d\n", 
+                 manual_op, manual_a, manual_b, manual_c);
+    printf_debug("[DEBUG] aqlV_execute: macro decode - op=%d, A=%d, B=%d, C=%d\n", 
+                 op, GETARG_A(i), GETARG_B(i), GETARG_C(i));
     
     /* Safety check: validate opcode */
     if (op >= NUM_OPCODES) {
@@ -667,6 +694,10 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
           break;
         case OP_DIV:
           snprintf(desc_buf, sizeof(desc_buf), "DIV R(%d) := R(%d) / R(%d)", 
+                   GETARG_A(i), GETARG_B(i), GETARG_C(i));
+          break;
+        case OP_IDIV:
+          snprintf(desc_buf, sizeof(desc_buf), "IDIV R(%d) := R(%d) // R(%d)", 
                    GETARG_A(i), GETARG_B(i), GETARG_C(i));
           break;
         case OP_FORPREP:
@@ -738,7 +769,20 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
     switch (op) {
       /* Base operations */
       case OP_MOVE: {
+        printf_debug("[DEBUG] OP_MOVE: A=%d, B=%d, moving from R(%d) to R(%d)\n", 
+                     GETARG_A(i), GETARG_B(i), GETARG_B(i), GETARG_A(i));
+        TValue *src = s2v(RB(i));
+        TValue *dst = s2v(RA(i));
+        printf_debug("[DEBUG] OP_MOVE: src type=%d, dst type=%d\n", rawtt(src), rawtt(dst));
+        if (ttisstring(src)) {
+          printf_debug("[DEBUG] OP_MOVE: moving string '%s'\n", getstr(tsvalue(src)));
+        }
         setobj2s(L, RA(i), s2v(RB(i)));
+        if (ttisstring(dst)) {
+          printf_debug("[DEBUG] OP_MOVE: result string '%s'\n", getstr(tsvalue(dst)));
+        } else {
+          printf_debug("[DEBUG] OP_MOVE: result type=%d\n", rawtt(dst));
+        }
 #ifdef AQL_DEBUG_BUILD
         if (trace_execution) {
           int reg_count = (int)(L->top - base);
@@ -778,7 +822,18 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       }
       case OP_LOADK: {
         TValue *kv = k + iABx(i);
+        printf_debug("[DEBUG] OP_LOADK: A=%d, Bx=%d, loading constant %d\n", 
+                     GETARG_A(i), iABx(i), iABx(i));
+        printf_debug("[DEBUG] OP_LOADK: constant type=%d\n", rawtt(kv));
+        if (ttisstring(kv)) {
+          printf_debug("[DEBUG] OP_LOADK: constant string='%s'\n", getstr(tsvalue(kv)));
+        }
         setobj2s(L, RA(i), kv);
+        TValue *ra = s2v(RA(i));
+        printf_debug("[DEBUG] OP_LOADK: result type=%d\n", rawtt(ra));
+        if (ttisstring(ra)) {
+          printf_debug("[DEBUG] OP_LOADK: result string='%s'\n", getstr(tsvalue(ra)));
+        }
         continue;
       }
       case OP_LOADKX: {
@@ -865,6 +920,9 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       case OP_DIV: ARITH_OP(DIV); continue;
       case OP_DIVK: ARITH_OP_K(DIV); continue;
       case OP_DIVI: ARITH_OP_I(DIV); continue;
+      case OP_IDIV: ARITH_OP(IDIV); continue;
+      case OP_IDIVK: ARITH_OP_K(IDIV); continue;
+      case OP_IDIVI: ARITH_OP_I(IDIV); continue;
       case OP_MOD: ARITH_OP(MOD); continue;
       case OP_POW: ARITH_OP(POW); continue;
       
@@ -1229,15 +1287,31 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       case OP_CALL: {
         int b = GETARG_B(i);
         int nresults = GETARG_C(i) - 1;
-        if (b != 0) L->top = RA(i) + b;  /* else previous instruction set top */
-        if (aqlD_precall(L, RA(i), nresults)) {  /* C function? */
+        StkId func = RA(i);
+        TValue *f = s2v(func);
+        
+        printf_debug("[DEBUG] OP_CALL: A=%d, func=%p, base=%p\n", GETARG_A(i), (void*)func, (void*)base);
+        printf_debug("[DEBUG] OP_CALL: func type=%d, ttisLclosure=%d\n", rawtt(f), ttisLclosure(f));
+        
+        if (b != 0) L->top = func + b;  /* else previous instruction set top */
+        
+        /* Save current PC before calling aqlD_precall */
+        ci->u.l.savedpc = pc;
+        
+        CallInfo *newci = aqlD_precall(L, func, nresults);
+        if (newci == NULL) {
+          /* C function call - already handled by aqlD_precall */
+          printf_debug("[DEBUG] OP_CALL: C function call completed\n");
           if (nresults >= 0)
             L->top = ci->top;  /* adjust results */
-          /* else previous instruction set top */
           base = ci->func + 1;
-        } else {  /* AQL function */
-          ci = L->ci;
-          goto newframe;  /* restart aqlV_execute over new Lua function */
+          printf_debug("[DEBUG] OP_CALL: updated base after C function call, base=%p, ci->func=%p\n", 
+                       (void*)base, (void*)ci->func);
+        } else {
+          /* AQL function call - switch to new execution context */
+          printf_debug("[DEBUG] OP_CALL: AQL function call, switching context\n");
+          ci = newci;
+          goto newframe;  /* Jump to start new function execution */
         }
         continue;
       }
@@ -1253,18 +1327,30 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         int b = GETARG_B(i);
         if (b != 0) L->top = RA(i) + b - 1;
           },
-          GETARG_A(i), GETARG_B(i)
+          GETARG_A(i), (GETARG_B(i) > 0 ? GETARG_B(i) - 1 : 0)
         );
       case OP_RET_VOID: 
-        RET_OP(L->top = RA(i), GETARG_A(i), 1);
+        RET_OP(L->top = RA(i), GETARG_A(i), 0);
       case OP_RET_ONE: 
-        RET_OP(L->top = RA(i) + 1, GETARG_A(i), 2);
+        RET_OP(L->top = RA(i) + 1, GETARG_A(i), 1);
       
       /* Closures */
       case OP_CLOSURE: {
-        Proto *p = cl->p->p[iABx(i)];
-        /* TODO: Implement aqlF_pushclosure for closure creation */
-        aqlG_runerror(L, "closure creation not yet implemented");
+        ra = RA(i);  /* Initialize ra for this instruction */
+        Proto *p = cl->p->p[GETARG_Bx(i)];
+        LClosure *ncl = aqlF_newLclosure(L, p->sizeupvalues);
+        ncl->p = p;
+        setclLvalue2s(L, ra, ncl);
+        
+        /* Initialize upvalues */
+        for (int j = 0; j < p->sizeupvalues; j++) {
+          Upvaldesc *uv = &p->upvalues[j];
+          if (uv->instack) {  /* upvalue refers to local variable? */
+            ncl->upvals[j] = aqlF_findupval(L, base + uv->idx);
+          } else {  /* get upvalue from enclosing function */
+            ncl->upvals[j] = cl->upvals[uv->idx];
+          }
+        }
         continue;
       }
       
@@ -1414,7 +1500,7 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         switch (builtin_id) {
           case 0: /* print */ {
             int nargs = GETARG_C(i);  /* 参数数量 */
-            StkId func_base = ra - nargs;  /* 参数在结果寄存器之前 */
+            StkId func_base = ra - nargs;  /* 参数在ra之前的nargs个位置 */
             printf_debug("[DEBUG] print: nargs=%d, ra=%p, func_base=%p\n", 
                          nargs, (void*)ra, (void*)func_base);
             for (int j = 0; j < nargs; j++) {
@@ -1464,10 +1550,31 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
             /* TODO: Implement aqlB_type */
             aqlG_runerror(L, "type builtin not yet implemented");
             break;
-          case 2: /* len */
-            /* TODO: Implement aqlB_len */
-            aqlG_runerror(L, "len builtin not yet implemented");
+          case 2: /* len */ {
+            int nargs = GETARG_C(i);
+            if (nargs != 1) {
+              aqlG_runerror(L, "len() expects exactly 1 argument, got %d", nargs);
+              break;
+            }
+            
+            StkId func_base = ra - nargs;  /* 参数在结果寄存器之前 */
+            TValue *arg = s2v(func_base);
+            
+            printf_debug("[DEBUG] len: checking argument type, tag=%d\n", ttypetag(arg));
+            
+            if (ttisarray(arg)) {
+              Array *arr = arrayvalue(arg);
+              setivalue(s2v(ra), (aql_Integer)arr->length);
+              printf_debug("[DEBUG] len: array length = %zu\n", arr->length);
+            } else if (ttisstring(arg)) {
+              TString *str = tsvalue(arg);
+              setivalue(s2v(ra), (aql_Integer)tsslen(str));
+              printf_debug("[DEBUG] len: string length = %zu\n", tsslen(str));
+            } else {
+              aqlG_runerror(L, "len() can only be applied to arrays and strings");
+            }
             break;
+          }
           case 3: /* tostring/string */ {
             int nargs = GETARG_C(i);
             StkId func_base = ra - nargs;
@@ -1614,31 +1721,56 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       }
       
       case OP_VARARG: {
+        /* Variadic arguments access - create Array containing all varargs */
         int nvar = cl->p->is_vararg;
-        int n = GETARG_C(i);
-        int nparams = cl->p->numparams;
+        int nfixparams = cl->p->numparams;
+        
+        printf_debug("[DEBUG] OP_VARARG: nvar=%d, nfixparams=%d\n", nvar, nfixparams);
         
         if (nvar) {
-          /* Get actual varargs from the call frame */
-          int nfixparams = cl->p->numparams;
-          CallInfo *previous_ci = ci - 1;
-          StkId previous_base = previous_ci->func + 1;
-          int nactual = cast_int(ci->func - previous_base) - nfixparams - 1;
+          /* Get actual varargs from the current call frame */
+          StkId func_base = ci->func;
+          StkId args_start = func_base + 1;  /* First argument position */
           
-          if (n == 0) n = nactual;
+          /* Calculate how many arguments were actually passed */
+          int nactual = cast_int(L->top - args_start);
+          int nvarargs = nactual - nfixparams;  /* Number of varargs */
           
-          for (int j = 0; j < n && j < nactual; j++) {
-            setobj2s(L, RA(i) + j, s2v(previous_base + nfixparams + 1 + j));
+          printf_debug("[DEBUG] OP_VARARG: nactual=%d, nvarargs=%d\n", nactual, nvarargs);
+          
+          if (nvarargs < 0) nvarargs = 0;  /* No varargs if not enough arguments */
+          
+          /* Create Array to hold varargs */
+          Array *arr = (Array*)aqlM_newobject(L, AQL_TARRAY, sizeof(Array));
+          arr->dtype = AQL_DATA_TYPE_ANY;  /* Mixed types */
+          arr->length = nvarargs;
+          arr->capacity = nvarargs;
+          
+          if (nvarargs > 0) {
+            arr->data = (TValue*)aqlM_newvector(L, nvarargs, TValue);
+            
+            /* Copy varargs to array */
+            for (int j = 0; j < nvarargs; j++) {
+              StkId src = args_start + nfixparams + j;  /* Source: after fixed params */
+              setobj2t(L, &arr->data[j], s2v(src));
+              printf_debug("[DEBUG] OP_VARARG: copying vararg %d to array[%d]\n", j, j);
+            }
+          } else {
+            arr->data = NULL;
           }
-          for (int j = nactual; j < n; j++) {
-            setnilvalue(s2v(RA(i) + j));
-          }
+          
+          /* Set the array as the result */
+          setarrayvalue(L, s2v(RA(i)), arr);
+          printf_debug("[DEBUG] OP_VARARG: created array with %d elements\n", nvarargs);
         } else {
-          /* No varargs available */
-          if (n == 0) n = 0;
-          for (int j = 0; j < n; j++) {
-            setnilvalue(s2v(RA(i) + j));
-          }
+          /* No varargs available - create empty array */
+          Array *arr = (Array*)aqlM_newobject(L, AQL_TARRAY, sizeof(Array));
+          arr->dtype = AQL_DATA_TYPE_ANY;
+          arr->length = 0;
+          arr->capacity = 0;
+          arr->data = NULL;
+          setarrayvalue(L, s2v(RA(i)), arr);
+          printf_debug("[DEBUG] OP_VARARG: created empty array (no varargs)\n");
         }
         continue;
       }
@@ -1835,15 +1967,6 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       }
       case OP_TBC: {
         aqlF_newtbcupval(L, base + GETARG_A(i));
-        continue;
-      }
-      case OP_CONCAT: {
-        int b = GETARG_B(i);
-        int c = GETARG_C(i);
-        L->top = RA(i) + b;
-        aqlV_concat(L, c - b + 1);
-        setobj2s(L, RA(i), s2v(L->top - 1));
-        L->top = ci->top;
         continue;
       }
       
@@ -2096,6 +2219,8 @@ newframe:
     base = ci->func + 1;
     pc = ci->u.l.savedpc;
     k = cl->p->k;
+    printf_debug("[DEBUG] newframe: switched context - base=%p, ci->func=%p, L->stack=%p, L->stack_last=%p\n", 
+                 (void*)base, (void*)ci->func, (void*)L->stack, (void*)L->stack_last);
   }
   
 #ifdef AQL_DEBUG_BUILD
@@ -2123,10 +2248,12 @@ newframe:
 ** Reduces from O(n²) copies to O(n) copies
 */
 AQL_API void aqlV_concat (aql_State *L, int n) {
+  printf_debug("[DEBUG] aqlV_concat: entering with n=%d\n", n);
   if (n <= 1) return;  /* nothing to concatenate */
   
   StkId top = L->top;
   StkId base = top - n;
+  printf_debug("[DEBUG] aqlV_concat: top=%p, base=%p\n", (void*)top, (void*)base);
   
   /* Phase 1: Convert all values to strings and calculate total length */
   size_t total_len = 0;

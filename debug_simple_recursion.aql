@@ -1,0 +1,14 @@
+// Very simple recursion test
+
+function simple_rec(n) {
+    print("simple_rec(" + string(n) + ")")
+    if n <= 1 {
+        return 1
+    }
+    return simple_rec(n - 1)
+}
+
+print("Testing simple recursion:")
+let result = simple_rec(3)
+print("Result: " + string(result))
+

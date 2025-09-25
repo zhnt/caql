@@ -1,0 +1,54 @@
+// Comprehensive mixed types multi-return test
+
+function test_mixed_returns(x, y) {
+    let var_int = 42
+    let var_str = "hello"
+    return var_int, x + y, "world", 100, var_str, x - y, x * y
+}
+
+function test_complex_mixed(a, b, c) {
+    let sum = a + b + c
+    let product = a * b
+    return "result", sum, product, a div b, "end", c % 2, sum - product
+}
+
+function test_string_and_calc(name, age) {
+    let greeting = "Hello " + name
+    let next_year = age + 1
+    let is_adult = age
+    return greeting, age, next_year, "years old", is_adult, name
+}
+
+print("=== Mixed Types Multi-Return Tests ===")
+
+// Test 1: 7 mixed returns
+let i1, i2, s1, i3, s2, i4, i5 = test_mixed_returns(10, 5)
+print("Test 1:")
+print("  i1=" + string(i1) + " (should be 42)")
+print("  i2=" + string(i2) + " (should be 15)")
+print("  s1=" + s1 + " (should be world)")
+print("  i3=" + string(i3) + " (should be 100)")
+print("  s2=" + s2 + " (should be hello)")
+print("  i4=" + string(i4) + " (should be 5)")
+print("  i5=" + string(i5) + " (should be 50)")
+
+// Test 2: Complex mixed with calculations
+let s3, sum_val, prod_val, div_val, s4, mod_val, diff_val = test_complex_mixed(12, 3, 8)
+print("Test 2:")
+print("  s3=" + s3 + " (should be result)")
+print("  sum=" + string(sum_val) + " (should be 23)")
+print("  prod=" + string(prod_val) + " (should be 36)")
+print("  div=" + string(div_val) + " (should be 4)")
+print("  s4=" + s4 + " (should be end)")
+print("  mod=" + string(mod_val) + " (should be 0)")
+print("  diff=" + string(diff_val) + " (should be -13)")
+
+// Test 3: String processing with calculations
+let greet, current_age, future_age, suffix, adult_check, person_name = test_string_and_calc("Alice", 25)
+print("Test 3:")
+print("  greet=" + greet + " (should be Hello Alice)")
+print("  current=" + string(current_age) + " (should be 25)")
+print("  future=" + string(future_age) + " (should be 26)")
+print("  suffix=" + suffix + " (should be years old)")
+print("  adult=" + string(adult_check) + " (should be 25)")
+print("  name=" + person_name + " (should be Alice)")

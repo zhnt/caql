@@ -1,0 +1,12 @@
+// Simple tail call test
+
+function factorial_tail(n, acc) {
+    if n <= 1 {
+        return acc
+    }
+    return factorial_tail(n - 1, n * acc)
+}
+
+print("Testing simple tail call:")
+let result = factorial_tail(5, 1)
+print("factorial_tail(5, 1) = " + string(result))

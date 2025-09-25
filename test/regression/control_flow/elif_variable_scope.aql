@@ -1,0 +1,13 @@
+// Test elif with variable scope
+let global_var = "global"
+if 1 == 2 {
+    let if_var = "if_block"
+    print("In if: " + if_var)
+} elif 2 == 2 {
+    let elif_var = "elif_block"
+    print("In elif: " + global_var)
+    print("In elif: " + elif_var)
+} else {
+    print("In else")
+}
+print("After elif: " + global_var)

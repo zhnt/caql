@@ -1,0 +1,9 @@
+function test_multi(a, b) {
+    let x = a div b
+    let y = a % b
+    return x, y
+}
+
+let q, r = test_multi(17, 5)
+print("q=" + string(q))
+print("r=" + string(r))

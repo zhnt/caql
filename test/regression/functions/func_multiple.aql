@@ -1,0 +1,11 @@
+function first() {
+    print("First function")
+}
+
+function second() {
+    print("Second function")
+}
+
+first()
+second()
+first()

@@ -1,0 +1,6 @@
+factorial(5) = 120
+fibonacci(6) = 8
+power(2, 4) = 16
+power(3, 3) = 27
+
+

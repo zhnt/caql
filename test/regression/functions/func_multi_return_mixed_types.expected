@@ -1,0 +1,24 @@
+=== Mixed Types Multi-Return Tests ===
+Test 1:
+  i1=42 (should be 42)
+  i2=15 (should be 15)
+  s1=world (should be world)
+  i3=100 (should be 100)
+  s2=hello (should be hello)
+  i4=5 (should be 5)
+  i5=50 (should be 50)
+Test 2:
+  s3=result (should be result)
+  sum=23 (should be 23)
+  prod=36 (should be 36)
+  div=4 (should be 4)
+  s4=end (should be end)
+  mod=0 (should be 0)
+  diff=-13 (should be -13)
+Test 3:
+  greet=Hello Alice (should be Hello Alice)
+  current=25 (should be 25)
+  future=26 (should be 26)
+  suffix=years old (should be years old)
+  adult=25 (should be 25)
+  name=Alice (should be Alice)

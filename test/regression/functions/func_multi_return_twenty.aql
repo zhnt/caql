@@ -1,0 +1,12 @@
+// Multi-return value test with 10 return values (more manageable)
+
+function get_ten_values() {
+    return 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+}
+
+// Execute test
+let v1, v2, v3, v4, v5, v6, v7, v8, v9, v10 = get_ten_values()
+
+print("Ten values:")
+print("v1=" + string(v1) + ", v2=" + string(v2) + ", v3=" + string(v3) + ", v4=" + string(v4) + ", v5=" + string(v5))
+print("v6=" + string(v6) + ", v7=" + string(v7) + ", v8=" + string(v8) + ", v9=" + string(v9) + ", v10=" + string(v10))

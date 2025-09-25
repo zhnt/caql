@@ -1,0 +1,19 @@
+let global_x = 100
+
+function test_scope(x, y) {
+    print("param x = " + string(x))
+    print("global_x = " + string(global_x))
+    
+    let local_z = x + y
+    print("local_z = " + string(local_z))
+    
+    {
+        let x = 999  // shadow parameter
+        print("shadowed x = " + string(x))
+        print("local_z still = " + string(local_z))
+    }
+    
+    print("param x restored = " + string(x))
+}
+
+test_scope(50, 25)

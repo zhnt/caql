@@ -1,0 +1,18 @@
+function shared() {
+    print("Shared function executed")
+}
+
+function first() {
+    print("First function calling shared")
+    shared()
+}
+
+function second() {
+    print("Second function calling shared")
+    shared()
+}
+
+first()
+second()
+
+

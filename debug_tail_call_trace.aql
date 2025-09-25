@@ -1,0 +1,15 @@
+// Trace tail call execution
+
+function sum_tail(n, acc) {
+    if n <= 2 {
+        print("Base case: n=" + string(n) + ", acc=" + string(acc))
+        return acc + n
+    }
+    print("Recursive: n=" + string(n) + ", acc=" + string(acc))
+    return sum_tail(n - 1, acc + n)
+}
+
+print("Testing traced tail call:")
+let result = sum_tail(4, 0)
+print("Final result: " + string(result))
+

@@ -1,0 +1,23 @@
+// Multi-return value tests with five return values
+
+// Test 1: Five return values (mixed types)
+function get_five_mixed() {
+    return 1, "first", 2, "second", 3
+}
+
+// Test 2: Five return values from calculations
+function complex_calculation(a, b) {
+    let add = a + b
+    let sub = a - b
+    let mul = a * b
+    let div_result = a div b
+    let mod_result = a % b
+    return add, sub, mul, div_result, mod_result
+}
+
+// Execute tests
+let v1, v2, v3, v4, v5 = get_five_mixed()
+print("Five mixed: v1=" + string(v1) + ", v2=" + v2 + ", v3=" + string(v3) + ", v4=" + v4 + ", v5=" + string(v5))
+
+let add_result, sub_result, mul_result, div_result, mod_result = complex_calculation(17, 3)
+print("Complex: add=" + string(add_result) + ", sub=" + string(sub_result) + ", mul=" + string(mul_result) + ", div=" + string(div_result) + ", mod=" + string(mod_result))

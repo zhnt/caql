@@ -1,0 +1,38 @@
+// Multi-return value tests with calculations
+// Testing different numbers of return values with arithmetic operations
+
+// Test 1: Two return values with calculations
+function calculate_pair(x, y) {
+    let sum = x + y
+    let product = x * y
+    return sum, product
+}
+
+// Test 2: Three return values with mixed calculations
+function math_operations(a, b) {
+    let add_result = a + b
+    let div_result = a div b
+    let mod_result = a % b
+    return add_result, div_result, mod_result
+}
+
+// Test 3: Five return values with comprehensive calculations
+function comprehensive_math(x, y) {
+    let add = x + y
+    let sub = x - y
+    let mul = x * y
+    let div_int = x div y
+    let mod_op = x % y
+    return add, sub, mul, div_int, mod_op
+}
+
+// Execute tests
+let sum, product = calculate_pair(6, 7)
+print("Pair: sum=" + string(sum) + ", product=" + string(product))
+
+let add_res, div_res, mod_res = math_operations(17, 5)
+print("Math: add=" + string(add_res) + ", div=" + string(div_res) + ", mod=" + string(mod_res))
+
+let a, s, m, d, r = comprehensive_math(20, 3)
+print("Comprehensive: add=" + string(a) + ", sub=" + string(s) + ", mul=" + string(m) + ", div=" + string(d) + ", mod=" + string(r))
+

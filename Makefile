@@ -131,12 +131,11 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
 	@echo "Compiling $<..."
 	$(CC) $(DEBUG_CFLAGS) -c $< -o $@
 
-# Clean build artifacts
+# Smart clean: remove main executables but keep object files (for faster rebuild)
 clean:
-	@echo "Cleaning build artifacts..."
-	rm -rf $(BUILD_DIR)
-	rm -rf $(BIN_DIR)
-	@echo "✅ Clean complete"
+	@echo "Smart cleaning: removing main executables but keeping object files..."
+	rm -f $(TARGET_DEBUG) $(TARGET_RELEASE)
+	@echo "✅ Smart clean complete (objects preserved for faster rebuild)"
 
 # Test target (run the executable)
 test: debug
@@ -314,17 +313,28 @@ help:
 	@echo "  test-release - Test release version only"
 	@echo "  test-both    - Test both versions"
 	@echo ""
-	@echo "Test Framework Commands:"
+	@echo "Test Framework Commands (Release Version):"
 	@echo "  alltest      - Run all tests (unit + regression + integration)"
 	@echo "  unittest     - Run unit tests only"
-	@echo "  rtest        - Run regression tests only"
-	@echo "  itest        - Run integration tests only"
+	@echo "  rtest        - Run regression tests (fast, production-like)"
+	@echo "  itest        - Run integration tests"
+	@echo "  quick-test   - Fast regression test (minimal rebuild)"
+	@echo "  dev-test     - Development cycle (incremental build + test)"
+	@echo "  test-file    - Test single file: make test-file FILE=path/to/test.aql"
+	@echo ""
+	@echo "Debug Test Commands (Debug Version):"
+	@echo "  debug-test   - Run regression tests with debug output"
+	@echo "  debug-file   - Debug single file: make debug-file FILE=path/to/test.aql"
+	@echo ""
+	@echo "Test Utilities:"
 	@echo "  coverage     - Generate test coverage report"
 	@echo "  clean-test   - Clean test artifacts"
 	@echo ""
 	@echo "Cleaning Commands:"
-	@echo "  clean-all    - Complete clean including test artifacts"
+	@echo "  clean        - Smart clean (remove executables, keep objects for faster rebuild)"
+	@echo "  clean-all    - Complete clean (remove everything, use when headers change)"
 	@echo "  clean-bin    - Clean only executables (keep objects)"
+	@echo "  clean-test   - Clean only test artifacts"
 	@echo ""
 	@echo "Output locations:"
 	@echo "  Object files: $(BUILD_DIR)/"
@@ -397,10 +407,10 @@ $(TEST_BUILD_DIR)/%.o: $(TEST_FRAMEWORK_DIR)/%.c
 	@echo "Compiling test framework: $<"
 	$(CC) $(TEST_CFLAGS) -c $< -o $@
 
-# Build test runner
-$(TEST_RUNNER): $(TEST_FRAMEWORK_OBJS) $(DEBUG_OBJS)
+# Build test runner (standalone, only depends on test framework sources)
+$(TEST_RUNNER): $(TEST_FRAMEWORK_OBJS)
 	@mkdir -p $(dir $@)
-	@echo "Linking test runner..."
+	@echo "Linking test runner (standalone)..."
 	$(CC) $(TEST_CFLAGS) $^ -o $@ $(LDFLAGS)
 
 # ===== 主要测试命令 =====
@@ -421,22 +431,22 @@ unittest: $(TEST_RUNNER)
 	@$(TEST_RUNNER) unit $(TEST_DIR)/unit
 	@echo ""
 
-# 执行回归测试 (Regression Tests)
+# 执行回归测试 (Regression Tests) - 默认使用release版本
 .PHONY: rtest
-rtest: $(TEST_RUNNER) $(TARGET_DEBUG)
+rtest: $(TEST_RUNNER) $(TARGET_RELEASE)
 	@echo "========================================="
-	@echo "Running Regression Tests..."
+	@echo "Running Regression Tests (Release)..."
 	@echo "========================================="
-	@$(TEST_RUNNER) regression $(TEST_DIR)/regression $(TARGET_DEBUG)
+	@$(TEST_RUNNER) regression $(TEST_DIR)/regression $(TARGET_RELEASE)
 	@echo ""
 
-# 执行集成测试 (Integration Tests)
+# 执行集成测试 (Integration Tests) - 默认使用release版本
 .PHONY: itest
-itest: $(TEST_RUNNER) $(TARGET_DEBUG)
+itest: $(TEST_RUNNER) $(TARGET_RELEASE)
 	@echo "========================================="
-	@echo "Running Integration Tests..."
+	@echo "Running Integration Tests (Release)..."
 	@echo "========================================="
-	@$(TEST_RUNNER) integration $(TEST_DIR)/integration $(TARGET_DEBUG)
+	@$(TEST_RUNNER) integration $(TEST_DIR)/integration $(TARGET_RELEASE)
 	@echo ""
 
 # 测试覆盖率
@@ -458,9 +468,55 @@ clean-test:
 	rm -rf coverage_html
 	@echo "✅ Test artifacts cleaned"
 
-# 更新clean-all目标以包含测试清理
-clean-all: clean clean-test
-	@echo "Cleaning all build artifacts..."
+
+# 快速测试：跳过不必要的重新编译
+.PHONY: quick-test
+quick-test: $(TEST_RUNNER) $(TARGET_RELEASE)
+	@echo "🚀 Quick regression test (minimal rebuild)..."
+	@$(TEST_RUNNER) regression $(TEST_DIR)/regression $(TARGET_RELEASE)
+
+# 开发者友好的增量构建测试
+.PHONY: dev-test
+dev-test:
+	@echo "🔧 Development test cycle..."
+	@echo "1. Checking if rebuild needed..."
+	@$(MAKE) --no-print-directory $(TARGET_RELEASE)
+	@echo "2. Running regression tests..."
+	@$(MAKE) --no-print-directory quick-test
+	@echo "✅ Development test cycle complete!"
+
+# 调试测试：使用debug版本进行详细调试
+.PHONY: debug-test
+debug-test: $(TEST_RUNNER) $(TARGET_DEBUG)
+	@echo "🐛 Debug regression test (with verbose output)..."
+	@$(TEST_RUNNER) regression $(TEST_DIR)/regression $(TARGET_DEBUG)
+
+# 调试单个测试文件
+.PHONY: debug-file
+debug-file:
+	@if [ -z "$(FILE)" ]; then \
+		echo "Usage: make debug-file FILE=path/to/test.aql"; \
+		exit 1; \
+	fi
+	@echo "🎯 Debug testing single file: $(FILE)"
+	@$(MAKE) --no-print-directory $(TARGET_DEBUG)
+	@./$(TARGET_DEBUG) $(FILE)
+
+# 仅测试特定文件（使用release版本）
+.PHONY: test-file
+test-file:
+	@if [ -z "$(FILE)" ]; then \
+		echo "Usage: make test-file FILE=path/to/test.aql"; \
+		exit 1; \
+	fi
+	@echo "🎯 Testing single file: $(FILE)"
+	@$(MAKE) --no-print-directory $(TARGET_RELEASE)
+	@./$(TARGET_RELEASE) $(FILE)
+
+# Complete clean: remove everything (use when headers change or for fresh build)
+.PHONY: clean-all
+clean-all: clean-test
+	@echo "Complete cleaning: removing all build artifacts..."
 	rm -rf $(BUILD_DIR)
 	rm -rf $(BIN_DIR)
-	@echo "✅ Complete clean finished"
+	@echo "✅ Complete clean finished (full rebuild required)"

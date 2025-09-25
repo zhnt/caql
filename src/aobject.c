@@ -121,10 +121,16 @@ const char *aqlL_typename (aql_State *L, const TValue *o) {
 }
 
 TString *aqlS_createlngstrobj (aql_State *L, size_t l) {
-  /* Placeholder - simplified long string creation */
-  UNUSED(L); UNUSED(l);
-  /* In a real implementation, this would create a long string object */
-  return NULL;
+  /* Create a long string object with uninitialized content */
+  char *buffer = (char *)malloc(l + 1);  /* +1 for null terminator */
+  if (buffer == NULL) {
+    aqlG_runerror(L, "out of memory creating string");
+    return NULL;
+  }
+  buffer[l] = '\0';  /* null terminate */
+  TString *ts = aqlStr_newlstr(L, buffer, l);
+  free(buffer);  /* aqlStr_newlstr makes its own copy */
+  return ts;
 }
 
 AQL_API int isdead (global_State *g, GCObject *o) {
@@ -364,13 +370,19 @@ static int tostringbuff (TValue *obj, char *buff) {
 ** Convert a number object to an AQL string, replacing the value at 'obj'
 */
 void aqlO_tostring (aql_State *L, TValue *obj) {
-  /* Simplified implementation to avoid circular dependencies */
-  UNUSED(L); UNUSED(obj);
-  /* TODO: In a complete implementation, this would:
-     1. Format the number using tostringbuff
-     2. Create a new TString with aqlStr_newlstr
-     3. Set the obj to the new string value
-  */
+  char buff[MAXNUMBER2STR];
+  size_t len;
+  
+  if (ttisinteger(obj)) {
+    len = aql_integer2str(buff, sizeof(buff), ivalue(obj));
+  } else if (ttisfloat(obj)) {
+    len = aql_number2str(buff, sizeof(buff), fltvalue(obj));
+  } else {
+    return;  /* Not a number, cannot convert */
+  }
+  
+  TString *ts = aqlStr_newlstr(L, buff, len);
+  setsvalue(L, obj, ts);
 }
 
 /*

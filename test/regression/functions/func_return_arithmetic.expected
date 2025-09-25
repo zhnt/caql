@@ -1,0 +1,3 @@
+add(10, 20) = 30
+multiply(6, 7) = 42
+calculate(5, 15, 2) = 40

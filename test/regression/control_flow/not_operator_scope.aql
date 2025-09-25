@@ -1,0 +1,17 @@
+// Test NOT operator with variable scope
+let flag = true
+let outer_var = "test_value"
+if 1 == 1 {
+    let block_var = "block_value"
+    if !flag {
+        print("Not flag: " + outer_var + ", " + block_var)
+    } else {
+        print("Flag is true: " + outer_var + ", " + block_var)
+    }
+    
+    // Test nested NOT with different conditions
+    let inner_flag = false
+    if !inner_flag {
+        print("Inner not flag: " + block_var)
+    }
+}

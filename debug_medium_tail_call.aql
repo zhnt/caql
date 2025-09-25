@@ -1,0 +1,14 @@
+// Medium tail call test
+
+function sum_tail(n, acc) {
+    print("sum_tail(" + string(n) + ", " + string(acc) + ")")
+    if n <= 0 {
+        return acc
+    }
+    return sum_tail(n - 1, acc + n)
+}
+
+print("Testing medium tail call:")
+let result = sum_tail(5, 0)
+print("sum_tail(5, 0) = " + string(result))
+

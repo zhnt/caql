@@ -1,0 +1,47 @@
+// Recursion depth test cases (non-tail call)
+
+// Simple countdown function (non-tail recursive)
+function countdown(n) {
+    if n <= 0 {
+        return 0
+    }
+    let result = countdown(n - 1)
+    return result + 1  // This makes it non-tail recursive
+}
+
+// Factorial function (non-tail recursive)
+function factorial(n) {
+    if n <= 1 {
+        return 1
+    }
+    return n * factorial(n - 1)  // Non-tail recursive
+}
+
+// Sum function (non-tail recursive)
+function sum_to_n(n) {
+    if n <= 0 {
+        return 0
+    }
+    return n + sum_to_n(n - 1)  // Non-tail recursive
+}
+
+print("=== Recursion Depth Tests ===")
+
+// Test 1: 5 layers (safe depth)
+print("Testing 5 layers:")
+let r1 = countdown(5)
+print("countdown(5) = " + string(r1))
+let f1 = factorial(5)
+print("factorial(5) = " + string(f1))
+let s1 = sum_to_n(5)
+print("sum_to_n(5) = " + string(s1))
+
+// Test 2: 7 layers (maximum confirmed safe depth)
+print("Testing 7 layers:")
+let r2 = countdown(7)
+print("countdown(7) = " + string(r2))
+let s2 = sum_to_n(7)
+print("sum_to_n(7) = " + string(s2))
+
+// Note: AQL supports up to 7 layers of recursion reliably
+// Deeper recursion (≥8 layers) may encounter VM limitations

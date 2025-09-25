@@ -1,0 +1,12 @@
+=== Shallow Recursion Tests ===
+Testing 3 layers:
+countdown(3) = 3
+factorial(3) = 6
+sum_to_n(3) = 6
+Testing 5 layers:
+countdown(5) = 5
+factorial(5) = 120
+sum_to_n(5) = 15
+Testing 7 layers:
+countdown(7) = 7
+sum_to_n(7) = 28

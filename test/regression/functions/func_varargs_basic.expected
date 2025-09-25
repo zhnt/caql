@@ -1,0 +1,20 @@
+=== Test 1: print_all ===
+Arguments received:
+Arguments received:
+Arguments received:
+=== Test 2: sum ===
+First argument: 10
+Has varargs
+Result1: 10
+First argument: 10
+Has varargs
+Result2: 10
+=== Test 3: format_message ===
+Prefix: Hello
+Suffix: World
+Has additional args
+Result3: HelloWorld
+Prefix: Start
+Suffix: End
+Has additional args
+Result4: StartEnd

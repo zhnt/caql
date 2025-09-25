@@ -1,0 +1,4 @@
+=== Complex Multi-Return Tests ===
+Nested: sum=11, product=24, diff=5
+String: length=4, up=UPPER, low=lower
+Mixed: add=19, sub=11, mul=60, div=3, mod=3

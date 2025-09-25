@@ -1,0 +1,29 @@
+function get_coordinates() {
+    return 10, 20, 30
+}
+
+function divide_with_remainder(a, b) {
+    let quotient = a div b
+    let remainder = a % b
+    return quotient, remainder
+}
+
+function get_two_values() {
+    return 42, 99
+}
+
+// Test basic multi-return with 3 values
+let x, y, z = get_coordinates()
+print("x = " + string(x))
+print("y = " + string(y))
+print("z = " + string(z))
+
+// Test two return values
+let q, r = divide_with_remainder(17, 5)
+print("quotient = " + string(q))
+print("remainder = " + string(r))
+
+// Test simple two values
+let a, b = get_two_values()
+print("a = " + string(a))
+print("b = " + string(b))

@@ -1,0 +1,10 @@
+// Simple test for return statement bytecode
+
+function test_return(x, y) {
+    let a = 10
+    let b = x - y
+    return a, b, x + y, x - y
+}
+
+let r1, r2, r3, r4 = test_return(8, 3)
+print("r1=" + string(r1) + ", r2=" + string(r2) + ", r3=" + string(r3) +", r4=" + string(r4))

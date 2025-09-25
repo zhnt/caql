@@ -132,7 +132,7 @@ struct aql_State {
 ** there will be a stack check soon after the push. Function frames
 ** never use this extra space, so it does not need to be kept clean.
 */
-#define EXTRA_STACK   5
+#define EXTRA_STACK   20  /* Increased from 5 for more stack buffer */
 
 #define stacksize(th)	cast_int((th)->stack_last - (th)->stack)
 

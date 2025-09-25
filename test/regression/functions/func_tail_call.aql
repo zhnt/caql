@@ -1,0 +1,61 @@
+// Tail call optimization tests
+
+// Test 1: Simple tail recursive factorial
+function factorial_tail(n, acc) {
+    if n <= 1 {
+        return acc
+    }
+    return factorial_tail(n - 1, n * acc)  // This should be optimized as tail call
+}
+
+// Test 2: Non-tail recursive factorial (for comparison)
+function factorial_normal(n) {
+    if n <= 1 {
+        return 1
+    }
+    return n * factorial_normal(n - 1)  // This is NOT a tail call
+}
+
+// Test 3: Tail recursive sum
+function sum_tail(n, acc) {
+    if n <= 0 {
+        return acc
+    }
+    return sum_tail(n - 1, acc + n)  // Tail call
+}
+
+// Test 4: Mutual tail recursion
+function even(n) {
+    if n <= 0 {
+        return 1  // true
+    }
+    return odd(n - 1)  // Tail call
+}
+
+function odd(n) {
+    if n <= 0 {
+        return 0  // false
+    }
+    return even(n - 1)  // Tail call
+}
+
+// Test calls
+print("=== Tail Call Optimization Tests ===")
+
+print("Factorial tail recursive:")
+let result1 = factorial_tail(5, 1)
+print("factorial_tail(5, 1) = " + string(result1))
+
+print("Factorial normal recursive:")
+let result2 = factorial_normal(5)
+print("factorial_normal(5) = " + string(result2))
+
+print("Sum tail recursive:")
+let result3 = sum_tail(5, 0)
+print("sum_tail(5, 0) = " + string(result3))
+
+print("Mutual recursion:")
+let result4 = even(6)
+print("even(6) = " + string(result4))
+let result5 = odd(7)
+print("odd(7) = " + string(result5))

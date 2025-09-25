@@ -1,0 +1,17 @@
+// Debug three return values issue
+
+function test_three_returns(unused_param) {
+    let num1 = 42
+    let num2 = 99
+    let num3 = 123
+    print("Inside: num1 = " + string(num1))
+    print("Inside: num2 = " + string(num2))
+    print("Inside: num3 = " + string(num3))
+    return num1, num2, num3
+}
+
+let a, b, c = test_three_returns("test")
+print("Outside: a = " + string(a))
+print("Outside: b = " + string(b))
+print("Outside: c = " + string(c))
+

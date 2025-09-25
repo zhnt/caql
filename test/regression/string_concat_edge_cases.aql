@@ -1,0 +1,23 @@
+// Test edge cases for string concatenation
+print("" + "hello");
+print("world" + "");
+print("" + "test");
+print("example" + "");
+
+// Empty strings
+let empty = "";
+print(empty + "content");
+print("prefix" + empty);
+
+// Single characters
+print("a" + "b");
+print("x" + "y");
+
+// Spaces and special cases
+print(" " + "space");
+print("tab" + " ");
+print("new" + "line");
+
+// Multiple empty concatenations
+print("" + "" + "result");
+print("" + "" + "final");

@@ -102,7 +102,7 @@ AQL_API void aqlD_hookcall(aql_State *L, CallInfo *ci);
 AQL_API void aqlD_hookret(aql_State *L, CallInfo *ci);
 AQL_API int aqlD_pretailcall(aql_State *L, CallInfo *ci, StkId func,
                             int narg1, int delta);
-AQL_API int aqlD_precall(aql_State *L, StkId func, int nResults);
+AQL_API struct CallInfo *aqlD_precall(aql_State *L, StkId func, int nResults);
 AQL_API void aqlD_call(aql_State *L, StkId func, int nResults);
 AQL_API void aqlD_callnoyield(aql_State *L, StkId func, int nResults);
 AQL_API int aqlD_pcall(aql_State *L, aql_CFunction func, void *u,

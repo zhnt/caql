@@ -1,0 +1,10 @@
+// Debug register allocation in return statement
+
+function test_debug() {
+    let var1 = 100
+    let var2 = 200  
+    return var1, var2, 5
+}
+
+let r1, r2, r3 = test_debug()
+print("r1=" + string(r1) + ", r2=" + string(r2) + ", r3=" + string(r3))

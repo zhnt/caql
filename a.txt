@@ -1,1832 +1,42 @@
 [DEBUG] init_registry: initialized registry and globals (simplified)
-[DEBUG] internshrstr: str='_ENV', len=4, hash=2089965421, table_size=128, table_nuse=0
+[DEBUG] internshrstr: str='test_function_basic.aql', len=23, hash=745848503, table_size=128, table_nuse=0
+[DEBUG] internshrstr: str='_ENV', len=4, hash=2089965421, table_size=128, table_nuse=1
 [DEBUG] enterblock: entered block, nactvar=0, isloop=0, mode=0
-next: / (47) -> / (47)next: / (47) ->   (32)next:   (32) -> C (67)next: C (67) -> o (111)next: o (111) -> m (109)next: m (109) -> p (112)next: p (112) -> l (108)next: l (108) -> e (101)next: e (101) -> x (120)next: x (120) ->   (32)next:   (32) -> n (110)next: n (110) -> e (101)next: e (101) -> s (115)next: s (115) -> t (116)next: t (116) -> i (105)next: i (105) -> n (110)next: n (110) -> g (103)next: g (103) -> : (58)next: : (58) ->   (32)next:   (32) -> i (105)next: i (105) -> f (102)next: f (102) -> - (45)next: - (45) -> f (102)next: f (102) -> o (111)next: o (111) -> r (114)next: r (114) -> - (45)next: - (45) -> i (105)next: i (105) -> f (102)next: f (102) -> - (45)next: - (45) -> f (102)next: f (102) -> o (111)next: o (111) -> r (114)next: r (114) -> ? (10)next: ? (10) -> l (108)next: l (108) -> e (101)next: e (101) -> t (116)next: t (116) ->   (32)[DEBUG] internshrstr: str='let', len=3, hash=193498058, table_size=128, table_nuse=1
-[DEBUG] statlist: entering, current token = 299
-[DEBUG] statlist: in loop, current token = 299
-[DEBUG] letstat: entering
-[DEBUG] letstat: calling aqlX_next to skip LET
-next:   (32) -> m (109)next: m (109) -> a (97)next: a (97) -> t (116)next: t (116) -> r (114)next: r (114) -> i (105)next: i (105) -> x (120)next: x (120) -> _ (95)next: _ (95) -> s (115)next: s (115) -> u (117)next: u (117) -> m (109)next: m (109) ->   (32)[DEBUG] internshrstr: str='matrix_sum', len=10, hash=1681340110, table_size=128, table_nuse=2
-[DEBUG] letstat: calling str_checkname for variable name
+next: f (102) -> u (117)next: u (117) -> n (110)next: n (110) -> c (99)next: c (99) -> t (116)next: t (116) -> i (105)next: i (105) -> o (111)next: o (111) -> n (110)next: n (110) ->   (32)[DEBUG] internshrstr: str='function', len=8, hash=3559143499, table_size=128, table_nuse=2
+[DEBUG] statlist: entering, current token = 266
+[DEBUG] statlist: in loop, current token = 266
+next:   (32) -> h (104)next: h (104) -> e (101)next: e (101) -> l (108)next: l (108) -> l (108)next: l (108) -> o (111)next: o (111) -> ( (40)[DEBUG] internshrstr: str='hello', len=5, hash=261238937, table_size=128, table_nuse=3
 [DEBUG] check: expecting token 351, got token 351
 [DEBUG] check: token matched successfully
-next:   (32) -> = (61)next: = (61) ->   (32)[DEBUG] letstat: variable name = 'matrix_sum'
-[DEBUG] letstat: calling checknext for '='
-[DEBUG] checknext: calling check for token 339
-[DEBUG] check: expecting token 339, got token 339
+next: ( (40) -> ) (41)[DEBUG] aqlK_indexed: using register 0 (freereg was 0)
+[DEBUG] aqlK_dischargevars: entering, e->k=4
+[DEBUG] aqlK_dischargevars: switching on e->k=4
+[DEBUG] aqlK_dischargevars: default case for e->k=4
+[DEBUG] enterblock: entered block, nactvar=0, isloop=0, mode=0
+[DEBUG] checknext: calling check for token 329
+[DEBUG] check: expecting token 329, got token 329
 [DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 339
-next:   (32) -> 0 (48)next: 0 (48) -> ? (10)[DEBUG] checknext: aqlX_next completed, current token after = 350
-[DEBUG] letstat: calling expr for initialization
-[DEBUG] expr: entering, current token = 350
-[DEBUG] simpleexp: entering, current token = 350
-next: ? (10) -> ? (10)next: ? (10) -> i (105)next: i (105) -> f (102)next: f (102) ->   (32)[DEBUG] internshrstr: str='if', len=2, hash=5863476, table_size=128, table_nuse=3
-[DEBUG] getbinopr: input token=268 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 268, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 268
-[DEBUG] letstat: expr returned, e.k = 6
-[DEBUG] letstat: source='test/regression/control_flow/if_for_complex_nested.aql', creating global variable at top-level
-[DEBUG] letstat: storing to global variable
-[DEBUG] aqlK_dischargevars: entering, e->k=7
-[DEBUG] aqlK_dischargevars: switching on e->k=7
-[DEBUG] aqlK_dischargevars: default case for e->k=7
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] letstat: global variable assignment completed
-[DEBUG] letstat: completed successfully, current token = 268
-[DEBUG] statlist: statement completed, current token = 268
-[DEBUG] statlist: in loop, current token = 268
-[DEBUG] ifstat: entering if statement parsing
-[DEBUG] ifstat: calling test_then_block
-[DEBUG] test_then_block: entering
-[DEBUG] test_then_block: skipping IF/ELIF token
-next:   (32) -> 1 (49)next: 1 (49) ->   (32)[DEBUG] test_then_block: parsing condition expression
-[DEBUG] expr: entering, current token = 350
-[DEBUG] simpleexp: entering, current token = 350
-next:   (32) -> = (61)next: = (61) -> = (61)next: = (61) ->   (32)[DEBUG] getbinopr: input token=314 (TK_GE=319)
-next:   (32) -> 1 (49)next: 1 (49) ->   (32)[DEBUG] simpleexp: entering, current token = 350
-next:   (32) -> { (123)next: { (123) -> ? (10)[DEBUG] getbinopr: input token=123 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 123, returning OPR_NOBINOPR
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] codecomp: e1->k=6, e1->u.info=1, e2->k=6, e2->u.info=1
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] codecomp: rk1=130, rk2=130, freereg=0
-[DEBUG] codecomp: operator=13 (OPR_NE=16)
-[DEBUG] codecomp: OPR_EQ -> OP_EQ, k=1
-[DEBUG] codecomp: generating conditional jump with EQ, k=1
-[DEBUG] aqlK_codeAsBx: o=40, a=0, bc=-1, b=65534
-[DEBUG] codecomp: generated VJMP expression with jump at PC=2
-[DEBUG] expr: exiting, current token = 123
-[DEBUG] test_then_block: condition parsed, checking for '{'
+[DEBUG] checknext: check passed, calling aqlX_next, current token before = 329
+next: ) (41) ->   (32)[DEBUG] checknext: aqlX_next completed, current token after = 330
+[DEBUG] adjustlocalvars: activating 0 variables, reglevel=0
+[DEBUG] checknext: calling check for token 330
+[DEBUG] check: expecting token 330, got token 330
+[DEBUG] check: token matched successfully
+[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
+next:   (32) -> { (123)next: { (123) -> ? (10)[DEBUG] checknext: aqlX_next completed, current token after = 123
 [DEBUG] checknext: calling check for token 123
 [DEBUG] check: expecting token 123, got token 123
 [DEBUG] check: token matched successfully
 [DEBUG] checknext: check passed, calling aqlX_next, current token before = 123
 next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> p (112)next: p (112) -> r (114)next: r (114) -> i (105)next: i (105) -> n (110)next: n (110) -> t (116)next: t (116) -> ( (40)[DEBUG] internshrstr: str='print', len=5, hash=271190290, table_size=128, table_nuse=4
 [DEBUG] checknext: aqlX_next completed, current token after = 351
-[DEBUG] test_then_block: calling aqlK_goiffalse
-[DEBUG] aqlK_goiffalse: entering
-[DEBUG] aqlK_goiffalse: calling aqlK_dischargevars
-[DEBUG] aqlK_dischargevars: entering, e->k=16
-[DEBUG] aqlK_dischargevars: switching on e->k=16
-[DEBUG] aqlK_dischargevars: default case for e->k=16
-[DEBUG] aqlK_goiffalse: aqlK_dischargevars completed, e->k=16
-[DEBUG] aqlK_goiffalse: detected VJMP, handling specially
-[DEBUG] aqlK_goiffalse: negatecondition called
-[DEBUG] aqlK_goiffalse: calling aqlK_concat with pc=2
-[DEBUG] aqlK_goiffalse: aqlK_concat completed, calling aqlK_patchtohere
-[DEBUG] aqlK_patchtohere: entering with list=-1
-[DEBUG] aqlK_patchtohere: calling aqlK_getlabel
-[DEBUG] aqlK_patchtohere: aqlK_getlabel returned hr=3
-[DEBUG] aqlK_patchtohere: calling aqlK_patchlist
-[DEBUG] aqlK_patchlist: entering with list=-1, target=3, fs->pc=3
-[DEBUG] aqlK_patchlist: list is NO_JUMP, returning
-[DEBUG] aqlK_patchtohere: aqlK_patchlist completed
-[DEBUG] aqlK_goiffalse: aqlK_patchtohere completed
-[DEBUG] aqlK_goiffalse: VJMP handling completed, e->f=2
-[DEBUG] test_then_block: aqlK_goiffalse completed
-[DEBUG] enterblock: entered block, nactvar=0, isloop=0, mode=0
 [DEBUG] statlist: entering, current token = 351
 [DEBUG] statlist: in loop, current token = 351
 [DEBUG] exprstat: calling singlevar_unified
 [DEBUG] check: expecting token 351, got token 351
 [DEBUG] check: token matched successfully
 next: ( (40) -> " (34)[DEBUG] exprstat: singlevar_unified returned, v.k=20
-next: " (34) -> P (80)next: P (80) -> r (114)next: r (114) -> o (111)next: o (111) -> c (99)next: c (99) -> e (101)next: e (101) -> s (115)next: s (115) -> s (115)next: s (115) -> i (105)next: i (105) -> n (110)next: n (110) -> g (103)next: g (103) ->   (32)next:   (32) -> m (109)next: m (109) -> a (97)next: a (97) -> t (116)next: t (116) -> r (114)next: r (114) -> i (105)next: i (105) -> x (120)next: x (120) -> " (34)next: " (34) -> ) (41)[DEBUG] internshrstr: str='Processing matrix', len=17, hash=540300471, table_size=128, table_nuse=5
-[DEBUG] expr: entering, current token = 295
-[DEBUG] simpleexp: entering, current token = 295
-next: ) (41) -> ? (10)[DEBUG] getbinopr: input token=330 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 330, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 330
-[DEBUG] aqlK_dischargevars: entering, e->k=7
-[DEBUG] aqlK_dischargevars: switching on e->k=7
-[DEBUG] aqlK_dischargevars: default case for e->k=7
-[DEBUG] aqlK_dischargevars: entering, e->k=7
-[DEBUG] aqlK_dischargevars: switching on e->k=7
-[DEBUG] aqlK_dischargevars: default case for e->k=7
-[DEBUG] checknext: calling check for token 330
-[DEBUG] check: expecting token 330, got token 330
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> f (102)next: f (102) -> o (111)next: o (111) -> r (114)next: r (114) ->   (32)[DEBUG] internshrstr: str='for', len=3, hash=193491852, table_size=128, table_nuse=6
-[DEBUG] checknext: aqlX_next completed, current token after = 265
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] statlist: statement completed, current token = 265
-[DEBUG] statlist: in loop, current token = 265
-next:   (32) -> r (114)next: r (114) -> o (111)next: o (111) -> w (119)next: w (119) ->   (32)[DEBUG] internshrstr: str='row', len=3, hash=193504925, table_size=128, table_nuse=7
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> = (61)next: = (61) ->   (32)[DEBUG] After parsing variable name, current token = 339
-[DEBUG] TK_ASSIGN = 339, TK_IN = 269
-[DEBUG] Detected numeric for loop
-[DEBUG] forstat_numeric: entering numeric for statement parsing
-[DEBUG] forstat_numeric: loop variable = row
-[DEBUG] checknext: calling check for token 339
-[DEBUG] check: expecting token 339, got token 339
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 339
-next:   (32) -> 1 (49)next: 1 (49) -> , (44)[DEBUG] checknext: aqlX_next completed, current token after = 350
-[DEBUG] expr: entering, current token = 350
-[DEBUG] simpleexp: entering, current token = 350
-next: , (44) ->   (32)[DEBUG] getbinopr: input token=44 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 44, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 44
-[DEBUG] forstat: initial value expr, k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_int: reg=0, i=1, fitsBx=1
-[DEBUG] aqlK_int: MAXARG_Bx=131071, OFFSET_sBx=65535, MAXARG_sBx=65535
-[DEBUG] aqlK_int: calling aqlK_codeAsBx with i=1
-[DEBUG] aqlK_codeAsBx: o=1, a=0, bc=1, b=65536
-[DEBUG] forstat: parsed initial value, stored in register 0
-[DEBUG] checknext: calling check for token 44
-[DEBUG] check: expecting token 44, got token 44
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 44
-next:   (32) -> 3 (51)next: 3 (51) -> , (44)[DEBUG] checknext: aqlX_next completed, current token after = 350
-[DEBUG] expr: entering, current token = 350
-[DEBUG] simpleexp: entering, current token = 350
-next: , (44) ->   (32)[DEBUG] getbinopr: input token=44 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 44, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 44
-[DEBUG] forstat: limit value expr, k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_int: reg=2, i=3, fitsBx=1
-[DEBUG] aqlK_int: MAXARG_Bx=131071, OFFSET_sBx=65535, MAXARG_sBx=65535
-[DEBUG] aqlK_int: calling aqlK_codeAsBx with i=3
-[DEBUG] aqlK_codeAsBx: o=1, a=2, bc=3, b=65538
-[DEBUG] forstat: moved limit value from R2 to R1
-[DEBUG] forstat: parsed limit value, stored in register 1
-next:   (32) -> 1 (49)next: 1 (49) ->   (32)[DEBUG] expr: entering, current token = 350
-[DEBUG] simpleexp: entering, current token = 350
-next:   (32) -> { (123)next: { (123) -> ? (10)[DEBUG] getbinopr: input token=123 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 123, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 123
-[DEBUG] forstat: step value expr, k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_int: reg=4, i=1, fitsBx=1
-[DEBUG] aqlK_int: MAXARG_Bx=131071, OFFSET_sBx=65535, MAXARG_sBx=65535
-[DEBUG] aqlK_int: calling aqlK_codeAsBx with i=1
-[DEBUG] aqlK_codeAsBx: o=1, a=4, bc=1, b=65536
-[DEBUG] forstat: moved step value from R4 to R2
-[DEBUG] forstat: parsed explicit step value, stored in register 2
-[DEBUG] new_localvar: created variable 'row' at index 0 with unified AQL enhancements
-[DEBUG] checknext: calling check for token 123
-[DEBUG] check: expecting token 123, got token 123
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 123
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> l (108)next: l (108) -> e (101)next: e (101) -> t (116)next: t (116) ->   (32)[DEBUG] internshrstr: str='let', len=3, hash=193498058, table_size=128, table_nuse=8
-[DEBUG] checknext: aqlX_next completed, current token after = 299
-[DEBUG] aqlK_codeAsBx: o=54, a=0, bc=0, b=65535
-[DEBUG] forstat: generated FORPREP at PC=10
-[DEBUG] enterblock: entered block, nactvar=0, isloop=1, mode=0
-[DEBUG] forstat: protected for-loop registers 0-3, freereg: 6 -> 6
-[DEBUG] adjustlocalvars: activating 1 variables, reglevel=0
-[DEBUG] adjustlocalvars: variable 'row' -> register 0, debug index 0
-[DEBUG] forstat: loop variable 'row' at register 3, freereg=7
-[DEBUG] enterblock: entered block, nactvar=1, isloop=0, mode=0
-[DEBUG] statlist: entering, current token = 299
-[DEBUG] statlist: in loop, current token = 299
-[DEBUG] letstat: entering
-[DEBUG] letstat: calling aqlX_next to skip LET
-next:   (32) -> r (114)next: r (114) -> o (111)next: o (111) -> w (119)next: w (119) -> _ (95)next: _ (95) -> s (115)next: s (115) -> u (117)next: u (117) -> m (109)next: m (109) ->   (32)[DEBUG] internshrstr: str='row_sum', len=7, hash=1455078865, table_size=128, table_nuse=8
-[DEBUG] letstat: calling str_checkname for variable name
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> = (61)next: = (61) ->   (32)[DEBUG] letstat: variable name = 'row_sum'
-[DEBUG] letstat: calling checknext for '='
-[DEBUG] checknext: calling check for token 339
-[DEBUG] check: expecting token 339, got token 339
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 339
-next:   (32) -> 0 (48)next: 0 (48) -> ? (10)[DEBUG] checknext: aqlX_next completed, current token after = 350
-[DEBUG] letstat: calling expr for initialization
-[DEBUG] expr: entering, current token = 350
-[DEBUG] simpleexp: entering, current token = 350
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> i (105)next: i (105) -> f (102)next: f (102) ->   (32)[DEBUG] internshrstr: str='if', len=2, hash=5863476, table_size=128, table_nuse=9
-[DEBUG] getbinopr: input token=268 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 268, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 268
-[DEBUG] letstat: expr returned, e.k = 6
-[DEBUG] letstat: creating local variable in block scope (nesting level > 1)
-[DEBUG] new_localvar: created variable 'row_sum' at index 1 with unified AQL enhancements
-[DEBUG] adjustlocalvars: activating 1 variables, reglevel=4
-[DEBUG] adjustlocalvars: variable 'row_sum' -> register 4, debug index 1
-[DEBUG] letstat: local variable 'row_sum' assigned to register 4
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_int: reg=7, i=0, fitsBx=1
-[DEBUG] aqlK_int: MAXARG_Bx=131071, OFFSET_sBx=65535, MAXARG_sBx=65535
-[DEBUG] aqlK_int: calling aqlK_codeAsBx with i=0
-[DEBUG] aqlK_codeAsBx: o=1, a=7, bc=0, b=65535
-[DEBUG] letstat: local variable assignment completed
-[DEBUG] letstat: completed successfully, current token = 268
-[DEBUG] statlist: statement completed, current token = 268
-[DEBUG] statlist: in loop, current token = 268
-[DEBUG] ifstat: entering if statement parsing
-[DEBUG] ifstat: calling test_then_block
-[DEBUG] test_then_block: entering
-[DEBUG] test_then_block: skipping IF/ELIF token
-next:   (32) -> r (114)next: r (114) -> o (111)next: o (111) -> w (119)next: w (119) ->   (32)[DEBUG] internshrstr: str='row', len=3, hash=193504925, table_size=128, table_nuse=9
-[DEBUG] test_then_block: parsing condition expression
-[DEBUG] expr: entering, current token = 351
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> % (37)next: % (37) ->   (32)[DEBUG] init_var: vidx=0, ridx=3, name='row'
-[DEBUG] singlevar_unified: found variable 'row' with type k=9
-[DEBUG] getbinopr: input token=311 (TK_GE=319)
-next:   (32) -> 2 (50)next: 2 (50) ->   (32)[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] simpleexp: entering, current token = 350
-next:   (32) -> = (61)next: = (61) -> = (61)next: = (61) ->   (32)[DEBUG] getbinopr: input token=314 (TK_GE=319)
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] codebinexpval: op=28, rk1=3, rk2=132, target_reg=5, freereg=6 (saved=5)
-next:   (32) -> 1 (49)next: 1 (49) ->   (32)[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] simpleexp: entering, current token = 350
-next:   (32) -> { (123)next: { (123) -> ? (10)[DEBUG] getbinopr: input token=123 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 123, returning OPR_NOBINOPR
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] codecomp: e1->k=8, e1->u.info=5, e2->k=6, e2->u.info=1
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] codecomp: rk1=5, rk2=130, freereg=6
-[DEBUG] codecomp: operator=13 (OPR_NE=16)
-[DEBUG] codecomp: OPR_EQ -> OP_EQ, k=1
-[DEBUG] codecomp: generating conditional jump with EQ, k=1
-[DEBUG] aqlK_codeAsBx: o=40, a=0, bc=-1, b=65534
-[DEBUG] codecomp: generated VJMP expression with jump at PC=15
-[DEBUG] expr: exiting, current token = 123
-[DEBUG] test_then_block: condition parsed, checking for '{'
-[DEBUG] checknext: calling check for token 123
-[DEBUG] check: expecting token 123, got token 123
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 123
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> p (112)next: p (112) -> r (114)next: r (114) -> i (105)next: i (105) -> n (110)next: n (110) -> t (116)next: t (116) -> ( (40)[DEBUG] internshrstr: str='print', len=5, hash=271190290, table_size=128, table_nuse=9
-[DEBUG] checknext: aqlX_next completed, current token after = 351
-[DEBUG] test_then_block: calling aqlK_goiffalse
-[DEBUG] aqlK_goiffalse: entering
-[DEBUG] aqlK_goiffalse: calling aqlK_dischargevars
-[DEBUG] aqlK_dischargevars: entering, e->k=16
-[DEBUG] aqlK_dischargevars: switching on e->k=16
-[DEBUG] aqlK_dischargevars: default case for e->k=16
-[DEBUG] aqlK_goiffalse: aqlK_dischargevars completed, e->k=16
-[DEBUG] aqlK_goiffalse: detected VJMP, handling specially
-[DEBUG] aqlK_goiffalse: negatecondition called
-[DEBUG] aqlK_goiffalse: calling aqlK_concat with pc=15
-[DEBUG] aqlK_goiffalse: aqlK_concat completed, calling aqlK_patchtohere
-[DEBUG] aqlK_patchtohere: entering with list=-1
-[DEBUG] aqlK_patchtohere: calling aqlK_getlabel
-[DEBUG] aqlK_patchtohere: aqlK_getlabel returned hr=16
-[DEBUG] aqlK_patchtohere: calling aqlK_patchlist
-[DEBUG] aqlK_patchlist: entering with list=-1, target=16, fs->pc=16
-[DEBUG] aqlK_patchlist: list is NO_JUMP, returning
-[DEBUG] aqlK_patchtohere: aqlK_patchlist completed
-[DEBUG] aqlK_goiffalse: aqlK_patchtohere completed
-[DEBUG] aqlK_goiffalse: VJMP handling completed, e->f=15
-[DEBUG] test_then_block: aqlK_goiffalse completed
-[DEBUG] enterblock: entered block, nactvar=2, isloop=0, mode=0
-[DEBUG] statlist: entering, current token = 351
-[DEBUG] statlist: in loop, current token = 351
-[DEBUG] exprstat: calling singlevar_unified
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ( (40) -> " (34)[DEBUG] exprstat: singlevar_unified returned, v.k=20
-next: " (34) -> O (79)next: O (79) -> d (100)next: d (100) -> d (100)next: d (100) ->   (32)next:   (32) -> r (114)next: r (114) -> o (111)next: o (111) -> w (119)next: w (119) -> : (58)next: : (58) ->   (32)next:   (32) -> " (34)next: " (34) ->   (32)[DEBUG] internshrstr: str='Odd row: ', len=9, hash=2465016494, table_size=128, table_nuse=9
-[DEBUG] expr: entering, current token = 295
-[DEBUG] simpleexp: entering, current token = 295
-next:   (32) -> + (43)next: + (43) ->   (32)[DEBUG] getbinopr: input token=307 (TK_GE=319)
-next:   (32) -> s (115)next: s (115) -> t (116)next: t (116) -> r (114)next: r (114) -> i (105)next: i (105) -> n (110)next: n (110) -> g (103)next: g (103) -> ( (40)[DEBUG] internshrstr: str='string', len=6, hash=479440892, table_size=128, table_nuse=10
-[DEBUG] aqlK_dischargevars: entering, e->k=7
-[DEBUG] aqlK_dischargevars: switching on e->k=7
-[DEBUG] aqlK_dischargevars: default case for e->k=7
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ( (40) -> r (114)[DEBUG] aqlK_indexed: using register 6 (freereg was 6)
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-next: r (114) -> o (111)next: o (111) -> w (119)next: w (119) -> ) (41)[DEBUG] internshrstr: str='row', len=3, hash=193504925, table_size=128, table_nuse=11
-[DEBUG] expr: entering, current token = 351
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ) (41) -> ) (41)[DEBUG] init_var: vidx=0, ridx=3, name='row'
-[DEBUG] singlevar_unified: found variable 'row' with type k=9
-[DEBUG] getbinopr: input token=330 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 330, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 330
-[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] checknext: calling check for token 330
-[DEBUG] check: expecting token 330, got token 330
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
-next: ) (41) -> ? (10)[DEBUG] checknext: aqlX_next completed, current token after = 330
-[DEBUG] getbinopr: input token=330 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 330, returning OPR_NOBINOPR
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] codebinexpval: op=16, rk1=133, rk2=16, target_reg=7, freereg=8 (saved=7)
-[DEBUG] expr: exiting, current token = 330
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] checknext: calling check for token 330
-[DEBUG] check: expecting token 330, got token 330
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> f (102)next: f (102) -> o (111)next: o (111) -> r (114)next: r (114) ->   (32)[DEBUG] internshrstr: str='for', len=3, hash=193491852, table_size=128, table_nuse=11
-[DEBUG] checknext: aqlX_next completed, current token after = 265
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] statlist: statement completed, current token = 265
-[DEBUG] statlist: in loop, current token = 265
-next:   (32) -> c (99)next: c (99) -> o (111)next: o (111) -> l (108)next: l (108) ->   (32)[DEBUG] internshrstr: str='col', len=3, hash=193488579, table_size=128, table_nuse=11
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> = (61)next: = (61) ->   (32)[DEBUG] After parsing variable name, current token = 339
-[DEBUG] TK_ASSIGN = 339, TK_IN = 269
-[DEBUG] Detected numeric for loop
-[DEBUG] forstat_numeric: entering numeric for statement parsing
-[DEBUG] forstat_numeric: loop variable = col
-[DEBUG] checknext: calling check for token 339
-[DEBUG] check: expecting token 339, got token 339
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 339
-next:   (32) -> 1 (49)next: 1 (49) -> , (44)[DEBUG] checknext: aqlX_next completed, current token after = 350
-[DEBUG] expr: entering, current token = 350
-[DEBUG] simpleexp: entering, current token = 350
-next: , (44) ->   (32)[DEBUG] getbinopr: input token=44 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 44, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 44
-[DEBUG] forstat: initial value expr, k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_int: reg=5, i=1, fitsBx=1
-[DEBUG] aqlK_int: MAXARG_Bx=131071, OFFSET_sBx=65535, MAXARG_sBx=65535
-[DEBUG] aqlK_int: calling aqlK_codeAsBx with i=1
-[DEBUG] aqlK_codeAsBx: o=1, a=5, bc=1, b=65536
-[DEBUG] forstat: parsed initial value, stored in register 5
-[DEBUG] checknext: calling check for token 44
-[DEBUG] check: expecting token 44, got token 44
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 44
-next:   (32) -> 3 (51)next: 3 (51) -> , (44)[DEBUG] checknext: aqlX_next completed, current token after = 350
-[DEBUG] expr: entering, current token = 350
-[DEBUG] simpleexp: entering, current token = 350
-next: , (44) ->   (32)[DEBUG] getbinopr: input token=44 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 44, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 44
-[DEBUG] forstat: limit value expr, k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_int: reg=7, i=3, fitsBx=1
-[DEBUG] aqlK_int: MAXARG_Bx=131071, OFFSET_sBx=65535, MAXARG_sBx=65535
-[DEBUG] aqlK_int: calling aqlK_codeAsBx with i=3
-[DEBUG] aqlK_codeAsBx: o=1, a=7, bc=3, b=65538
-[DEBUG] forstat: moved limit value from R7 to R6
-[DEBUG] forstat: parsed limit value, stored in register 6
-next:   (32) -> 1 (49)next: 1 (49) ->   (32)[DEBUG] expr: entering, current token = 350
-[DEBUG] simpleexp: entering, current token = 350
-next:   (32) -> { (123)next: { (123) -> ? (10)[DEBUG] getbinopr: input token=123 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 123, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 123
-[DEBUG] forstat: step value expr, k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_int: reg=9, i=1, fitsBx=1
-[DEBUG] aqlK_int: MAXARG_Bx=131071, OFFSET_sBx=65535, MAXARG_sBx=65535
-[DEBUG] aqlK_int: calling aqlK_codeAsBx with i=1
-[DEBUG] aqlK_codeAsBx: o=1, a=9, bc=1, b=65536
-[DEBUG] forstat: moved step value from R9 to R7
-[DEBUG] forstat: parsed explicit step value, stored in register 7
-[DEBUG] new_localvar: created variable 'col' at index 2 with unified AQL enhancements
-[DEBUG] checknext: calling check for token 123
-[DEBUG] check: expecting token 123, got token 123
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 123
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> l (108)next: l (108) -> e (101)next: e (101) -> t (116)next: t (116) ->   (32)[DEBUG] internshrstr: str='let', len=3, hash=193498058, table_size=128, table_nuse=12
-[DEBUG] checknext: aqlX_next completed, current token after = 299
-[DEBUG] aqlK_codeAsBx: o=54, a=5, bc=0, b=65535
-[DEBUG] forstat: generated FORPREP at PC=26
-[DEBUG] enterblock: entered block, nactvar=2, isloop=1, mode=0
-[DEBUG] forstat: protected for-loop registers 5-8, freereg: 11 -> 11
-[DEBUG] adjustlocalvars: activating 1 variables, reglevel=5
-[DEBUG] adjustlocalvars: variable 'col' -> register 5, debug index 2
-[DEBUG] forstat: loop variable 'col' at register 8, freereg=12
-[DEBUG] enterblock: entered block, nactvar=3, isloop=0, mode=0
-[DEBUG] statlist: entering, current token = 299
-[DEBUG] statlist: in loop, current token = 299
-[DEBUG] letstat: entering
-[DEBUG] letstat: calling aqlX_next to skip LET
-next:   (32) -> v (118)next: v (118) -> a (97)next: a (97) -> l (108)next: l (108) -> u (117)next: u (117) -> e (101)next: e (101) ->   (32)[DEBUG] internshrstr: str='value', len=5, hash=277698370, table_size=128, table_nuse=12
-[DEBUG] letstat: calling str_checkname for variable name
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> = (61)next: = (61) ->   (32)[DEBUG] letstat: variable name = 'value'
-[DEBUG] letstat: calling checknext for '='
-[DEBUG] checknext: calling check for token 339
-[DEBUG] check: expecting token 339, got token 339
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 339
-next:   (32) -> r (114)next: r (114) -> o (111)next: o (111) -> w (119)next: w (119) ->   (32)[DEBUG] internshrstr: str='row', len=3, hash=193504925, table_size=128, table_nuse=13
-[DEBUG] checknext: aqlX_next completed, current token after = 351
-[DEBUG] letstat: calling expr for initialization
-[DEBUG] expr: entering, current token = 351
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> * (42)next: * (42) ->   (32)[DEBUG] init_var: vidx=0, ridx=3, name='row'
-[DEBUG] singlevar_unified: found variable 'row' with type k=9
-[DEBUG] getbinopr: input token=309 (TK_GE=319)
-next:   (32) -> 1 (49)next: 1 (49) -> 0 (48)next: 0 (48) ->   (32)[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] simpleexp: entering, current token = 350
-next:   (32) -> + (43)next: + (43) ->   (32)[DEBUG] getbinopr: input token=307 (TK_GE=319)
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] codebinexpval: op=22, rk1=3, rk2=135, target_reg=12, freereg=13 (saved=12)
-next:   (32) -> c (99)next: c (99) -> o (111)next: o (111) -> l (108)next: l (108) -> ? (10)[DEBUG] internshrstr: str='col', len=3, hash=193488579, table_size=128, table_nuse=13
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> i (105)next: i (105) -> f (102)next: f (102) ->   (32)[DEBUG] internshrstr: str='if', len=2, hash=5863476, table_size=128, table_nuse=13
-[DEBUG] init_var: vidx=2, ridx=8, name='col'
-[DEBUG] singlevar_unified: found variable 'col' with type k=9
-[DEBUG] getbinopr: input token=268 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 268, returning OPR_NOBINOPR
-[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] codebinexpval: op=16, rk1=12, rk2=8, target_reg=13, freereg=14 (saved=13)
-[DEBUG] expr: exiting, current token = 268
-[DEBUG] letstat: expr returned, e.k = 8
-[DEBUG] letstat: creating local variable in block scope (nesting level > 1)
-[DEBUG] new_localvar: created variable 'value' at index 3 with unified AQL enhancements
-[DEBUG] adjustlocalvars: activating 1 variables, reglevel=9
-[DEBUG] adjustlocalvars: variable 'value' -> register 9, debug index 3
-[DEBUG] letstat: local variable 'value' assigned to register 9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] letstat: local variable assignment completed
-[DEBUG] letstat: completed successfully, current token = 268
-[DEBUG] statlist: statement completed, current token = 268
-[DEBUG] statlist: in loop, current token = 268
-[DEBUG] ifstat: entering if statement parsing
-[DEBUG] ifstat: calling test_then_block
-[DEBUG] test_then_block: entering
-[DEBUG] test_then_block: skipping IF/ELIF token
-next:   (32) -> v (118)next: v (118) -> a (97)next: a (97) -> l (108)next: l (108) -> u (117)next: u (117) -> e (101)next: e (101) ->   (32)[DEBUG] internshrstr: str='value', len=5, hash=277698370, table_size=128, table_nuse=13
-[DEBUG] test_then_block: parsing condition expression
-[DEBUG] expr: entering, current token = 351
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> > (62)[DEBUG] alex: found '>', checking for compound operators
-next: > (62) ->   (32)[DEBUG] alex: found '>', returning TK_GT
-[DEBUG] init_var: vidx=3, ridx=9, name='value'
-[DEBUG] singlevar_unified: found variable 'value' with type k=9
-[DEBUG] getbinopr: input token=317 (TK_GE=319)
-next:   (32) -> 1 (49)next: 1 (49) -> 5 (53)next: 5 (53) ->   (32)[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] simpleexp: entering, current token = 350
-next:   (32) -> { (123)next: { (123) -> ? (10)[DEBUG] getbinopr: input token=123 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 123, returning OPR_NOBINOPR
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_posfix: handling GT/GE, opr=17
-[DEBUG] aqlK_posfix: swapped operands, converted opr 17 to 14
-[DEBUG] codecomp: e1->k=6, e1->u.info=15, e2->k=8, e2->u.info=9
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] codecomp: rk1=136, rk2=9, freereg=10
-[DEBUG] codecomp: operator=14 (OPR_NE=16)
-[DEBUG] codecomp: OPR_LT -> OP_LT, k=1
-[DEBUG] codecomp: generating conditional jump with LT, k=1
-[DEBUG] aqlK_codeAsBx: o=40, a=0, bc=-1, b=65534
-[DEBUG] codecomp: generated VJMP expression with jump at PC=31
-[DEBUG] expr: exiting, current token = 123
-[DEBUG] test_then_block: condition parsed, checking for '{'
-[DEBUG] checknext: calling check for token 123
-[DEBUG] check: expecting token 123, got token 123
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 123
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> p (112)next: p (112) -> r (114)next: r (114) -> i (105)next: i (105) -> n (110)next: n (110) -> t (116)next: t (116) -> ( (40)[DEBUG] internshrstr: str='print', len=5, hash=271190290, table_size=128, table_nuse=13
-[DEBUG] checknext: aqlX_next completed, current token after = 351
-[DEBUG] test_then_block: calling aqlK_goiffalse
-[DEBUG] aqlK_goiffalse: entering
-[DEBUG] aqlK_goiffalse: calling aqlK_dischargevars
-[DEBUG] aqlK_dischargevars: entering, e->k=16
-[DEBUG] aqlK_dischargevars: switching on e->k=16
-[DEBUG] aqlK_dischargevars: default case for e->k=16
-[DEBUG] aqlK_goiffalse: aqlK_dischargevars completed, e->k=16
-[DEBUG] aqlK_goiffalse: detected VJMP, handling specially
-[DEBUG] aqlK_goiffalse: negatecondition called
-[DEBUG] aqlK_goiffalse: calling aqlK_concat with pc=31
-[DEBUG] aqlK_goiffalse: aqlK_concat completed, calling aqlK_patchtohere
-[DEBUG] aqlK_patchtohere: entering with list=-1
-[DEBUG] aqlK_patchtohere: calling aqlK_getlabel
-[DEBUG] aqlK_patchtohere: aqlK_getlabel returned hr=32
-[DEBUG] aqlK_patchtohere: calling aqlK_patchlist
-[DEBUG] aqlK_patchlist: entering with list=-1, target=32, fs->pc=32
-[DEBUG] aqlK_patchlist: list is NO_JUMP, returning
-[DEBUG] aqlK_patchtohere: aqlK_patchlist completed
-[DEBUG] aqlK_goiffalse: aqlK_patchtohere completed
-[DEBUG] aqlK_goiffalse: VJMP handling completed, e->f=31
-[DEBUG] test_then_block: aqlK_goiffalse completed
-[DEBUG] enterblock: entered block, nactvar=4, isloop=0, mode=0
-[DEBUG] statlist: entering, current token = 351
-[DEBUG] statlist: in loop, current token = 351
-[DEBUG] exprstat: calling singlevar_unified
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ( (40) -> " (34)[DEBUG] exprstat: singlevar_unified returned, v.k=20
-next: " (34) -> L (76)next: L (76) -> a (97)next: a (97) -> r (114)next: r (114) -> g (103)next: g (103) -> e (101)next: e (101) ->   (32)next:   (32) -> v (118)next: v (118) -> a (97)next: a (97) -> l (108)next: l (108) -> u (117)next: u (117) -> e (101)next: e (101) -> : (58)next: : (58) ->   (32)next:   (32) -> " (34)next: " (34) ->   (32)[DEBUG] internshrstr: str='Large value: ', len=13, hash=1875210215, table_size=128, table_nuse=13
-[DEBUG] expr: entering, current token = 295
-[DEBUG] simpleexp: entering, current token = 295
-next:   (32) -> + (43)next: + (43) ->   (32)[DEBUG] getbinopr: input token=307 (TK_GE=319)
-next:   (32) -> s (115)next: s (115) -> t (116)next: t (116) -> r (114)next: r (114) -> i (105)next: i (105) -> n (110)next: n (110) -> g (103)next: g (103) -> ( (40)[DEBUG] internshrstr: str='string', len=6, hash=479440892, table_size=128, table_nuse=14
-[DEBUG] aqlK_dischargevars: entering, e->k=7
-[DEBUG] aqlK_dischargevars: switching on e->k=7
-[DEBUG] aqlK_dischargevars: default case for e->k=7
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ( (40) -> v (118)[DEBUG] aqlK_indexed: using register 9 (freereg was 9)
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-next: v (118) -> a (97)next: a (97) -> l (108)next: l (108) -> u (117)next: u (117) -> e (101)next: e (101) -> ) (41)[DEBUG] internshrstr: str='value', len=5, hash=277698370, table_size=128, table_nuse=14
-[DEBUG] expr: entering, current token = 351
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ) (41) -> ) (41)[DEBUG] init_var: vidx=3, ridx=9, name='value'
-[DEBUG] singlevar_unified: found variable 'value' with type k=9
-[DEBUG] getbinopr: input token=330 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 330, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 330
-[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] checknext: calling check for token 330
-[DEBUG] check: expecting token 330, got token 330
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
-next: ) (41) -> ? (10)[DEBUG] checknext: aqlX_next completed, current token after = 330
-[DEBUG] getbinopr: input token=330 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 330, returning OPR_NOBINOPR
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] codebinexpval: op=16, rk1=137, rk2=32, target_reg=10, freereg=11 (saved=10)
-[DEBUG] expr: exiting, current token = 330
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] checknext: calling check for token 330
-[DEBUG] check: expecting token 330, got token 330
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> r (114)next: r (114) -> o (111)next: o (111) -> w (119)next: w (119) -> _ (95)next: _ (95) -> s (115)next: s (115) -> u (117)next: u (117) -> m (109)next: m (109) ->   (32)[DEBUG] internshrstr: str='row_sum', len=7, hash=1455078865, table_size=128, table_nuse=14
-[DEBUG] checknext: aqlX_next completed, current token after = 351
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] statlist: statement completed, current token = 351
-[DEBUG] statlist: in loop, current token = 351
-[DEBUG] exprstat: calling singlevar_unified
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> = (61)next: = (61) ->   (32)[DEBUG] init_var: vidx=1, ridx=4, name='row_sum'
-[DEBUG] singlevar_unified: found variable 'row_sum' with type k=9
-[DEBUG] exprstat: singlevar_unified returned, v.k=9
-[DEBUG] assignment_from_var: entering, var->k=9
-next:   (32) -> r (114)next: r (114) -> o (111)next: o (111) -> w (119)next: w (119) -> _ (95)next: _ (95) -> s (115)next: s (115) -> u (117)next: u (117) -> m (109)next: m (109) ->   (32)[DEBUG] internshrstr: str='row_sum', len=7, hash=1455078865, table_size=128, table_nuse=14
-[DEBUG] assignment_from_var: found assignment operator
-[DEBUG] expr: entering, current token = 351
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> + (43)next: + (43) ->   (32)[DEBUG] init_var: vidx=1, ridx=4, name='row_sum'
-[DEBUG] singlevar_unified: found variable 'row_sum' with type k=9
-[DEBUG] getbinopr: input token=307 (TK_GE=319)
-next:   (32) -> v (118)next: v (118) -> a (97)next: a (97) -> l (108)next: l (108) -> u (117)next: u (117) -> e (101)next: e (101) -> ? (10)[DEBUG] internshrstr: str='value', len=5, hash=277698370, table_size=128, table_nuse=14
-[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> } (125)next: } (125) ->   (32)[DEBUG] init_var: vidx=3, ridx=9, name='value'
-[DEBUG] singlevar_unified: found variable 'value' with type k=9
-[DEBUG] getbinopr: input token=125 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 125, returning OPR_NOBINOPR
-[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] codebinexpval: op=16, rk1=4, rk2=9, target_reg=10, freereg=11 (saved=10)
-[DEBUG] expr: exiting, current token = 125
-[DEBUG] assignment_from_var: calling aqlK_storevar
-[DEBUG] aqlK_storevar: entering, var->k=9, ex->k=8
-[DEBUG] aqlK_storevar: VINDEXUP=13, VLOCAL=9, VUPVAL=10
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] statlist: statement completed, current token = 125
-[DEBUG] statlist: exiting loop, current token = 125
-[DEBUG] leaveblock: leaving block, cleaning up from level 4
-[DEBUG] leaveblock: cleaned up containers to count 0
-[DEBUG] leaveblock: completed, freereg=10
-[DEBUG] test_then_block: checking for closing '}'
-[DEBUG] checknext: calling check for token 125
-[DEBUG] check: expecting token 125, got token 125
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 125
-next:   (32) -> e (101)next: e (101) -> l (108)next: l (108) -> s (115)next: s (115) -> e (101)next: e (101) ->   (32)[DEBUG] internshrstr: str='else', len=4, hash=2090224750, table_size=128, table_nuse=14
-[DEBUG] checknext: aqlX_next completed, current token after = 261
-[DEBUG] test_then_block: closing '}' matched
-[DEBUG] aqlK_codeAsBx: o=40, a=0, bc=-1, b=65534
-[DEBUG] aqlK_patchtohere: entering with list=31
-[DEBUG] aqlK_patchtohere: calling aqlK_getlabel
-[DEBUG] aqlK_patchtohere: aqlK_getlabel returned hr=39
-[DEBUG] aqlK_patchtohere: calling aqlK_patchlist
-[DEBUG] aqlK_patchlist: entering with list=31, target=39, fs->pc=39
-[DEBUG] aqlK_patchlist: target == fs->pc, this would cause recursion - using patchlistaux instead
-[DEBUG] getjump: pc=31, offset=-1
-[DEBUG] fixjump: pc=31, dest=39, offset=7
-[DEBUG] fixjump: OFFSET_sBx=65535, MAXARG_sBx=65535
-[DEBUG] fixjump: range check: -65535 <= 7 <= 65535
-[DEBUG] fixjump: set sBx=7 for instruction at pc=31
-[DEBUG] aqlK_patchlist: completed
-[DEBUG] aqlK_patchtohere: aqlK_patchlist completed
-[DEBUG] aqlK_patchtohere: entering with list=-1
-[DEBUG] aqlK_patchtohere: calling aqlK_getlabel
-[DEBUG] aqlK_patchtohere: aqlK_getlabel returned hr=39
-[DEBUG] aqlK_patchtohere: calling aqlK_patchlist
-[DEBUG] aqlK_patchlist: entering with list=-1, target=39, fs->pc=39
-[DEBUG] aqlK_patchlist: list is NO_JUMP, returning
-[DEBUG] aqlK_patchtohere: aqlK_patchlist completed
-next:   (32) -> { (123)next: { (123) -> ? (10)[DEBUG] checknext: calling check for token 123
-[DEBUG] check: expecting token 123, got token 123
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 123
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> p (112)next: p (112) -> r (114)next: r (114) -> i (105)next: i (105) -> n (110)next: n (110) -> t (116)next: t (116) -> ( (40)[DEBUG] internshrstr: str='print', len=5, hash=271190290, table_size=128, table_nuse=15
-[DEBUG] checknext: aqlX_next completed, current token after = 351
-[DEBUG] enterblock: entered block, nactvar=4, isloop=0, mode=0
-[DEBUG] statlist: entering, current token = 351
-[DEBUG] statlist: in loop, current token = 351
-[DEBUG] exprstat: calling singlevar_unified
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ( (40) -> " (34)[DEBUG] exprstat: singlevar_unified returned, v.k=20
-next: " (34) -> S (83)next: S (83) -> m (109)next: m (109) -> a (97)next: a (97) -> l (108)next: l (108) -> l (108)next: l (108) ->   (32)next:   (32) -> v (118)next: v (118) -> a (97)next: a (97) -> l (108)next: l (108) -> u (117)next: u (117) -> e (101)next: e (101) -> : (58)next: : (58) ->   (32)next:   (32) -> " (34)next: " (34) ->   (32)[DEBUG] internshrstr: str='Small value: ', len=13, hash=1329264213, table_size=128, table_nuse=15
-[DEBUG] expr: entering, current token = 295
-[DEBUG] simpleexp: entering, current token = 295
-next:   (32) -> + (43)next: + (43) ->   (32)[DEBUG] getbinopr: input token=307 (TK_GE=319)
-next:   (32) -> s (115)next: s (115) -> t (116)next: t (116) -> r (114)next: r (114) -> i (105)next: i (105) -> n (110)next: n (110) -> g (103)next: g (103) -> ( (40)[DEBUG] internshrstr: str='string', len=6, hash=479440892, table_size=128, table_nuse=16
-[DEBUG] aqlK_dischargevars: entering, e->k=7
-[DEBUG] aqlK_dischargevars: switching on e->k=7
-[DEBUG] aqlK_dischargevars: default case for e->k=7
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ( (40) -> v (118)[DEBUG] aqlK_indexed: using register 10 (freereg was 10)
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-next: v (118) -> a (97)next: a (97) -> l (108)next: l (108) -> u (117)next: u (117) -> e (101)next: e (101) -> ) (41)[DEBUG] internshrstr: str='value', len=5, hash=277698370, table_size=128, table_nuse=16
-[DEBUG] expr: entering, current token = 351
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ) (41) -> ) (41)[DEBUG] init_var: vidx=3, ridx=9, name='value'
-[DEBUG] singlevar_unified: found variable 'value' with type k=9
-[DEBUG] getbinopr: input token=330 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 330, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 330
-[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] checknext: calling check for token 330
-[DEBUG] check: expecting token 330, got token 330
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
-next: ) (41) -> ? (10)[DEBUG] checknext: aqlX_next completed, current token after = 330
-[DEBUG] getbinopr: input token=330 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 330, returning OPR_NOBINOPR
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] codebinexpval: op=16, rk1=138, rk2=39, target_reg=11, freereg=12 (saved=11)
-[DEBUG] expr: exiting, current token = 330
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] checknext: calling check for token 330
-[DEBUG] check: expecting token 330, got token 330
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> r (114)next: r (114) -> o (111)next: o (111) -> w (119)next: w (119) -> _ (95)next: _ (95) -> s (115)next: s (115) -> u (117)next: u (117) -> m (109)next: m (109) ->   (32)[DEBUG] internshrstr: str='row_sum', len=7, hash=1455078865, table_size=128, table_nuse=16
-[DEBUG] checknext: aqlX_next completed, current token after = 351
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] statlist: statement completed, current token = 351
-[DEBUG] statlist: in loop, current token = 351
-[DEBUG] exprstat: calling singlevar_unified
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> = (61)next: = (61) ->   (32)[DEBUG] init_var: vidx=1, ridx=4, name='row_sum'
-[DEBUG] singlevar_unified: found variable 'row_sum' with type k=9
-[DEBUG] exprstat: singlevar_unified returned, v.k=9
-[DEBUG] assignment_from_var: entering, var->k=9
-next:   (32) -> r (114)next: r (114) -> o (111)next: o (111) -> w (119)next: w (119) -> _ (95)next: _ (95) -> s (115)next: s (115) -> u (117)next: u (117) -> m (109)next: m (109) ->   (32)[DEBUG] internshrstr: str='row_sum', len=7, hash=1455078865, table_size=128, table_nuse=16
-[DEBUG] assignment_from_var: found assignment operator
-[DEBUG] expr: entering, current token = 351
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> + (43)next: + (43) ->   (32)[DEBUG] init_var: vidx=1, ridx=4, name='row_sum'
-[DEBUG] singlevar_unified: found variable 'row_sum' with type k=9
-[DEBUG] getbinopr: input token=307 (TK_GE=319)
-next:   (32) -> v (118)next: v (118) -> a (97)next: a (97) -> l (108)next: l (108) -> u (117)next: u (117) -> e (101)next: e (101) ->   (32)[DEBUG] internshrstr: str='value', len=5, hash=277698370, table_size=128, table_nuse=16
-[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> * (42)next: * (42) ->   (32)[DEBUG] init_var: vidx=3, ridx=9, name='value'
-[DEBUG] singlevar_unified: found variable 'value' with type k=9
-[DEBUG] getbinopr: input token=309 (TK_GE=319)
-next:   (32) -> 2 (50)next: 2 (50) -> ? (10)[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] simpleexp: entering, current token = 350
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> } (125)next: } (125) -> ? (10)[DEBUG] getbinopr: input token=125 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 125, returning OPR_NOBINOPR
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] codebinexpval: op=22, rk1=9, rk2=132, target_reg=10, freereg=11 (saved=10)
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] codebinexpval: op=16, rk1=4, rk2=10, target_reg=11, freereg=12 (saved=11)
-[DEBUG] expr: exiting, current token = 125
-[DEBUG] assignment_from_var: calling aqlK_storevar
-[DEBUG] aqlK_storevar: entering, var->k=9, ex->k=8
-[DEBUG] aqlK_storevar: VINDEXUP=13, VLOCAL=9, VUPVAL=10
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] statlist: statement completed, current token = 125
-[DEBUG] statlist: exiting loop, current token = 125
-[DEBUG] leaveblock: leaving block, cleaning up from level 4
-[DEBUG] leaveblock: cleaned up containers to count 0
-[DEBUG] leaveblock: completed, freereg=10
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> } (125)next: } (125) -> ? (10)[DEBUG] aqlK_patchtohere: entering with list=38
-[DEBUG] aqlK_patchtohere: calling aqlK_getlabel
-[DEBUG] aqlK_patchtohere: aqlK_getlabel returned hr=47
-[DEBUG] aqlK_patchtohere: calling aqlK_patchlist
-[DEBUG] aqlK_patchlist: entering with list=38, target=47, fs->pc=47
-[DEBUG] aqlK_patchlist: target == fs->pc, this would cause recursion - using patchlistaux instead
-[DEBUG] getjump: pc=38, offset=-1
-[DEBUG] fixjump: pc=38, dest=47, offset=8
-[DEBUG] fixjump: OFFSET_sBx=65535, MAXARG_sBx=65535
-[DEBUG] fixjump: range check: -65535 <= 8 <= 65535
-[DEBUG] fixjump: set sBx=8 for instruction at pc=38
-[DEBUG] aqlK_patchlist: completed
-[DEBUG] aqlK_patchtohere: aqlK_patchlist completed
-[DEBUG] statlist: statement completed, current token = 125
-[DEBUG] statlist: exiting loop, current token = 125
-[DEBUG] leaveblock: leaving block, cleaning up from level 3
-[DEBUG] leaveblock: cleaned up containers to count 0
-[DEBUG] leaveblock: completed, freereg=9
-[DEBUG] leaveblock: leaving block, cleaning up from level 2
-[DEBUG] leaveblock: cleaned up containers to count 0
-[DEBUG] leaveblock: for-loop block, stklevel=5, preserving for-loop registers
-[DEBUG] leaveblock: completed, freereg=5
-[DEBUG] checknext: calling check for token 125
-[DEBUG] check: expecting token 125, got token 125
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 125
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> } (125)next: } (125) ->   (32)[DEBUG] checknext: aqlX_next completed, current token after = 125
-[DEBUG] aqlK_codeAsBx: o=53, a=5, bc=0, b=65535
-[DEBUG] forstat: generated FORLOOP at PC=47
-[DEBUG] aqlK_patchtohere: entering with list=-1
-[DEBUG] aqlK_patchtohere: calling aqlK_getlabel
-[DEBUG] aqlK_patchtohere: aqlK_getlabel returned hr=48
-[DEBUG] aqlK_patchtohere: calling aqlK_patchlist
-[DEBUG] aqlK_patchlist: entering with list=-1, target=48, fs->pc=48
-[DEBUG] aqlK_patchlist: list is NO_JUMP, returning
-[DEBUG] aqlK_patchtohere: aqlK_patchlist completed
-[DEBUG] aqlK_patchlist: entering with list=-1, target=47, fs->pc=48
-[DEBUG] aqlK_patchlist: list is NO_JUMP, returning
-[DEBUG] forstat: continue jumps patched to FORLOOP at PC=47
-[DEBUG] forstat: for statement parsing completed
-[DEBUG] statlist: statement completed, current token = 125
-[DEBUG] statlist: exiting loop, current token = 125
-[DEBUG] leaveblock: leaving block, cleaning up from level 2
-[DEBUG] leaveblock: cleaned up containers to count 0
-[DEBUG] leaveblock: completed, freereg=5
-[DEBUG] test_then_block: checking for closing '}'
-[DEBUG] checknext: calling check for token 125
-[DEBUG] check: expecting token 125, got token 125
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 125
-next:   (32) -> e (101)next: e (101) -> l (108)next: l (108) -> s (115)next: s (115) -> e (101)next: e (101) ->   (32)[DEBUG] internshrstr: str='else', len=4, hash=2090224750, table_size=128, table_nuse=16
-[DEBUG] checknext: aqlX_next completed, current token after = 261
-[DEBUG] test_then_block: closing '}' matched
-[DEBUG] aqlK_codeAsBx: o=40, a=0, bc=-1, b=65534
-[DEBUG] aqlK_patchtohere: entering with list=15
-[DEBUG] aqlK_patchtohere: calling aqlK_getlabel
-[DEBUG] aqlK_patchtohere: aqlK_getlabel returned hr=49
-[DEBUG] aqlK_patchtohere: calling aqlK_patchlist
-[DEBUG] aqlK_patchlist: entering with list=15, target=49, fs->pc=49
-[DEBUG] aqlK_patchlist: target == fs->pc, this would cause recursion - using patchlistaux instead
-[DEBUG] getjump: pc=15, offset=-1
-[DEBUG] fixjump: pc=15, dest=49, offset=33
-[DEBUG] fixjump: OFFSET_sBx=65535, MAXARG_sBx=65535
-[DEBUG] fixjump: range check: -65535 <= 33 <= 65535
-[DEBUG] fixjump: set sBx=33 for instruction at pc=15
-[DEBUG] aqlK_patchlist: completed
-[DEBUG] aqlK_patchtohere: aqlK_patchlist completed
-[DEBUG] aqlK_patchtohere: entering with list=-1
-[DEBUG] aqlK_patchtohere: calling aqlK_getlabel
-[DEBUG] aqlK_patchtohere: aqlK_getlabel returned hr=49
-[DEBUG] aqlK_patchtohere: calling aqlK_patchlist
-[DEBUG] aqlK_patchlist: entering with list=-1, target=49, fs->pc=49
-[DEBUG] aqlK_patchlist: list is NO_JUMP, returning
-[DEBUG] aqlK_patchtohere: aqlK_patchlist completed
-next:   (32) -> { (123)next: { (123) -> ? (10)[DEBUG] checknext: calling check for token 123
-[DEBUG] check: expecting token 123, got token 123
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 123
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> p (112)next: p (112) -> r (114)next: r (114) -> i (105)next: i (105) -> n (110)next: n (110) -> t (116)next: t (116) -> ( (40)[DEBUG] internshrstr: str='print', len=5, hash=271190290, table_size=128, table_nuse=16
-[DEBUG] checknext: aqlX_next completed, current token after = 351
-[DEBUG] enterblock: entered block, nactvar=2, isloop=0, mode=0
-[DEBUG] statlist: entering, current token = 351
-[DEBUG] statlist: in loop, current token = 351
-[DEBUG] exprstat: calling singlevar_unified
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ( (40) -> " (34)[DEBUG] exprstat: singlevar_unified returned, v.k=20
-next: " (34) -> E (69)next: E (69) -> v (118)next: v (118) -> e (101)next: e (101) -> n (110)next: n (110) ->   (32)next:   (32) -> r (114)next: r (114) -> o (111)next: o (111) -> w (119)next: w (119) -> : (58)next: : (58) ->   (32)next:   (32) -> " (34)next: " (34) ->   (32)[DEBUG] internshrstr: str='Even row: ', len=10, hash=2589264069, table_size=128, table_nuse=16
-[DEBUG] expr: entering, current token = 295
-[DEBUG] simpleexp: entering, current token = 295
-next:   (32) -> + (43)next: + (43) ->   (32)[DEBUG] getbinopr: input token=307 (TK_GE=319)
-next:   (32) -> s (115)next: s (115) -> t (116)next: t (116) -> r (114)next: r (114) -> i (105)next: i (105) -> n (110)next: n (110) -> g (103)next: g (103) -> ( (40)[DEBUG] internshrstr: str='string', len=6, hash=479440892, table_size=128, table_nuse=17
-[DEBUG] aqlK_dischargevars: entering, e->k=7
-[DEBUG] aqlK_dischargevars: switching on e->k=7
-[DEBUG] aqlK_dischargevars: default case for e->k=7
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ( (40) -> r (114)[DEBUG] aqlK_indexed: using register 5 (freereg was 5)
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-next: r (114) -> o (111)next: o (111) -> w (119)next: w (119) -> ) (41)[DEBUG] internshrstr: str='row', len=3, hash=193504925, table_size=128, table_nuse=17
-[DEBUG] expr: entering, current token = 351
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ) (41) -> ) (41)[DEBUG] init_var: vidx=0, ridx=3, name='row'
-[DEBUG] singlevar_unified: found variable 'row' with type k=9
-[DEBUG] getbinopr: input token=330 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 330, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 330
-[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] checknext: calling check for token 330
-[DEBUG] check: expecting token 330, got token 330
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
-next: ) (41) -> ? (10)[DEBUG] checknext: aqlX_next completed, current token after = 330
-[DEBUG] getbinopr: input token=330 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 330, returning OPR_NOBINOPR
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] codebinexpval: op=16, rk1=139, rk2=49, target_reg=6, freereg=7 (saved=6)
-[DEBUG] expr: exiting, current token = 330
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] checknext: calling check for token 330
-[DEBUG] check: expecting token 330, got token 330
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> f (102)next: f (102) -> o (111)next: o (111) -> r (114)next: r (114) ->   (32)[DEBUG] internshrstr: str='for', len=3, hash=193491852, table_size=128, table_nuse=17
-[DEBUG] checknext: aqlX_next completed, current token after = 265
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] statlist: statement completed, current token = 265
-[DEBUG] statlist: in loop, current token = 265
-next:   (32) -> c (99)next: c (99) -> o (111)next: o (111) -> l (108)next: l (108) ->   (32)[DEBUG] internshrstr: str='col', len=3, hash=193488579, table_size=128, table_nuse=17
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> = (61)next: = (61) ->   (32)[DEBUG] After parsing variable name, current token = 339
-[DEBUG] TK_ASSIGN = 339, TK_IN = 269
-[DEBUG] Detected numeric for loop
-[DEBUG] forstat_numeric: entering numeric for statement parsing
-[DEBUG] forstat_numeric: loop variable = col
-[DEBUG] checknext: calling check for token 339
-[DEBUG] check: expecting token 339, got token 339
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 339
-next:   (32) -> 1 (49)next: 1 (49) -> , (44)[DEBUG] checknext: aqlX_next completed, current token after = 350
-[DEBUG] expr: entering, current token = 350
-[DEBUG] simpleexp: entering, current token = 350
-next: , (44) ->   (32)[DEBUG] getbinopr: input token=44 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 44, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 44
-[DEBUG] forstat: initial value expr, k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_int: reg=5, i=1, fitsBx=1
-[DEBUG] aqlK_int: MAXARG_Bx=131071, OFFSET_sBx=65535, MAXARG_sBx=65535
-[DEBUG] aqlK_int: calling aqlK_codeAsBx with i=1
-[DEBUG] aqlK_codeAsBx: o=1, a=5, bc=1, b=65536
-[DEBUG] forstat: parsed initial value, stored in register 5
-[DEBUG] checknext: calling check for token 44
-[DEBUG] check: expecting token 44, got token 44
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 44
-next:   (32) -> 3 (51)next: 3 (51) -> , (44)[DEBUG] checknext: aqlX_next completed, current token after = 350
-[DEBUG] expr: entering, current token = 350
-[DEBUG] simpleexp: entering, current token = 350
-next: , (44) ->   (32)[DEBUG] getbinopr: input token=44 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 44, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 44
-[DEBUG] forstat: limit value expr, k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_int: reg=7, i=3, fitsBx=1
-[DEBUG] aqlK_int: MAXARG_Bx=131071, OFFSET_sBx=65535, MAXARG_sBx=65535
-[DEBUG] aqlK_int: calling aqlK_codeAsBx with i=3
-[DEBUG] aqlK_codeAsBx: o=1, a=7, bc=3, b=65538
-[DEBUG] forstat: moved limit value from R7 to R6
-[DEBUG] forstat: parsed limit value, stored in register 6
-next:   (32) -> 1 (49)next: 1 (49) ->   (32)[DEBUG] expr: entering, current token = 350
-[DEBUG] simpleexp: entering, current token = 350
-next:   (32) -> { (123)next: { (123) -> ? (10)[DEBUG] getbinopr: input token=123 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 123, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 123
-[DEBUG] forstat: step value expr, k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_int: reg=9, i=1, fitsBx=1
-[DEBUG] aqlK_int: MAXARG_Bx=131071, OFFSET_sBx=65535, MAXARG_sBx=65535
-[DEBUG] aqlK_int: calling aqlK_codeAsBx with i=1
-[DEBUG] aqlK_codeAsBx: o=1, a=9, bc=1, b=65536
-[DEBUG] forstat: moved step value from R9 to R7
-[DEBUG] forstat: parsed explicit step value, stored in register 7
-[DEBUG] new_localvar: created variable 'col' at index 2 with unified AQL enhancements
-[DEBUG] checknext: calling check for token 123
-[DEBUG] check: expecting token 123, got token 123
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 123
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> l (108)next: l (108) -> e (101)next: e (101) -> t (116)next: t (116) ->   (32)[DEBUG] internshrstr: str='let', len=3, hash=193498058, table_size=128, table_nuse=17
-[DEBUG] checknext: aqlX_next completed, current token after = 299
-[DEBUG] aqlK_codeAsBx: o=54, a=5, bc=0, b=65535
-[DEBUG] forstat: generated FORPREP at PC=59
-[DEBUG] enterblock: entered block, nactvar=2, isloop=1, mode=0
-[DEBUG] forstat: protected for-loop registers 5-8, freereg: 11 -> 11
-[DEBUG] adjustlocalvars: activating 1 variables, reglevel=5
-[DEBUG] adjustlocalvars: variable 'col' -> register 5, debug index 4
-[DEBUG] forstat: loop variable 'col' at register 8, freereg=12
-[DEBUG] enterblock: entered block, nactvar=3, isloop=0, mode=0
-[DEBUG] statlist: entering, current token = 299
-[DEBUG] statlist: in loop, current token = 299
-[DEBUG] letstat: entering
-[DEBUG] letstat: calling aqlX_next to skip LET
-next:   (32) -> v (118)next: v (118) -> a (97)next: a (97) -> l (108)next: l (108) -> u (117)next: u (117) -> e (101)next: e (101) ->   (32)[DEBUG] internshrstr: str='value', len=5, hash=277698370, table_size=128, table_nuse=17
-[DEBUG] letstat: calling str_checkname for variable name
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> = (61)next: = (61) ->   (32)[DEBUG] letstat: variable name = 'value'
-[DEBUG] letstat: calling checknext for '='
-[DEBUG] checknext: calling check for token 339
-[DEBUG] check: expecting token 339, got token 339
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 339
-next:   (32) -> r (114)next: r (114) -> o (111)next: o (111) -> w (119)next: w (119) ->   (32)[DEBUG] internshrstr: str='row', len=3, hash=193504925, table_size=128, table_nuse=17
-[DEBUG] checknext: aqlX_next completed, current token after = 351
-[DEBUG] letstat: calling expr for initialization
-[DEBUG] expr: entering, current token = 351
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> * (42)next: * (42) ->   (32)[DEBUG] init_var: vidx=0, ridx=3, name='row'
-[DEBUG] singlevar_unified: found variable 'row' with type k=9
-[DEBUG] getbinopr: input token=309 (TK_GE=319)
-next:   (32) -> 1 (49)next: 1 (49) -> 0 (48)next: 0 (48) ->   (32)[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] simpleexp: entering, current token = 350
-next:   (32) -> + (43)next: + (43) ->   (32)[DEBUG] getbinopr: input token=307 (TK_GE=319)
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=6
-[DEBUG] aqlK_dischargevars: switching on e->k=6
-[DEBUG] aqlK_dischargevars: default case for e->k=6
-[DEBUG] codebinexpval: op=22, rk1=3, rk2=135, target_reg=12, freereg=13 (saved=12)
-next:   (32) -> c (99)next: c (99) -> o (111)next: o (111) -> l (108)next: l (108) -> ? (10)[DEBUG] internshrstr: str='col', len=3, hash=193488579, table_size=128, table_nuse=17
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> r (114)next: r (114) -> o (111)next: o (111) -> w (119)next: w (119) -> _ (95)next: _ (95) -> s (115)next: s (115) -> u (117)next: u (117) -> m (109)next: m (109) ->   (32)[DEBUG] internshrstr: str='row_sum', len=7, hash=1455078865, table_size=128, table_nuse=17
-[DEBUG] init_var: vidx=2, ridx=8, name='col'
-[DEBUG] singlevar_unified: found variable 'col' with type k=9
-[DEBUG] getbinopr: input token=351 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 351, returning OPR_NOBINOPR
-[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] codebinexpval: op=16, rk1=12, rk2=8, target_reg=13, freereg=14 (saved=13)
-[DEBUG] expr: exiting, current token = 351
-[DEBUG] letstat: expr returned, e.k = 8
-[DEBUG] letstat: creating local variable in block scope (nesting level > 1)
-[DEBUG] new_localvar: created variable 'value' at index 3 with unified AQL enhancements
-[DEBUG] adjustlocalvars: activating 1 variables, reglevel=9
-[DEBUG] adjustlocalvars: variable 'value' -> register 9, debug index 5
-[DEBUG] letstat: local variable 'value' assigned to register 9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] letstat: local variable assignment completed
-[DEBUG] letstat: completed successfully, current token = 351
-[DEBUG] statlist: statement completed, current token = 351
-[DEBUG] statlist: in loop, current token = 351
-[DEBUG] exprstat: calling singlevar_unified
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> = (61)next: = (61) ->   (32)[DEBUG] init_var: vidx=1, ridx=4, name='row_sum'
-[DEBUG] singlevar_unified: found variable 'row_sum' with type k=9
-[DEBUG] exprstat: singlevar_unified returned, v.k=9
-[DEBUG] assignment_from_var: entering, var->k=9
-next:   (32) -> r (114)next: r (114) -> o (111)next: o (111) -> w (119)next: w (119) -> _ (95)next: _ (95) -> s (115)next: s (115) -> u (117)next: u (117) -> m (109)next: m (109) ->   (32)[DEBUG] internshrstr: str='row_sum', len=7, hash=1455078865, table_size=128, table_nuse=17
-[DEBUG] assignment_from_var: found assignment operator
-[DEBUG] expr: entering, current token = 351
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> + (43)next: + (43) ->   (32)[DEBUG] init_var: vidx=1, ridx=4, name='row_sum'
-[DEBUG] singlevar_unified: found variable 'row_sum' with type k=9
-[DEBUG] getbinopr: input token=307 (TK_GE=319)
-next:   (32) -> v (118)next: v (118) -> a (97)next: a (97) -> l (108)next: l (108) -> u (117)next: u (117) -> e (101)next: e (101) -> ? (10)[DEBUG] internshrstr: str='value', len=5, hash=277698370, table_size=128, table_nuse=17
-[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> p (112)next: p (112) -> r (114)next: r (114) -> i (105)next: i (105) -> n (110)next: n (110) -> t (116)next: t (116) -> ( (40)[DEBUG] internshrstr: str='print', len=5, hash=271190290, table_size=128, table_nuse=17
-[DEBUG] init_var: vidx=3, ridx=9, name='value'
-[DEBUG] singlevar_unified: found variable 'value' with type k=9
-[DEBUG] getbinopr: input token=351 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 351, returning OPR_NOBINOPR
-[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] codebinexpval: op=16, rk1=4, rk2=9, target_reg=10, freereg=11 (saved=10)
-[DEBUG] expr: exiting, current token = 351
-[DEBUG] assignment_from_var: calling aqlK_storevar
-[DEBUG] aqlK_storevar: entering, var->k=9, ex->k=8
-[DEBUG] aqlK_storevar: VINDEXUP=13, VLOCAL=9, VUPVAL=10
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] statlist: statement completed, current token = 351
-[DEBUG] statlist: in loop, current token = 351
-[DEBUG] exprstat: calling singlevar_unified
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ( (40) -> " (34)[DEBUG] exprstat: singlevar_unified returned, v.k=20
-next: " (34) -> V (86)next: V (86) -> a (97)next: a (97) -> l (108)next: l (108) -> u (117)next: u (117) -> e (101)next: e (101) -> : (58)next: : (58) ->   (32)next:   (32) -> " (34)next: " (34) ->   (32)[DEBUG] internshrstr: str='Value: ', len=7, hash=3388514108, table_size=128, table_nuse=17
-[DEBUG] expr: entering, current token = 295
-[DEBUG] simpleexp: entering, current token = 295
-next:   (32) -> + (43)next: + (43) ->   (32)[DEBUG] getbinopr: input token=307 (TK_GE=319)
-next:   (32) -> s (115)next: s (115) -> t (116)next: t (116) -> r (114)next: r (114) -> i (105)next: i (105) -> n (110)next: n (110) -> g (103)next: g (103) -> ( (40)[DEBUG] internshrstr: str='string', len=6, hash=479440892, table_size=128, table_nuse=18
-[DEBUG] aqlK_dischargevars: entering, e->k=7
-[DEBUG] aqlK_dischargevars: switching on e->k=7
-[DEBUG] aqlK_dischargevars: default case for e->k=7
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ( (40) -> v (118)[DEBUG] aqlK_indexed: using register 10 (freereg was 10)
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-next: v (118) -> a (97)next: a (97) -> l (108)next: l (108) -> u (117)next: u (117) -> e (101)next: e (101) -> ) (41)[DEBUG] internshrstr: str='value', len=5, hash=277698370, table_size=128, table_nuse=18
-[DEBUG] expr: entering, current token = 351
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ) (41) -> ) (41)[DEBUG] init_var: vidx=3, ridx=9, name='value'
-[DEBUG] singlevar_unified: found variable 'value' with type k=9
-[DEBUG] getbinopr: input token=330 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 330, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 330
-[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] checknext: calling check for token 330
-[DEBUG] check: expecting token 330, got token 330
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
-next: ) (41) -> ? (10)[DEBUG] checknext: aqlX_next completed, current token after = 330
-[DEBUG] getbinopr: input token=330 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 330, returning OPR_NOBINOPR
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] codebinexpval: op=16, rk1=140, rk2=65, target_reg=11, freereg=12 (saved=11)
-[DEBUG] expr: exiting, current token = 330
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] checknext: calling check for token 330
-[DEBUG] check: expecting token 330, got token 330
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> } (125)next: } (125) -> ? (10)[DEBUG] checknext: aqlX_next completed, current token after = 125
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] statlist: statement completed, current token = 125
-[DEBUG] statlist: exiting loop, current token = 125
-[DEBUG] leaveblock: leaving block, cleaning up from level 3
-[DEBUG] leaveblock: cleaned up containers to count 0
-[DEBUG] leaveblock: completed, freereg=9
-[DEBUG] leaveblock: leaving block, cleaning up from level 2
-[DEBUG] leaveblock: cleaned up containers to count 0
-[DEBUG] leaveblock: for-loop block, stklevel=5, preserving for-loop registers
-[DEBUG] leaveblock: completed, freereg=5
-[DEBUG] checknext: calling check for token 125
-[DEBUG] check: expecting token 125, got token 125
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 125
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> } (125)next: } (125) -> ? (10)[DEBUG] checknext: aqlX_next completed, current token after = 125
-[DEBUG] aqlK_codeAsBx: o=53, a=5, bc=0, b=65535
-[DEBUG] forstat: generated FORLOOP at PC=70
-[DEBUG] aqlK_patchtohere: entering with list=-1
-[DEBUG] aqlK_patchtohere: calling aqlK_getlabel
-[DEBUG] aqlK_patchtohere: aqlK_getlabel returned hr=71
-[DEBUG] aqlK_patchtohere: calling aqlK_patchlist
-[DEBUG] aqlK_patchlist: entering with list=-1, target=71, fs->pc=71
-[DEBUG] aqlK_patchlist: list is NO_JUMP, returning
-[DEBUG] aqlK_patchtohere: aqlK_patchlist completed
-[DEBUG] aqlK_patchlist: entering with list=-1, target=70, fs->pc=71
-[DEBUG] aqlK_patchlist: list is NO_JUMP, returning
-[DEBUG] forstat: continue jumps patched to FORLOOP at PC=70
-[DEBUG] forstat: for statement parsing completed
-[DEBUG] statlist: statement completed, current token = 125
-[DEBUG] statlist: exiting loop, current token = 125
-[DEBUG] leaveblock: leaving block, cleaning up from level 2
-[DEBUG] leaveblock: cleaned up containers to count 0
-[DEBUG] leaveblock: completed, freereg=5
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> p (112)next: p (112) -> r (114)next: r (114) -> i (105)next: i (105) -> n (110)next: n (110) -> t (116)next: t (116) -> ( (40)[DEBUG] internshrstr: str='print', len=5, hash=271190290, table_size=128, table_nuse=18
-[DEBUG] aqlK_patchtohere: entering with list=48
-[DEBUG] aqlK_patchtohere: calling aqlK_getlabel
-[DEBUG] aqlK_patchtohere: aqlK_getlabel returned hr=71
-[DEBUG] aqlK_patchtohere: calling aqlK_patchlist
-[DEBUG] aqlK_patchlist: entering with list=48, target=71, fs->pc=71
-[DEBUG] aqlK_patchlist: target == fs->pc, this would cause recursion - using patchlistaux instead
-[DEBUG] getjump: pc=48, offset=-1
-[DEBUG] fixjump: pc=48, dest=71, offset=22
-[DEBUG] fixjump: OFFSET_sBx=65535, MAXARG_sBx=65535
-[DEBUG] fixjump: range check: -65535 <= 22 <= 65535
-[DEBUG] fixjump: set sBx=22 for instruction at pc=48
-[DEBUG] aqlK_patchlist: completed
-[DEBUG] aqlK_patchtohere: aqlK_patchlist completed
-[DEBUG] statlist: statement completed, current token = 351
-[DEBUG] statlist: in loop, current token = 351
-[DEBUG] exprstat: calling singlevar_unified
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ( (40) -> " (34)[DEBUG] exprstat: singlevar_unified returned, v.k=20
-next: " (34) -> R (82)next: R (82) -> o (111)next: o (111) -> w (119)next: w (119) ->   (32)next:   (32) -> s (115)next: s (115) -> u (117)next: u (117) -> m (109)next: m (109) -> : (58)next: : (58) ->   (32)next:   (32) -> " (34)next: " (34) ->   (32)[DEBUG] internshrstr: str='Row sum: ', len=9, hash=3453902316, table_size=128, table_nuse=18
-[DEBUG] expr: entering, current token = 295
-[DEBUG] simpleexp: entering, current token = 295
-next:   (32) -> + (43)next: + (43) ->   (32)[DEBUG] getbinopr: input token=307 (TK_GE=319)
-next:   (32) -> s (115)next: s (115) -> t (116)next: t (116) -> r (114)next: r (114) -> i (105)next: i (105) -> n (110)next: n (110) -> g (103)next: g (103) -> ( (40)[DEBUG] internshrstr: str='string', len=6, hash=479440892, table_size=128, table_nuse=19
-[DEBUG] aqlK_dischargevars: entering, e->k=7
-[DEBUG] aqlK_dischargevars: switching on e->k=7
-[DEBUG] aqlK_dischargevars: default case for e->k=7
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ( (40) -> r (114)[DEBUG] aqlK_indexed: using register 5 (freereg was 5)
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-next: r (114) -> o (111)next: o (111) -> w (119)next: w (119) -> _ (95)next: _ (95) -> s (115)next: s (115) -> u (117)next: u (117) -> m (109)next: m (109) -> ) (41)[DEBUG] internshrstr: str='row_sum', len=7, hash=1455078865, table_size=128, table_nuse=19
-[DEBUG] expr: entering, current token = 351
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ) (41) -> ) (41)[DEBUG] init_var: vidx=1, ridx=4, name='row_sum'
-[DEBUG] singlevar_unified: found variable 'row_sum' with type k=9
-[DEBUG] getbinopr: input token=330 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 330, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 330
-[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] checknext: calling check for token 330
-[DEBUG] check: expecting token 330, got token 330
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
-next: ) (41) -> ? (10)[DEBUG] checknext: aqlX_next completed, current token after = 330
-[DEBUG] getbinopr: input token=330 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 330, returning OPR_NOBINOPR
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] codebinexpval: op=16, rk1=141, rk2=71, target_reg=6, freereg=7 (saved=6)
-[DEBUG] expr: exiting, current token = 330
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] checknext: calling check for token 330
-[DEBUG] check: expecting token 330, got token 330
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> m (109)next: m (109) -> a (97)next: a (97) -> t (116)next: t (116) -> r (114)next: r (114) -> i (105)next: i (105) -> x (120)next: x (120) -> _ (95)next: _ (95) -> s (115)next: s (115) -> u (117)next: u (117) -> m (109)next: m (109) ->   (32)[DEBUG] internshrstr: str='matrix_sum', len=10, hash=1681340110, table_size=128, table_nuse=19
-[DEBUG] checknext: aqlX_next completed, current token after = 351
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] statlist: statement completed, current token = 351
-[DEBUG] statlist: in loop, current token = 351
-[DEBUG] exprstat: calling singlevar_unified
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> = (61)next: = (61) ->   (32)[DEBUG] aqlK_indexed: using register 5 (freereg was 5)
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-[DEBUG] exprstat: singlevar_unified returned, v.k=17
-[DEBUG] assignment_from_var: entering, var->k=17
-next:   (32) -> m (109)next: m (109) -> a (97)next: a (97) -> t (116)next: t (116) -> r (114)next: r (114) -> i (105)next: i (105) -> x (120)next: x (120) -> _ (95)next: _ (95) -> s (115)next: s (115) -> u (117)next: u (117) -> m (109)next: m (109) ->   (32)[DEBUG] internshrstr: str='matrix_sum', len=10, hash=1681340110, table_size=128, table_nuse=19
-[DEBUG] assignment_from_var: found assignment operator
-[DEBUG] expr: entering, current token = 351
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next:   (32) -> + (43)next: + (43) ->   (32)[DEBUG] aqlK_indexed: using register 6 (freereg was 6)
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-[DEBUG] getbinopr: input token=307 (TK_GE=319)
-next:   (32) -> r (114)next: r (114) -> o (111)next: o (111) -> w (119)next: w (119) -> _ (95)next: _ (95) -> s (115)next: s (115) -> u (117)next: u (117) -> m (109)next: m (109) -> ? (10)[DEBUG] internshrstr: str='row_sum', len=7, hash=1455078865, table_size=128, table_nuse=19
-[DEBUG] aqlK_dischargevars: entering, e->k=17
-[DEBUG] aqlK_dischargevars: switching on e->k=17
-[DEBUG] aqlK_dischargevars: default case for e->k=17
-[DEBUG] aqlK_dischargevars: entering, e->k=17
-[DEBUG] aqlK_dischargevars: switching on e->k=17
-[DEBUG] aqlK_dischargevars: default case for e->k=17
-[DEBUG] aqlK_dischargevars: entering, e->k=17
-[DEBUG] aqlK_dischargevars: switching on e->k=17
-[DEBUG] aqlK_dischargevars: default case for e->k=17
-[DEBUG] aqlK_dischargevars: entering, e->k=17
-[DEBUG] aqlK_dischargevars: switching on e->k=17
-[DEBUG] aqlK_dischargevars: default case for e->k=17
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> } (125)next: } (125) -> ? (10)[DEBUG] init_var: vidx=1, ridx=4, name='row_sum'
-[DEBUG] singlevar_unified: found variable 'row_sum' with type k=9
-[DEBUG] getbinopr: input token=125 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 125, returning OPR_NOBINOPR
-[DEBUG] aqlK_dischargevars: entering, e->k=9
-[DEBUG] aqlK_dischargevars: switching on e->k=9
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] codebinexpval: op=16, rk1=7, rk2=4, target_reg=8, freereg=9 (saved=8)
-[DEBUG] expr: exiting, current token = 125
-[DEBUG] assignment_from_var: calling aqlK_storevar
-[DEBUG] aqlK_storevar: entering, var->k=17, ex->k=8
-[DEBUG] aqlK_storevar: VINDEXUP=13, VLOCAL=9, VUPVAL=10
-[DEBUG] aqlK_storevar: VRELOC case, handling global assignment
-[DEBUG] aqlK_storevar: previous instruction opcode=10 (OP_GETTABUP=10)
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_storevar: generating SETTABUP with table=0, key=128, value=8
-[DEBUG] statlist: statement completed, current token = 125
-[DEBUG] statlist: exiting loop, current token = 125
-[DEBUG] leaveblock: leaving block, cleaning up from level 1
-[DEBUG] leaveblock: cleaned up containers to count 0
-[DEBUG] leaveblock: completed, freereg=4
-[DEBUG] leaveblock: leaving block, cleaning up from level 0
-[DEBUG] leaveblock: cleaned up containers to count 0
-[DEBUG] leaveblock: completed, freereg=0
-[DEBUG] checknext: calling check for token 125
-[DEBUG] check: expecting token 125, got token 125
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 125
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> p (112)next: p (112) -> r (114)next: r (114) -> i (105)next: i (105) -> n (110)next: n (110) -> t (116)next: t (116) -> ( (40)[DEBUG] internshrstr: str='print', len=5, hash=271190290, table_size=128, table_nuse=19
-[DEBUG] checknext: aqlX_next completed, current token after = 351
-[DEBUG] aqlK_codeAsBx: o=53, a=0, bc=0, b=65535
-[DEBUG] forstat: generated FORLOOP at PC=80
-[DEBUG] aqlK_patchtohere: entering with list=-1
-[DEBUG] aqlK_patchtohere: calling aqlK_getlabel
-[DEBUG] aqlK_patchtohere: aqlK_getlabel returned hr=81
-[DEBUG] aqlK_patchtohere: calling aqlK_patchlist
-[DEBUG] aqlK_patchlist: entering with list=-1, target=81, fs->pc=81
-[DEBUG] aqlK_patchlist: list is NO_JUMP, returning
-[DEBUG] aqlK_patchtohere: aqlK_patchlist completed
-[DEBUG] aqlK_patchlist: entering with list=-1, target=80, fs->pc=81
-[DEBUG] aqlK_patchlist: list is NO_JUMP, returning
-[DEBUG] forstat: continue jumps patched to FORLOOP at PC=80
-[DEBUG] forstat: for statement parsing completed
-[DEBUG] statlist: statement completed, current token = 351
-[DEBUG] statlist: in loop, current token = 351
-[DEBUG] exprstat: calling singlevar_unified
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ( (40) -> " (34)[DEBUG] exprstat: singlevar_unified returned, v.k=20
-next: " (34) -> M (77)next: M (77) -> a (97)next: a (97) -> t (116)next: t (116) -> r (114)next: r (114) -> i (105)next: i (105) -> x (120)next: x (120) ->   (32)next:   (32) -> s (115)next: s (115) -> u (117)next: u (117) -> m (109)next: m (109) -> : (58)next: : (58) ->   (32)next:   (32) -> " (34)next: " (34) ->   (32)[DEBUG] internshrstr: str='Matrix sum: ', len=12, hash=2642378281, table_size=128, table_nuse=19
-[DEBUG] expr: entering, current token = 295
-[DEBUG] simpleexp: entering, current token = 295
-next:   (32) -> + (43)next: + (43) ->   (32)[DEBUG] getbinopr: input token=307 (TK_GE=319)
-next:   (32) -> s (115)next: s (115) -> t (116)next: t (116) -> r (114)next: r (114) -> i (105)next: i (105) -> n (110)next: n (110) -> g (103)next: g (103) -> ( (40)[DEBUG] internshrstr: str='string', len=6, hash=479440892, table_size=128, table_nuse=20
-[DEBUG] aqlK_dischargevars: entering, e->k=7
-[DEBUG] aqlK_dischargevars: switching on e->k=7
-[DEBUG] aqlK_dischargevars: default case for e->k=7
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ( (40) -> m (109)[DEBUG] aqlK_indexed: using register 0 (freereg was 0)
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-next: m (109) -> a (97)next: a (97) -> t (116)next: t (116) -> r (114)next: r (114) -> i (105)next: i (105) -> x (120)next: x (120) -> _ (95)next: _ (95) -> s (115)next: s (115) -> u (117)next: u (117) -> m (109)next: m (109) -> ) (41)[DEBUG] internshrstr: str='matrix_sum', len=10, hash=1681340110, table_size=128, table_nuse=20
-[DEBUG] expr: entering, current token = 351
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ) (41) -> ) (41)[DEBUG] aqlK_indexed: using register 1 (freereg was 1)
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-[DEBUG] getbinopr: input token=330 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 330, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 330
-[DEBUG] aqlK_dischargevars: entering, e->k=17
-[DEBUG] aqlK_dischargevars: switching on e->k=17
-[DEBUG] aqlK_dischargevars: default case for e->k=17
-[DEBUG] aqlK_dischargevars: entering, e->k=17
-[DEBUG] aqlK_dischargevars: switching on e->k=17
-[DEBUG] aqlK_dischargevars: default case for e->k=17
-[DEBUG] checknext: calling check for token 330
-[DEBUG] check: expecting token 330, got token 330
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
-next: ) (41) -> ? (10)[DEBUG] checknext: aqlX_next completed, current token after = 330
-[DEBUG] getbinopr: input token=330 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 330, returning OPR_NOBINOPR
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] codebinexpval: op=16, rk1=142, rk2=81, target_reg=3, freereg=4 (saved=3)
-[DEBUG] expr: exiting, current token = 330
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] checknext: calling check for token 330
-[DEBUG] check: expecting token 330, got token 330
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
-next: ? (10) -> } (125)next: } (125) ->   (32)[DEBUG] checknext: aqlX_next completed, current token after = 125
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] statlist: statement completed, current token = 125
-[DEBUG] statlist: exiting loop, current token = 125
-[DEBUG] leaveblock: leaving block, cleaning up from level 0
-[DEBUG] leaveblock: cleaned up containers to count 0
-[DEBUG] leaveblock: completed, freereg=0
-[DEBUG] test_then_block: checking for closing '}'
-[DEBUG] checknext: calling check for token 125
-[DEBUG] check: expecting token 125, got token 125
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 125
-next:   (32) -> e (101)next: e (101) -> l (108)next: l (108) -> s (115)next: s (115) -> e (101)next: e (101) ->   (32)[DEBUG] internshrstr: str='else', len=4, hash=2090224750, table_size=128, table_nuse=20
-[DEBUG] checknext: aqlX_next completed, current token after = 261
-[DEBUG] test_then_block: closing '}' matched
-[DEBUG] aqlK_codeAsBx: o=40, a=0, bc=-1, b=65534
-[DEBUG] aqlK_patchtohere: entering with list=2
-[DEBUG] aqlK_patchtohere: calling aqlK_getlabel
-[DEBUG] aqlK_patchtohere: aqlK_getlabel returned hr=87
-[DEBUG] aqlK_patchtohere: calling aqlK_patchlist
-[DEBUG] aqlK_patchlist: entering with list=2, target=87, fs->pc=87
-[DEBUG] aqlK_patchlist: target == fs->pc, this would cause recursion - using patchlistaux instead
-[DEBUG] getjump: pc=2, offset=-1
-[DEBUG] fixjump: pc=2, dest=87, offset=84
-[DEBUG] fixjump: OFFSET_sBx=65535, MAXARG_sBx=65535
-[DEBUG] fixjump: range check: -65535 <= 84 <= 65535
-[DEBUG] fixjump: set sBx=84 for instruction at pc=2
-[DEBUG] aqlK_patchlist: completed
-[DEBUG] aqlK_patchtohere: aqlK_patchlist completed
-[DEBUG] aqlK_patchtohere: entering with list=-1
-[DEBUG] aqlK_patchtohere: calling aqlK_getlabel
-[DEBUG] aqlK_patchtohere: aqlK_getlabel returned hr=87
-[DEBUG] aqlK_patchtohere: calling aqlK_patchlist
-[DEBUG] aqlK_patchlist: entering with list=-1, target=87, fs->pc=87
-[DEBUG] aqlK_patchlist: list is NO_JUMP, returning
-[DEBUG] aqlK_patchtohere: aqlK_patchlist completed
-next:   (32) -> { (123)next: { (123) -> ? (10)[DEBUG] checknext: calling check for token 123
-[DEBUG] check: expecting token 123, got token 123
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 123
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> p (112)next: p (112) -> r (114)next: r (114) -> i (105)next: i (105) -> n (110)next: n (110) -> t (116)next: t (116) -> ( (40)[DEBUG] internshrstr: str='print', len=5, hash=271190290, table_size=128, table_nuse=20
-[DEBUG] checknext: aqlX_next completed, current token after = 351
-[DEBUG] enterblock: entered block, nactvar=0, isloop=0, mode=0
-[DEBUG] statlist: entering, current token = 351
-[DEBUG] statlist: in loop, current token = 351
-[DEBUG] exprstat: calling singlevar_unified
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ( (40) -> " (34)[DEBUG] exprstat: singlevar_unified returned, v.k=20
-next: " (34) -> S (83)next: S (83) -> k (107)next: k (107) -> i (105)next: i (105) -> p (112)next: p (112) -> p (112)next: p (112) -> i (105)next: i (105) -> n (110)next: n (110) -> g (103)next: g (103) ->   (32)next:   (32) -> m (109)next: m (109) -> a (97)next: a (97) -> t (116)next: t (116) -> r (114)next: r (114) -> i (105)next: i (105) -> x (120)next: x (120) ->   (32)next:   (32) -> p (112)next: p (112) -> r (114)next: r (114) -> o (111)next: o (111) -> c (99)next: c (99) -> e (101)next: e (101) -> s (115)next: s (115) -> s (115)next: s (115) -> i (105)next: i (105) -> n (110)next: n (110) -> g (103)next: g (103) -> " (34)next: " (34) -> ) (41)[DEBUG] internshrstr: str='Skipping matrix processing', len=26, hash=2280608028, table_size=128, table_nuse=20
+next: " (34) -> H (72)next: H (72) -> e (101)next: e (101) -> l (108)next: l (108) -> l (108)next: l (108) -> o (111)next: o (111) ->   (32)next:   (32) -> f (102)next: f (102) -> r (114)next: r (114) -> o (111)next: o (111) -> m (109)next: m (109) ->   (32)next:   (32) -> f (102)next: f (102) -> u (117)next: u (117) -> n (110)next: n (110) -> c (99)next: c (99) -> t (116)next: t (116) -> i (105)next: i (105) -> o (111)next: o (111) -> n (110)next: n (110) -> ! (33)next: ! (33) -> " (34)next: " (34) -> ) (41)[DEBUG] internshrstr: str='Hello from function!', len=20, hash=3456136724, table_size=128, table_nuse=5
 [DEBUG] expr: entering, current token = 295
 [DEBUG] simpleexp: entering, current token = 295
 next: ) (41) -> ? (10)[DEBUG] getbinopr: input token=330 (TK_GE=319)
@@ -1851,43 +61,45 @@ next: ? (10) -> } (125)next: } (125) -> ? (10)[DEBUG] checknext: aqlX_next compl
 [DEBUG] aqlK_dischargevars: default case for e->k=8
 [DEBUG] statlist: statement completed, current token = 125
 [DEBUG] statlist: exiting loop, current token = 125
+[DEBUG] checknext: calling check for token 125
+[DEBUG] check: expecting token 125, got token 125
+[DEBUG] check: token matched successfully
+[DEBUG] checknext: check passed, calling aqlX_next, current token before = 125
+next: ? (10) -> ? (10)next: ? (10) -> r (114)next: r (114) -> e (101)next: e (101) -> t (116)next: t (116) -> u (117)next: u (117) -> r (114)next: r (114) -> n (110)next: n (110) ->   (32)[DEBUG] internshrstr: str='return', len=6, hash=422601765, table_size=128, table_nuse=6
+[DEBUG] checknext: aqlX_next completed, current token after = 275
+[DEBUG] aqlK_dischargevars: entering, e->k=17
+[DEBUG] aqlK_dischargevars: switching on e->k=17
+[DEBUG] aqlK_dischargevars: default case for e->k=17
+[DEBUG] aqlK_dischargevars: entering, e->k=17
+[DEBUG] aqlK_dischargevars: switching on e->k=17
+[DEBUG] aqlK_dischargevars: default case for e->k=17
 [DEBUG] leaveblock: leaving block, cleaning up from level 0
 [DEBUG] leaveblock: cleaned up containers to count 0
-[DEBUG] leaveblock: completed, freereg=0
-next: ? (10) -> ? (10)next: ? (10) -> r (114)next: r (114) -> e (101)next: e (101) -> t (116)next: t (116) -> u (117)next: u (117) -> r (114)next: r (114) -> n (110)next: n (110) ->   (32)[DEBUG] internshrstr: str='return', len=6, hash=422601765, table_size=128, table_nuse=21
-[DEBUG] aqlK_patchtohere: entering with list=86
-[DEBUG] aqlK_patchtohere: calling aqlK_getlabel
-[DEBUG] aqlK_patchtohere: aqlK_getlabel returned hr=89
-[DEBUG] aqlK_patchtohere: calling aqlK_patchlist
-[DEBUG] aqlK_patchlist: entering with list=86, target=89, fs->pc=89
-[DEBUG] aqlK_patchlist: target == fs->pc, this would cause recursion - using patchlistaux instead
-[DEBUG] getjump: pc=86, offset=-1
-[DEBUG] fixjump: pc=86, dest=89, offset=2
-[DEBUG] fixjump: OFFSET_sBx=65535, MAXARG_sBx=65535
-[DEBUG] fixjump: range check: -65535 <= 2 <= 65535
-[DEBUG] fixjump: set sBx=2 for instruction at pc=86
-[DEBUG] aqlK_patchlist: completed
-[DEBUG] aqlK_patchtohere: aqlK_patchlist completed
+[DEBUG] leaveblock: normal cleanup, freereg=0
+[DEBUG] leaveblock: completed, freereg=0, active_vars=0
+[DEBUG] aqlK_storevar: entering, var->k=17, ex->k=8
+[DEBUG] aqlK_storevar: VINDEXUP=13, VLOCAL=9, VUPVAL=10
+[DEBUG] aqlK_storevar: VRELOC case, handling global assignment
+[DEBUG] aqlK_storevar: previous instruction opcode=10 (OP_GETTABUP=10)
+[DEBUG] aqlK_dischargevars: entering, e->k=8
+[DEBUG] aqlK_dischargevars: switching on e->k=8
+[DEBUG] aqlK_dischargevars: default case for e->k=8
+[DEBUG] aqlK_dischargevars: entering, e->k=8
+[DEBUG] aqlK_dischargevars: switching on e->k=8
+[DEBUG] aqlK_dischargevars: default case for e->k=8
+[DEBUG] aqlK_storevar: generating SETTABUP with table=0, key=128, value=1
 [DEBUG] statlist: statement completed, current token = 275
 [DEBUG] statlist: in loop, current token = 275
-next:   (32) -> p (112)next: p (112) -> r (114)next: r (114) -> i (105)next: i (105) -> n (110)next: n (110) -> t (116)next: t (116) -> ( (40)[DEBUG] internshrstr: str='print', len=5, hash=271190290, table_size=128, table_nuse=22
+next:   (32) -> h (104)next: h (104) -> e (101)next: e (101) -> l (108)next: l (108) -> l (108)next: l (108) -> o (111)next: o (111) -> ( (40)[DEBUG] internshrstr: str='hello', len=5, hash=261238937, table_size=128, table_nuse=7
 [DEBUG] expr: entering, current token = 351
 [DEBUG] simpleexp: entering, current token = 351
 [DEBUG] check: expecting token 351, got token 351
 [DEBUG] check: token matched successfully
-next: ( (40) -> " (34)next: " (34) -> C (67)next: C (67) -> o (111)next: o (111) -> m (109)next: m (109) -> p (112)next: p (112) -> l (108)next: l (108) -> e (101)next: e (101) -> x (120)next: x (120) ->   (32)next:   (32) -> n (110)next: n (110) -> e (101)next: e (101) -> s (115)next: s (115) -> t (116)next: t (116) -> i (105)next: i (105) -> n (110)next: n (110) -> g (103)next: g (103) ->   (32)next:   (32) -> t (116)next: t (116) -> e (101)next: e (101) -> s (115)next: s (115) -> t (116)next: t (116) ->   (32)next:   (32) -> d (100)next: d (100) -> o (111)next: o (111) -> n (110)next: n (110) -> e (101)next: e (101) -> " (34)next: " (34) -> ) (41)[DEBUG] internshrstr: str='Complex nesting test done', len=25, hash=3607832251, table_size=128, table_nuse=22
-[DEBUG] expr: entering, current token = 295
-[DEBUG] simpleexp: entering, current token = 295
-next: ) (41) -> ? (-1)[DEBUG] getbinopr: input token=330 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 330, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 330
-[DEBUG] aqlK_dischargevars: entering, e->k=7
-[DEBUG] aqlK_dischargevars: switching on e->k=7
-[DEBUG] aqlK_dischargevars: default case for e->k=7
-[DEBUG] aqlK_dischargevars: entering, e->k=7
-[DEBUG] aqlK_dischargevars: switching on e->k=7
-[DEBUG] aqlK_dischargevars: default case for e->k=7
-[DEBUG] checknext: calling check for token 330
+next: ( (40) -> ) (41)[DEBUG] aqlK_indexed: using register 0 (freereg was 0)
+[DEBUG] aqlK_dischargevars: entering, e->k=4
+[DEBUG] aqlK_dischargevars: switching on e->k=4
+[DEBUG] aqlK_dischargevars: default case for e->k=4
+next: ) (41) -> ? (-1)[DEBUG] checknext: calling check for token 330
 [DEBUG] check: expecting token 330, got token 330
 [DEBUG] check: token matched successfully
 [DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
@@ -1902,349 +114,48 @@ next: ) (41) -> ? (-1)[DEBUG] getbinopr: input token=330 (TK_GE=319)
 [DEBUG] check: token matched successfully
 [DEBUG] leaveblock: leaving block, cleaning up from level 0
 [DEBUG] leaveblock: cleaned up containers to count 0
-[DEBUG] leaveblock: completed, freereg=0
+[DEBUG] leaveblock: normal cleanup, freereg=0
+[DEBUG] leaveblock: completed, freereg=0, active_vars=0
 
 🔍 === LEXICAL ANALYSIS (Tokens) ===
-   0: LET          value=let (line 2, col 4)
-   1: IDENTIFIER   value=matrix_sum (line 2, col 15)
-   2: NUMBER       value=0 (line 2, col 18)
-   3: IF           value=if (line 4, col 3)
-   4: NUMBER       value=1 (line 4, col 4)
-   5: NUMBER       value=1 (line 4, col 9)
-   6: LBRACE       value={ (line 4, col 12)
-   7: IDENTIFIER   value=print (line 5, col 10)
-   8: UNKNOWN      value=for (line 6, col 8)
-   9: IDENTIFIER   value=row (line 6, col 12)
-  10: NUMBER       value=1 (line 6, col 15)
-  11: COMMA        value=, (line 6, col 17)
-  12: NUMBER       value=3 (line 6, col 18)
-  13: COMMA        value=, (line 6, col 20)
-  14: NUMBER       value=1 (line 6, col 21)
-  15: LBRACE       value={ (line 6, col 24)
-  16: LET          value=let (line 7, col 12)
-  17: IDENTIFIER   value=row_sum (line 7, col 20)
-  18: NUMBER       value=0 (line 7, col 23)
-  19: IF           value=if (line 8, col 11)
-  20: IDENTIFIER   value=row (line 8, col 15)
-  21: NUMBER       value=2 (line 8, col 18)
-  22: NUMBER       value=1 (line 8, col 23)
-  23: LBRACE       value={ (line 8, col 26)
-  24: IDENTIFIER   value=print (line 9, col 18)
-  25: PLUS         (line 9, col 31)
-  26: IDENTIFIER   value=string (line 9, col 39)
-  27: IDENTIFIER   value=row (line 9, col 43)
-  28: UNKNOWN      value=for (line 10, col 16)
-  29: IDENTIFIER   value=col (line 10, col 20)
-  30: NUMBER       value=1 (line 10, col 23)
-  31: COMMA        value=, (line 10, col 25)
-  32: NUMBER       value=3 (line 10, col 26)
-  33: COMMA        value=, (line 10, col 28)
-  34: NUMBER       value=1 (line 10, col 29)
-  35: LBRACE       value={ (line 10, col 32)
-  36: LET          value=let (line 11, col 20)
-  37: IDENTIFIER   value=value (line 11, col 26)
-  38: IDENTIFIER   value=row (line 11, col 32)
-  39: MULTIPLY     (line 11, col 34)
-  40: NUMBER       value=10 (line 11, col 35)
-  41: PLUS         (line 11, col 38)
-  42: IDENTIFIER   value=col (line 11, col 43)
-  43: IF           value=if (line 12, col 19)
-  44: IDENTIFIER   value=value (line 12, col 25)
-  45: NUMBER       value=15 (line 12, col 28)
-  46: LBRACE       value={ (line 12, col 32)
-  47: IDENTIFIER   value=print (line 13, col 26)
-  48: PLUS         (line 13, col 43)
-  49: IDENTIFIER   value=string (line 13, col 51)
-  50: IDENTIFIER   value=value (line 13, col 57)
-  51: IDENTIFIER   value=row_sum (line 14, col 28)
-  52: IDENTIFIER   value=row_sum (line 14, col 38)
-  53: PLUS         (line 14, col 39)
-  54: IDENTIFIER   value=value (line 14, col 46)
-  55: RBRACE       value=} (line 15, col 18)
-  56: ELSE         value=else (line 15, col 23)
-  57: LBRACE       value={ (line 15, col 25)
-  58: IDENTIFIER   value=print (line 16, col 26)
-  59: PLUS         (line 16, col 43)
-  60: IDENTIFIER   value=string (line 16, col 51)
-  61: IDENTIFIER   value=value (line 16, col 57)
-  62: IDENTIFIER   value=row_sum (line 17, col 28)
-  63: IDENTIFIER   value=row_sum (line 17, col 38)
-  64: PLUS         (line 17, col 39)
-  65: IDENTIFIER   value=value (line 17, col 46)
-  66: MULTIPLY     (line 17, col 48)
-  67: NUMBER       value=2 (line 17, col 49)
-  68: RBRACE       value=} (line 18, col 18)
-  69: RBRACE       value=} (line 19, col 14)
-  70: RBRACE       value=} (line 20, col 10)
-  71: ELSE         value=else (line 20, col 15)
-  72: LBRACE       value={ (line 20, col 17)
-  73: IDENTIFIER   value=print (line 21, col 18)
-  74: PLUS         (line 21, col 32)
-  75: IDENTIFIER   value=string (line 21, col 40)
-  76: IDENTIFIER   value=row (line 21, col 44)
-  77: UNKNOWN      value=for (line 22, col 16)
-  78: IDENTIFIER   value=col (line 22, col 20)
-  79: NUMBER       value=1 (line 22, col 23)
-  80: COMMA        value=, (line 22, col 25)
-  81: NUMBER       value=3 (line 22, col 26)
-  82: COMMA        value=, (line 22, col 28)
-  83: NUMBER       value=1 (line 22, col 29)
-  84: LBRACE       value={ (line 22, col 32)
-  85: LET          value=let (line 23, col 20)
-  86: IDENTIFIER   value=value (line 23, col 26)
-  87: IDENTIFIER   value=row (line 23, col 32)
-  88: MULTIPLY     (line 23, col 34)
-  89: NUMBER       value=10 (line 23, col 35)
-  90: PLUS         (line 23, col 38)
-  91: IDENTIFIER   value=col (line 23, col 43)
-  92: IDENTIFIER   value=row_sum (line 24, col 24)
-  93: IDENTIFIER   value=row_sum (line 24, col 34)
-  94: PLUS         (line 24, col 35)
-  95: IDENTIFIER   value=value (line 24, col 42)
-  96: IDENTIFIER   value=print (line 25, col 22)
-  97: PLUS         (line 25, col 33)
-  98: IDENTIFIER   value=string (line 25, col 41)
-  99: IDENTIFIER   value=value (line 25, col 47)
-  100: RBRACE       value=} (line 26, col 14)
-  101: RBRACE       value=} (line 27, col 10)
-  102: IDENTIFIER   value=print (line 28, col 14)
-  103: PLUS         (line 28, col 27)
-  104: IDENTIFIER   value=string (line 28, col 35)
-  105: IDENTIFIER   value=row_sum (line 28, col 43)
-  106: IDENTIFIER   value=matrix_sum (line 29, col 19)
-  107: IDENTIFIER   value=matrix_sum (line 29, col 32)
-  108: PLUS         (line 29, col 33)
-  109: IDENTIFIER   value=row_sum (line 29, col 42)
-  110: RBRACE       value=} (line 30, col 6)
-  111: IDENTIFIER   value=print (line 31, col 10)
-  112: PLUS         (line 31, col 26)
-  113: IDENTIFIER   value=string (line 31, col 34)
-  114: IDENTIFIER   value=matrix_sum (line 31, col 45)
-  115: RBRACE       value=} (line 32, col 2)
-  116: ELSE         value=else (line 32, col 7)
-  117: LBRACE       value={ (line 32, col 9)
-  118: IDENTIFIER   value=print (line 33, col 10)
-  119: RBRACE       value=} (line 34, col 2)
-  120: RETURN       value=return (line 36, col 7)
-  121: IDENTIFIER   value=print (line 36, col 13)
+   0: UNKNOWN      value=function (line 1, col 9)
+   1: IDENTIFIER   value=hello (line 1, col 15)
+   2: LBRACE       value={ (line 1, col 19)
+   3: IDENTIFIER   value=print (line 2, col 10)
+   4: RBRACE       value=} (line 3, col 2)
+   5: RETURN       value=return (line 5, col 7)
+   6: IDENTIFIER   value=hello (line 5, col 13)
 
-📊 Total tokens: 122
+📊 Total tokens: 7
 
 ✅ Lexical analysis completed successfully
 
 🔍 === ABSTRACT SYNTAX TREE (AST) ===
-INTEGER: 0
-INTEGER: 1
-BINARY_OP: == (2 children)
-INTEGER: 1
-INTEGER: 1
-INTEGER: 3
-INTEGER: 1
-INTEGER: 0
-BINARY_OP: % (2 children)
-INTEGER: 2
-BINARY_OP: == (2 children)
-INTEGER: 1
-BINARY_OP: + (2 children)
-INTEGER: 1
-INTEGER: 3
-INTEGER: 1
-BINARY_OP: * (2 children)
-INTEGER: 10
-BINARY_OP: + (2 children)
-BINARY_OP: > (2 children)
-INTEGER: 15
-BINARY_OP: + (2 children)
-BINARY_OP: + (2 children)
-BINARY_OP: + (2 children)
-BINARY_OP: + (2 children)
-BINARY_OP: * (2 children)
-INTEGER: 2
-BINARY_OP: + (2 children)
-INTEGER: 1
-INTEGER: 3
-INTEGER: 1
-BINARY_OP: * (2 children)
-INTEGER: 10
-BINARY_OP: + (2 children)
-BINARY_OP: + (2 children)
-BINARY_OP: + (2 children)
-BINARY_OP: + (2 children)
-BINARY_OP: + (2 children)
-BINARY_OP: + (2 children)
 
 📊 AST Statistics:
-  Total nodes: 39
+  Total nodes: 0
 
 
 ⚙️  === BYTECODE INSTRUCTIONS ===
 📦 Constants Pool:
-  CONST[0] = "matrix_sum"
-  CONST[1] = 0
-  CONST[2] = 1
-  CONST[3] = "Processing matrix"
-  CONST[4] = 2
-  CONST[5] = "Odd row: "
-  CONST[6] = "string"
-  CONST[7] = 10
-  CONST[8] = 15
-  CONST[9] = "Large value: "
-  CONST[10] = "Small value: "
-  CONST[11] = "Even row: "
-  CONST[12] = "Value: "
-  CONST[13] = "Row sum: "
-  CONST[14] = "Matrix sum: "
-  CONST[15] = "Skipping matrix processing"
-  CONST[16] = "Complex nesting test done"
-  CONST[17] = nil
-  CONST[18] = nil
-  CONST[19] = nil
-  CONST[20] = nil
-  CONST[21] = nil
-  CONST[22] = nil
-  CONST[23] = nil
-  CONST[24] = nil
-  CONST[25] = nil
-  CONST[26] = nil
-  CONST[27] = nil
-  CONST[28] = nil
-  CONST[29] = nil
-  CONST[30] = nil
-  CONST[31] = nil
+  CONST[0] = "hello"
+  CONST[1] = nil
+  CONST[2] = nil
+  CONST[3] = nil
 
 📝 Instructions:
   PC    OPCODE       A        B        C       
   ---   ------       -        -        -       
-  0     SETTABUP     0        128      129       # SETTABUP 0 128 129
-  1     EQ           0        130      130       # EQ 0 130 130
-  2     JMP          0        41       128       # JMP 0 41 128
-  3     LOADK        0        1        0         # R(0) := K(3)
-  4     BUILTIN      1        0        1         # BUILTIN 1 0 1
-  5     LOADI        0        0        128       # R(0) := 1
-  6     LOADI        2        1        128       # R(2) := 3
-  7     MOVE         1        2        0         # MOVE 1 2 0
-  8     LOADI        4        0        128       # R(4) := 1
-  9     MOVE         2        4        0         # MOVE 2 4 0
-  10    FORPREP      0        34       128       # FORPREP 0 34 128
-  11    LOADI        7        255      127       # R(7) := 0
-  12    MOVE         4        7        0         # MOVE 4 7 0
-  13    MOD          5        3        132       # MOD 5 3 132
-  14    EQ           0        5        130       # EQ 0 5 130
-  15    JMP          0        16       128       # JMP 0 16 128
-  16    GETTABUP     6        0        134       # GETTABUP 6 0 134
-  17    MOVE         6        3        0         # MOVE 6 3 0
-  18    CALL         16       2        2         # CALL 16 2 2
-  19    ADD          7        133      16        # R(7) := R(133) + R(16)
-  20    BUILTIN      8        0        1         # BUILTIN 8 0 1
-  21    LOADI        5        0        128       # R(5) := 1
-  22    LOADI        7        1        128       # R(7) := 3
-  23    MOVE         6        7        0         # MOVE 6 7 0
-  24    LOADI        9        0        128       # R(9) := 1
-  25    MOVE         7        9        0         # MOVE 7 9 0
-  26    FORPREP      5        10       128       # FORPREP 5 10 128
-  27    MUL          12       3        135       # R(12) := R(3) * R(135)
-  28    ADD          13       12       8         # R(13) := R(12) + R(8)
-  29    MOVE         9        13       0         # MOVE 9 13 0
-  30    LT           0        136      9         # LT 0 136 9
-  31    JMP          0        3        128       # JMP 0 3 128
-  32    GETTABUP     9        0        134       # GETTABUP 9 0 134
-  33    CALL         32       2        2         # CALL 32 2 2
-  34    ADD          10       137      32        # R(10) := R(137) + R(32)
-  35    BUILTIN      11       0        1         # BUILTIN 11 0 1
-  36    ADD          10       4        9         # R(10) := R(4) + R(9)
-  37    MOVE         4        10       0         # MOVE 4 10 0
-  38    JMP          0        3        128       # JMP 0 3 128
-  39    GETTABUP     10       0        134       # GETTABUP 10 0 134
-  40    MOVE         10       9        0         # MOVE 10 9 0
-  41    CALL         39       2        2         # CALL 39 2 2
-  42    ADD          11       138      39        # R(11) := R(138) + R(39)
-  43    BUILTIN      12       0        1         # BUILTIN 12 0 1
-  44    MUL          10       9        132       # R(10) := R(9) * R(132)
-  45    ADD          11       4        10        # R(11) := R(4) + R(10)
-  46    MOVE         4        11       0         # MOVE 4 11 0
-  47    FORLOOP      5        10       128       # FORLOOP 5 10 128
-  48    JMP          0        10       128       # JMP 0 10 128
-  49    GETTABUP     5        0        134       # GETTABUP 5 0 134
-  50    MOVE         5        3        0         # MOVE 5 3 0
-  51    CALL         49       2        2         # CALL 49 2 2
-  52    ADD          6        139      49        # R(6) := R(139) + R(49)
-  53    BUILTIN      7        0        1         # BUILTIN 7 0 1
-  54    LOADI        5        0        128       # R(5) := 1
-  55    LOADI        7        1        128       # R(7) := 3
-  56    MOVE         6        7        0         # MOVE 6 7 0
-  57    LOADI        9        0        128       # R(9) := 1
-  58    MOVE         7        9        0         # MOVE 7 9 0
-  59    FORPREP      5        5        128       # FORPREP 5 5 128
-  60    MUL          12       3        135       # R(12) := R(3) * R(135)
-  61    ADD          13       12       8         # R(13) := R(12) + R(8)
-  62    MOVE         9        13       0         # MOVE 9 13 0
-  63    ADD          10       4        9         # R(10) := R(4) + R(9)
-  64    MOVE         4        10       0         # MOVE 4 10 0
-  65    GETTABUP     10       0        134       # GETTABUP 10 0 134
-  66    MOVE         10       9        0         # MOVE 10 9 0
-  67    CALL         65       2        2         # CALL 65 2 2
-  68    ADD          11       140      65        # R(11) := R(140) + R(65)
-  69    BUILTIN      12       0        1         # BUILTIN 12 0 1
-  70    FORLOOP      5        5        128       # FORLOOP 5 5 128
-  71    GETTABUP     5        0        134       # GETTABUP 5 0 134
-  72    MOVE         5        4        0         # MOVE 5 4 0
-  73    CALL         71       2        2         # CALL 71 2 2
-  74    ADD          6        141      71        # R(6) := R(141) + R(71)
-  75    BUILTIN      7        0        1         # BUILTIN 7 0 1
-  76    GETTABUP     5        0        128       # GETTABUP 5 0 128
-  77    GETTABUP     7        0        128       # GETTABUP 7 0 128
-  78    ADD          8        7        4         # R(8) := R(7) + R(4)
-  79    SETTABUP     0        128      8         # SETTABUP 0 128 8
-  80    FORLOOP      0        34       128       # FORLOOP 0 34 128
-  81    GETTABUP     0        0        134       # GETTABUP 0 0 134
-  82    GETTABUP     2        0        128       # GETTABUP 2 0 128
-  83    CALL         81       2        2         # CALL 81 2 2
-  84    ADD          3        142      81        # R(3) := R(142) + R(81)
-  85    BUILTIN      4        0        1         # BUILTIN 4 0 1
-  86    JMP          0        0        128       # JMP 0 0 128
-  87    LOADK        0        7        0         # R(0) := K(15)
-  88    BUILTIN      1        0        1         # BUILTIN 1 0 1
-  89    LOADK        0        8        0         # R(0) := K(16)
-  90    BUILTIN      1        0        1         # BUILTIN 1 0 1
-  91    RET_ONE      1        2        0         # return R(1)
-  92    RET_VOID     0        0        0         # return
-  93    MOVE         0        0        0         # MOVE 0 0 0
-  94    MOVE         0        0        0         # MOVE 0 0 0
-  95    MOVE         0        0        0         # MOVE 0 0 0
-  96    MOVE         0        0        0         # MOVE 0 0 0
-  97    MOVE         0        0        0         # MOVE 0 0 0
-  98    MOVE         0        0        0         # MOVE 0 0 0
-  99    MOVE         0        0        0         # MOVE 0 0 0
-  100   MOVE         0        0        0         # MOVE 0 0 0
-  101   MOVE         0        0        0         # MOVE 0 0 0
-  102   MOVE         0        0        0         # MOVE 0 0 0
-  103   MOVE         0        0        0         # MOVE 0 0 0
-  104   MOVE         0        0        0         # MOVE 0 0 0
-  105   MOVE         0        0        0         # MOVE 0 0 0
-  106   MOVE         0        0        0         # MOVE 0 0 0
-  107   MOVE         0        0        0         # MOVE 0 0 0
-  108   MOVE         0        0        0         # MOVE 0 0 0
-  109   MOVE         0        0        0         # MOVE 0 0 0
-  110   MOVE         0        0        0         # MOVE 0 0 0
-  111   MOVE         0        0        0         # MOVE 0 0 0
-  112   MOVE         0        0        0         # MOVE 0 0 0
-  113   MOVE         0        0        0         # MOVE 0 0 0
-  114   MOVE         0        0        0         # MOVE 0 0 0
-  115   MOVE         0        0        0         # MOVE 0 0 0
-  116   MOVE         0        0        0         # MOVE 0 0 0
-  117   MOVE         0        0        0         # MOVE 0 0 0
-  118   MOVE         0        0        0         # MOVE 0 0 0
-  119   MOVE         0        0        0         # MOVE 0 0 0
-  120   MOVE         0        0        0         # MOVE 0 0 0
-  121   MOVE         0        0        0         # MOVE 0 0 0
-  122   MOVE         0        0        0         # MOVE 0 0 0
-  123   MOVE         0        0        0         # MOVE 0 0 0
-  124   MOVE         0        0        0         # MOVE 0 0 0
-  125   MOVE         0        0        0         # MOVE 0 0 0
-  126   MOVE         0        0        0         # MOVE 0 0 0
-  127   MOVE         0        0        0         # MOVE 0 0 0
+  0     GETTABUP     0        0        128       # GETTABUP 0 0 128
+  1     CLOSURE      1        0        0         # CLOSURE 1 0 0
+  2     SETTABUP     0        128      1         # SETTABUP 0 128 1
+  3     GETTABUP     0        0        128       # GETTABUP 0 0 128
+  4     CALL         3        1        2         # CALL 3 1 2
+  5     RET_ONE      3        2        0         # return R(3)
+  6     RET_VOID     0        0        0         # return
+  7     MOVE         0        0        0         # MOVE 0 0 0
 
-📊 Total instructions: 128
+📊 Total instructions: 8
 
 ✅ Bytecode generation completed successfully
 [DEBUG] f_execute: entering
@@ -2263,200 +174,357 @@ aqlV_execute: starting execution loop
 
 🚀 === EXECUTION TRACE ===
 
-[DEBUG] aqlV_execute: PC=0, opcode=11 (SETTABUP), A=0, B=128, C=129
-📍 PC=0: SETTABUP UPVAL[128][R(129)] := R(0)
-OP_SETTABUP: A=0 B=128 C=129OP_SETTABUP: upval type=11, key type=4, val type=3[DEBUG] OP_SETTABUP: key is string 'matrix_sum', length=10
-[DEBUG] OP_SETTABUP: value is integer 0
-OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'matrix_sum', dict size=0, dict=0x7ff87a104100
-[DEBUG] aqlD_set: value is integer 0
-[DEBUG] aqlD_set: computed hash=1681340110 for key 'matrix_sum'
-[DEBUG] aqlD_set: before setobj, hash=1681340110
-[DEBUG] aqlD_set: after setobj, hash=1681340110
-[DEBUG] aqlD_set: created entry with hash=1681340110
-[DEBUG] aqlD_set: stored entry at index 14 with hash=1681340110
-[DEBUG] aqlV_execute: PC=1, opcode=41 (EQ), A=0, B=130, C=130
-📍 PC=1: EQ A=0 B=130 C=130
-[DEBUG] VM: executing OP_EQ
-[DEBUG] OP_EQ: aqlV_equalobj(rb, rc) = 1
-[DEBUG] OP_EQ: cond=1, k=0, skipping next instruction
-[DEBUG] OP_EQ: skipped JMP, new PC=3
-[DEBUG] aqlV_execute: PC=3, opcode=3 (LOADK), A=0, Bx=3
-📍 PC=3: LOADK R(0) := K(3)
-[DEBUG] aqlV_execute: PC=4, opcode=62 (BUILTIN), A=1, B=0, C=1
-📍 PC=4: BUILTIN A=1 B=0 C=1
-[DEBUG] print: nargs=1, ra=0x7ff877d040b0, func_base=0x7ff877d040a0
-[DEBUG] print: arg[0] from register 0x7ff877d040a0
-Processing matrix
-[DEBUG] aqlV_execute: PC=5, opcode=1 (LOADI), A=0, sBx=1
-📍 PC=5: LOADI R(0) := 1
-[DEBUG] aqlV_execute: PC=6, opcode=1 (LOADI), A=2, sBx=3
-📍 PC=6: LOADI R(2) := 3
-[DEBUG] aqlV_execute: PC=7, opcode=0 (MOVE), A=1, B=2, C=0
-📍 PC=7: MOVE R(1) := R(2)
-[DEBUG] aqlV_execute: PC=8, opcode=1 (LOADI), A=4, sBx=1
-📍 PC=8: LOADI R(4) := 1
-[DEBUG] aqlV_execute: PC=9, opcode=0 (MOVE), A=2, B=4, C=0
-📍 PC=9: MOVE R(2) := R(4)
-[DEBUG] aqlV_execute: PC=10, opcode=54 (FORPREP), A=0, sBx=70
-📍 PC=10: FORPREP A=0 B=34 C=128
-[DEBUG] OP_FORPREP: init=1, limit=3
-[DEBUG] OP_FORPREP: explicit step=1
-[DEBUG] aqlV_execute: PC=11, opcode=1 (LOADI), A=7, sBx=0
-📍 PC=11: LOADI R(7) := 0
-[DEBUG] aqlV_execute: PC=12, opcode=0 (MOVE), A=4, B=7, C=0
-📍 PC=12: MOVE R(4) := R(7)
-[DEBUG] aqlV_execute: PC=13, opcode=28 (MOD), A=5, B=3, C=132
-📍 PC=13: MOD A=5 B=3 C=132
-ARITH_OP macro called for MODarith_op function called with op=9ARITH_OP completed, result = 1[DEBUG] aqlV_execute: PC=14, opcode=41 (EQ), A=0, B=5, C=130
-📍 PC=14: EQ A=0 B=5 C=130
-[DEBUG] VM: executing OP_EQ
-[DEBUG] OP_EQ: aqlV_equalobj(rb, rc) = 1
-[DEBUG] OP_EQ: cond=1, k=0, skipping next instruction
-[DEBUG] OP_EQ: skipped JMP, new PC=16
-[DEBUG] aqlV_execute: PC=16, opcode=10 (GETTABUP), A=6, B=0, C=134
-📍 PC=16: GETTABUP R(6) := UPVAL[0][R(134)]
-OP_GETTABUP: A=6 B=0 C=134OP_GETTABUP: cl=0x7ff877c05b60, cl->upvals=0x7ff877c05b80OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'string', length=6
-[DEBUG] aqlD_get: looking for key 'string', dict size=1, dict=0x7ff87a104100
-[DEBUG] findentry: searching for key 'string', hash=479440892, index=12
-[DEBUG] findentry: found empty entry at index 12, key_type=0
+[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=0, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: found empty entry at index 9, key_type=0
 [DEBUG] aqlD_get: entry not found
-OP_GETTABUP: global variable not found, setting nil[DEBUG] aqlV_execute: PC=17, opcode=0 (MOVE), A=6, B=3, C=0
-📍 PC=17: MOVE R(6) := R(3)
-[DEBUG] aqlV_execute: PC=18, opcode=48 (CALL), A=16, B=2, C=2
-📍 PC=18: CALL A=16 B=2 C=2
-[DEBUG] aqlV_execute: PC=0, opcode=11 (SETTABUP), A=0, B=128, C=129
-📍 PC=0: SETTABUP UPVAL[128][R(129)] := R(0)
-  Before: 📊 Registers: R0=true R1=2 R2=1 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-OP_SETTABUP: A=0 B=128 C=129OP_SETTABUP: upval type=11, key type=4, val type=3[DEBUG] OP_SETTABUP: key is string 'matrix_sum', length=10
-[DEBUG] OP_SETTABUP: value is integer 0
-OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'matrix_sum', dict size=1, dict=0x7ff87a104100
-[DEBUG] aqlD_set: value is integer 0
-[DEBUG] aqlD_set: computed hash=1681340110 for key 'matrix_sum'
-[DEBUG] aqlD_set: before setobj, hash=1681340110
-[DEBUG] aqlD_set: after setobj, hash=1681340110
-[DEBUG] aqlD_set: created entry with hash=1681340110
-[DEBUG] aqlV_execute: PC=1, opcode=41 (EQ), A=0, B=130, C=130
-📍 PC=1: EQ A=0 B=130 C=130
-  Before: 📊 Registers: R0=true R1=2 R2=1 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-[DEBUG] VM: executing OP_EQ
-[DEBUG] OP_EQ: aqlV_equalobj(rb, rc) = 1
-[DEBUG] OP_EQ: cond=1, k=0, skipping next instruction
-[DEBUG] OP_EQ: skipped JMP, new PC=3
-[DEBUG] aqlV_execute: PC=3, opcode=3 (LOADK), A=0, Bx=3
-📍 PC=3: LOADK R(0) := K(3)
-  Before: 📊 Registers: R0=true R1=2 R2=1 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-[DEBUG] aqlV_execute: PC=4, opcode=62 (BUILTIN), A=1, B=0, C=1
-📍 PC=4: BUILTIN A=1 B=0 C=1
-  Before: 📊 Registers: R0="Processing matrix" R1=2 R2=1 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-[DEBUG] print: nargs=1, ra=0x7ff877d040b0, func_base=0x7ff877d040a0
-[DEBUG] print: arg[0] from register 0x7ff877d040a0
-Processing matrix
-[DEBUG] aqlV_execute: PC=5, opcode=1 (LOADI), A=0, sBx=1
-📍 PC=5: LOADI R(0) := 1
-  Before: 📊 Registers: R0="Processing matrix" R1=nil R2=1 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-  After:     Registers: R[0]=1 R[1]=nil R[2]=1 R[3]=1 R[4]=0 R[5]=1 R[6]=1 R[7]=0 ... (10 more)
-
-[DEBUG] aqlV_execute: PC=6, opcode=1 (LOADI), A=2, sBx=3
-📍 PC=6: LOADI R(2) := 3
-  Before: 📊 Registers: R0=1 R1=nil R2=1 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-  After:     Registers: R[0]=1 R[1]=nil R[2]=3 R[3]=1 R[4]=0 R[5]=1 R[6]=1 R[7]=0 ... (10 more)
-
-[DEBUG] aqlV_execute: PC=7, opcode=0 (MOVE), A=1, B=2, C=0
-📍 PC=7: MOVE R(1) := R(2)
-  Before: 📊 Registers: R0=1 R1=nil R2=3 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-  After:  📊 Registers: R0=1 R1=3 R2=3 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-[DEBUG] aqlV_execute: PC=8, opcode=1 (LOADI), A=4, sBx=1
-📍 PC=8: LOADI R(4) := 1
-  Before: 📊 Registers: R0=1 R1=3 R2=3 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-  After:     Registers: R[0]=1 R[1]=3 R[2]=3 R[3]=1 R[4]=1 R[5]=1 R[6]=1 R[7]=0 ... (10 more)
-
-[DEBUG] aqlV_execute: PC=9, opcode=0 (MOVE), A=2, B=4, C=0
-📍 PC=9: MOVE R(2) := R(4)
-  Before: 📊 Registers: R0=1 R1=3 R2=3 R3=1 R4=1 R5=1 R6=1 R7=0 ... (10 more)
-  After:  📊 Registers: R0=1 R1=3 R2=1 R3=1 R4=1 R5=1 R6=1 R7=0 ... (10 more)
-[DEBUG] aqlV_execute: PC=10, opcode=54 (FORPREP), A=0, sBx=70
-📍 PC=10: FORPREP A=0 B=34 C=128
-  Before: 📊 Registers: R0=1 R1=3 R2=1 R3=1 R4=1 R5=1 R6=1 R7=0 ... (10 more)
-[DEBUG] OP_FORPREP: init=1, limit=3
-[DEBUG] OP_FORPREP: explicit step=1
-  After:     Registers: R[0]=1 R[1]=2 R[2]=1 R[3]=1 R[4]=1 R[5]=1 R[6]=1 R[7]=0 ... (10 more)
-
-[DEBUG] aqlV_execute: PC=11, opcode=1 (LOADI), A=7, sBx=0
-📍 PC=11: LOADI R(7) := 0
-  Before: 📊 Registers: R0=1 R1=2 R2=1 R3=1 R4=1 R5=1 R6=1 R7=0 ... (10 more)
-  After:     Registers: R[0]=1 R[1]=2 R[2]=1 R[3]=1 R[4]=1 R[5]=1 R[6]=1 R[7]=0 ... (10 more)
-
-[DEBUG] aqlV_execute: PC=12, opcode=0 (MOVE), A=4, B=7, C=0
-📍 PC=12: MOVE R(4) := R(7)
-  Before: 📊 Registers: R0=1 R1=2 R2=1 R3=1 R4=1 R5=1 R6=1 R7=0 ... (10 more)
-  After:  📊 Registers: R0=1 R1=2 R2=1 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-[DEBUG] aqlV_execute: PC=13, opcode=28 (MOD), A=5, B=3, C=132
-📍 PC=13: MOD A=5 B=3 C=132
-  Before: 📊 Registers: R0=1 R1=2 R2=1 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-ARITH_OP macro called for MODarith_op function called with op=9ARITH_OP completed, result = 1[DEBUG] aqlV_execute: PC=14, opcode=41 (EQ), A=0, B=5, C=130
-📍 PC=14: EQ A=0 B=5 C=130
-  Before: 📊 Registers: R0=1 R1=2 R2=1 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-[DEBUG] VM: executing OP_EQ
-[DEBUG] OP_EQ: aqlV_equalobj(rb, rc) = 1
-[DEBUG] OP_EQ: cond=1, k=0, skipping next instruction
-[DEBUG] OP_EQ: skipped JMP, new PC=16
-[DEBUG] aqlV_execute: PC=16, opcode=10 (GETTABUP), A=6, B=0, C=134
-📍 PC=16: GETTABUP R(6) := UPVAL[0][R(134)]
-  Before: 📊 Registers: R0=true R1=2 R2=1 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-OP_GETTABUP: A=6 B=0 C=134OP_GETTABUP: cl=0x7ff877c05b60, cl->upvals=0x7ff877c05b80OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'string', length=6
-[DEBUG] aqlD_get: looking for key 'string', dict size=1, dict=0x7ff87a104100
-[DEBUG] findentry: searching for key 'string', hash=479440892, index=12
-[DEBUG] findentry: found empty entry at index 12, key_type=0
-[DEBUG] aqlD_get: entry not found
-OP_GETTABUP: global variable not found, setting nil[DEBUG] aqlV_execute: PC=17, opcode=0 (MOVE), A=6, B=3, C=0
-📍 PC=17: MOVE R(6) := R(3)
-  Before: 📊 Registers: R0=true R1=2 R2=1 R3=1 R4=0 R5=1 R6=nil R7=0 ... (10 more)
-  After:  📊 Registers: R0=true R1=2 R2=1 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-[DEBUG] aqlV_execute: PC=18, opcode=48 (CALL), A=16, B=2, C=2
-📍 PC=18: CALL A=16 B=2 C=2
-  Before: 📊 Registers: R0=true R1=2 R2=1 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-[DEBUG] aqlV_execute: PC=0, opcode=11 (SETTABUP), A=0, B=128, C=129
-📍 PC=0: SETTABUP UPVAL[128][R(129)] := R(0)
-  Before: 📊 Registers: R0=true R1=2 R2=1 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-OP_SETTABUP: A=0 B=128 C=129OP_SETTABUP: upval type=11, key type=4, val type=3[DEBUG] OP_SETTABUP: key is string 'matrix_sum', length=10
-[DEBUG] OP_SETTABUP: value is integer 0
-OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'matrix_sum', dict size=1, dict=0x7ff87a104100
-[DEBUG] aqlD_set: value is integer 0
-[DEBUG] aqlD_set: computed hash=1681340110 for key 'matrix_sum'
-[DEBUG] aqlD_set: before setobj, hash=1681340110
-[DEBUG] aqlD_set: after setobj, hash=1681340110
-[DEBUG] aqlD_set: created entry with hash=1681340110
-[DEBUG] aqlV_execute: PC=1, opcode=41 (EQ), A=0, B=130, C=130
-📍 PC=1: EQ A=0 B=130 C=130
-  Before: 📊 Registers: R0=true R1=2 R2=1 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-[DEBUG] VM: executing OP_EQ
-[DEBUG] OP_EQ: aqlV_equalobj(rb, rc) = 1
-[DEBUG] OP_EQ: cond=1, k=0, skipping next instruction
-[DEBUG] OP_EQ: skipped JMP, new PC=3
-[DEBUG] aqlV_execute: PC=3, opcode=3 (LOADK), A=0, Bx=3
-📍 PC=3: LOADK R(0) := K(3)
-  Before: 📊 Registers: R0=true R1=2 R2=1 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-[DEBUG] aqlV_execute: PC=4, opcode=62 (BUILTIN), A=1, B=0, C=1
-📍 PC=4: BUILTIN A=1 B=0 C=1
-  Before: 📊 Registers: R0="Processing matrix" R1=2 R2=1 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-[DEBUG] print: nargs=1, ra=0x7ff877d040b0, func_base=0x7ff877d040a0
-[DEBUG] print: arg[0] from register 0x7ff877d040a0
-Processing matrix
-[DEBUG] aqlV_execute: PC=5, opcode=1 (LOADI), A=0, sBx=1
-📍 PC=5: LOADI R(0) := 1
-  Before: 📊 Registers: R0="Processing matrix" R1=nil R2=1 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-  After:     Registers: R[0]=1 R[1]=nil R[2]=1 R[3]=1 R[4]=0 R[5]=1 R[6]=1 R[7]=0 ... (10 more)
-
-[DEBUG] aqlV_execute: PC=6, opcode=1 (LOADI), A=2, sBx=3
-📍 PC=6: LOADI R(2) := 3
-  Before: 📊 Registers: R0=1 R1=nil R2=1 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-  After:     Registers: R[0]=1 R[1]=nil R[2]=3 R[3]=1 R[4]=0 R[5]=1 R[6]=1 R[7]=0 ... (10 more)
-
-[DEBUG] aqlV_execute: PC=7, opcode=0 (MOVE), A=1, B=2, C=0
-📍 PC=7: MOVE R(1) := R(2)
-  Before: 📊 Registers: R0=1 R1=nil R2=3 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-  After:  📊 Registers: R0=1 R1=3 R2=3 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-[DEBUG] aqlV_execute: PC=8, opcode=1 (LOADI), A=4, sBx=1
-📍 PC=8: LOADI R(4) := 1
-  Before: 📊 Registers: R0=1 R1=3 R2=3 R3=1 R4=0 R5=1 R6=1 R7=0 ... (10 more)
-  After:     Registers: R[0]=1 R[1]=3 R[2]=3 R[3]=1 R[4]=1 R[5]=1 R[6]=1 R[7]=0 ... (10 more)
+OP_GETTABUP: global variable not found, setting nil[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
+📍 PC=1: CLOSURE A=1 B=0 C=0
+[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
+📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
+OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
+OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=0, dict=0x7fec8b5040e0
+[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
+[DEBUG] aqlD_set: before setobj, hash=261238937
+[DEBUG] aqlD_set: after setobj, hash=261238937
+[DEBUG] aqlD_set: created entry with hash=261238937
+[DEBUG] aqlD_set: stored entry at index 9 with hash=261238937
+[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
+📍 PC=4: CALL A=3 B=1 C=2
+[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
+📍 PC=1: CLOSURE A=1 B=0 C=0
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
+📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
+OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
+[DEBUG] aqlD_set: before setobj, hash=261238937
+[DEBUG] aqlD_set: after setobj, hash=261238937
+[DEBUG] aqlD_set: created entry with hash=261238937
+[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
+📍 PC=4: CALL A=3 B=1 C=2
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
+📍 PC=1: CLOSURE A=1 B=0 C=0
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
+📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
+OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
+[DEBUG] aqlD_set: before setobj, hash=261238937
+[DEBUG] aqlD_set: after setobj, hash=261238937
+[DEBUG] aqlD_set: created entry with hash=261238937
+[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
+📍 PC=4: CALL A=3 B=1 C=2
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
+📍 PC=1: CLOSURE A=1 B=0 C=0
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
+📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
+OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
+[DEBUG] aqlD_set: before setobj, hash=261238937
+[DEBUG] aqlD_set: after setobj, hash=261238937
+[DEBUG] aqlD_set: created entry with hash=261238937
+[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
+📍 PC=4: CALL A=3 B=1 C=2
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
+📍 PC=1: CLOSURE A=1 B=0 C=0
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
+📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
+OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
+[DEBUG] aqlD_set: before setobj, hash=261238937
+[DEBUG] aqlD_set: after setobj, hash=261238937
+[DEBUG] aqlD_set: created entry with hash=261238937
+[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
+📍 PC=4: CALL A=3 B=1 C=2
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
+📍 PC=1: CLOSURE A=1 B=0 C=0
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
+📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
+OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
+[DEBUG] aqlD_set: before setobj, hash=261238937
+[DEBUG] aqlD_set: after setobj, hash=261238937
+[DEBUG] aqlD_set: created entry with hash=261238937
+[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
+📍 PC=4: CALL A=3 B=1 C=2
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
+📍 PC=1: CLOSURE A=1 B=0 C=0
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
+📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
+OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
+[DEBUG] aqlD_set: before setobj, hash=261238937
+[DEBUG] aqlD_set: after setobj, hash=261238937
+[DEBUG] aqlD_set: created entry with hash=261238937
+[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
+📍 PC=4: CALL A=3 B=1 C=2
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
+📍 PC=1: CLOSURE A=1 B=0 C=0
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
+📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
+OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
+[DEBUG] aqlD_set: before setobj, hash=261238937
+[DEBUG] aqlD_set: after setobj, hash=261238937
+[DEBUG] aqlD_set: created entry with hash=261238937
+[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
+📍 PC=4: CALL A=3 B=1 C=2
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
+📍 PC=1: CLOSURE A=1 B=0 C=0
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
+📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
+OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
+[DEBUG] aqlD_set: before setobj, hash=261238937
+[DEBUG] aqlD_set: after setobj, hash=261238937
+[DEBUG] aqlD_set: created entry with hash=261238937
+[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
+📍 PC=4: CALL A=3 B=1 C=2
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
+📍 PC=1: CLOSURE A=1 B=0 C=0
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
+📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
+OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
+[DEBUG] aqlD_set: before setobj, hash=261238937
+[DEBUG] aqlD_set: after setobj, hash=261238937
+[DEBUG] aqlD_set: created entry with hash=261238937
+[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6
+OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
+📍 PC=4: CALL A=3 B=1 C=2
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
+📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
+  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
+OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
+[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
+[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
+[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
+[DEBUG] findentry: entry key is string 'hello'
+[DEBUG] findentry: found matching entry!
+[DEBUG] aqlD_get: found entry, value type=6

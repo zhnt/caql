@@ -1,0 +1,5 @@
+sum_range(1, 5) = 10
+count_even(1, 10) = 4
+find_first_divisible(10, 20, 3) = 12
+find_first_divisible(10, 11, 7) = -1
+

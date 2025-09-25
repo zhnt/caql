@@ -1,0 +1,26 @@
+// Test direct expression in return vs variable
+
+function inner_calc(a, b) {
+    return a + b, a * b
+}
+
+function test_direct_return(x, y) {
+    let sum, product = inner_calc(x, y)
+    return sum, product, x - y  // Direct expression
+}
+
+function test_variable_return(x, y) {
+    let sum, product = inner_calc(x, y)
+    let diff = x - y
+    return sum, product, diff  // Variable
+}
+
+print("=== Testing Direct vs Variable Return ===")
+
+print("Direct expression return:")
+let s1, p1, d1 = test_direct_return(8, 3)
+print("  s1=" + string(s1) + ", p1=" + string(p1) + ", d1=" + string(d1))
+
+print("Variable return:")
+let s2, p2, d2 = test_variable_return(8, 3)
+print("  s2=" + string(s2) + ", p2=" + string(p2) + ", d2=" + string(d2))

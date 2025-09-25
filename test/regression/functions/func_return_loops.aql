@@ -1,0 +1,32 @@
+function sum_range(st, se) {
+    let total = 0
+    for i = st, se {
+        total = total + i
+    }
+    return total
+}
+
+function count_even(st, se) {
+    let count = 0
+    for i = st, se {
+        if (i % 2 == 0) {
+            count = count + 1
+        }
+    }
+    return count
+}
+
+function find_first_divisible(st, se, divisor) {
+    for i = st, se {
+        if (i % divisor == 0) {
+            return i
+        }
+    }
+    return -1
+}
+
+print("sum_range(1, 5) = " + string(sum_range(1, 5)))
+print("count_even(1, 10) = " + string(count_even(1, 10)))
+print("find_first_divisible(10, 20, 3) = " + string(find_first_divisible(10, 20, 3)))
+print("find_first_divisible(10, 11, 7) = " + string(find_first_divisible(10, 11, 7)))
+

@@ -1,0 +1,27 @@
+// Simplified variable scope in if statements (nested block without if condition)
+let global_var = "global"
+
+if 1 == 1 {
+    let block_var = "block"
+    print("Inside if: " + global_var)
+    print("Inside if: " + block_var)
+    
+    {
+        let nested_var = "nested"
+        print("Nested block: " + global_var)
+        print("Nested block: " + block_var)
+        print("Nested block: " + nested_var)
+        
+        // Modify outer variables
+        global_var = "modified_global"
+        block_var = "modified_block"
+    }
+    
+    print("After nested: " + global_var)
+    print("After nested: " + block_var)
+} else {
+    print("This should not execute")
+}
+
+print("Final global: " + global_var)
+print("Variable scope test done")

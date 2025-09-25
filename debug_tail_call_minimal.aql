@@ -1,0 +1,13 @@
+// Minimal tail call test
+
+function countdown(n) {
+    if n <= 0 {
+        return 0
+    }
+    return countdown(n - 1)
+}
+
+print("Testing minimal tail call:")
+let result = countdown(20)
+print("countdown(20) = " + string(result))
+

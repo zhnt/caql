@@ -1,0 +1,14 @@
+// Debug register issue with local variables
+
+function test_registers() {
+    let a = 1
+    let b = 2
+    let c = 3
+    print("a = " + string(a))
+    print("b = " + string(b))
+    print("c = " + string(c))
+    return a, b, c
+}
+
+let x, y, z = test_registers()
+print("Results: x=" + string(x) + ", y=" + string(y) + ", z=" + string(z))

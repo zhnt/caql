@@ -1,0 +1,23 @@
+=== Function start ===
+Function x: 200
+Global x in function: 100
+=== If block start ===
+If x: 300
+Function x in if: 200
+Global x in if: 100
+=== For block start ===
+For x: 401
+If x in for: 300
+Function x in for: 200
+Global x in for: 100
+=== For block start ===
+For x: 402
+If x in for: 300
+Function x in for: 200
+Global x in for: 100
+=== Back to if block ===
+If x after for: 300
+=== Back to function ===
+Function x after if: 200
+=== Back to global ===
+Global x after function: 100

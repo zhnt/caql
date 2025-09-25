@@ -1,0 +1,16 @@
+// Test string concatenation using + operator
+print("hello" + "world");
+print("a" + "b" + "c");
+
+let s1 = "foo";
+let s2 = "bar";
+print(s1 + s2);
+
+let result = "test" + "123";
+print(result);
+
+// Mixed with variables
+let prefix = "Hello, ";
+let name = "AQL";
+let greeting = prefix + name + "!";
+print(greeting);

@@ -1,0 +1,16 @@
+=== Variadic Function Tests ===
+Sum tests:
+sum_all() = 0
+sum_all(5) = 5
+sum_all(1, 2, 3) = 6
+sum_all(10, 20, 30, 40) = 100
+Multiply tests:
+multiply_all() = 1
+multiply_all(5) = 5
+multiply_all(2, 3, 4) = 24
+Max tests:
+max_of() = 0
+max_of(42) = 42
+max_of(10, 5, 20, 15) = 20
+max_of(100, 200, 50, 300, 150) = 300
+

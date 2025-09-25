@@ -1,0 +1,12 @@
+// Debug complex multi-return issue
+
+function test_three(a, b) {
+    let x = a + b
+    let y = a - b
+    let z = a * b
+    print("Inside function: x=" + string(x) + ", y=" + string(y) + ", z=" + string(z))
+    return x, y, z
+}
+
+let r1, r2, r3 = test_three(8, 3)
+print("Outside function: r1=" + string(r1) + ", r2=" + string(r2) + ", r3=" + string(r3))

@@ -1,0 +1,35 @@
+// Simple multi-return value tests
+// Testing 1, 2, 3, 5 return values with different types
+
+// Test 1: Single return value
+function get_one() {
+    return 42
+}
+
+// Test 2: Two return values (integers)
+function get_two() {
+    return 10, 20
+}
+
+// Test 3: Three return values (mixed: int, string, int)
+function get_three() {
+    return 100, "hello", 200
+}
+
+// Test 4: Five return values (mixed types)
+function get_five() {
+    return 1, "first", 2, "second", 3
+}
+
+// Execute tests
+let single = get_one()
+print("Single: " + string(single))
+
+let a, b = get_two()
+print("Two: a=" + string(a) + ", b=" + string(b))
+
+let x, y, z = get_three()
+print("Three: x=" + string(x) + ", y=" + y + ", z=" + string(z))
+
+let v1, v2, v3, v4, v5 = get_five()
+print("Five: v1=" + string(v1) + ", v2=" + v2 + ", v3=" + string(v3) + ", v4=" + v4 + ", v5=" + string(v5))

@@ -1,0 +1,20 @@
+// Debug issue 1: Third return value problem
+
+function test_third_return(x, y) {
+    let sum = x + y
+    let product = x * y  
+    let diff = x - y
+    print("Inside function:")
+    print("  sum = " + string(sum))
+    print("  product = " + string(product))
+    print("  diff = " + string(diff))
+    return sum, product, diff
+}
+
+print("=== Testing Third Return Value ===")
+let r1, r2, r3 = test_third_return(8, 3)
+print("Outside function:")
+print("  r1 = " + string(r1))
+print("  r2 = " + string(r2))
+print("  r3 = " + string(r3))
+

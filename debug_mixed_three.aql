@@ -1,0 +1,17 @@
+// Debug mixed types with three returns
+
+function test_mixed_three(unused_param) {
+    let num = 42
+    let str1 = "UPPER"
+    let str2 = "lower"
+    print("Inside: num = " + string(num))
+    print("Inside: str1 = " + str1)
+    print("Inside: str2 = " + str2)
+    return num, str1, str2
+}
+
+let a, b, c = test_mixed_three("test")
+print("Outside: a = " + string(a))
+print("Outside: b = " + b)
+print("Outside: c = " + c)
+

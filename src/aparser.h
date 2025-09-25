@@ -265,8 +265,6 @@ typedef enum BinOpr {
   OPR_DIV, OPR_IDIV,
   /* bitwise operators */
   OPR_BAND, OPR_BOR, OPR_BXOR, OPR_SHL, OPR_SHR,
-  /* string concatenation */
-  OPR_CONCAT,
   /* relational operators */
   OPR_EQ, OPR_LT, OPR_LE, OPR_NE, OPR_GT, OPR_GE,
   /* logical operators */

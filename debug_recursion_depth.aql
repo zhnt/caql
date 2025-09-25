@@ -1,0 +1,23 @@
+// Test recursion depth limits
+
+function test_depth(n) {
+    if n <= 0 {
+        return 0
+    }
+    return test_depth(n - 1)
+}
+
+print("Testing recursion depth:")
+
+print("Depth 5:")
+let r1 = test_depth(5)
+print("Result: " + string(r1))
+
+print("Depth 10:")
+let r2 = test_depth(10)
+print("Result: " + string(r2))
+
+print("Depth 15:")
+let r3 = test_depth(15)
+print("Result: " + string(r3))
+

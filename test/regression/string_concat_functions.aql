@@ -1,0 +1,22 @@
+// Test string concatenation in functions
+function make_greeting(name) {
+    return "Hello, " + name + "!";
+}
+
+function make_message(prefix, suffix) {
+    return prefix + " world " + suffix;
+}
+
+print(make_greeting("Alice"));
+print(make_greeting("Bob"));
+
+print(make_message("Hello", "today"));
+print(make_message("Good", "morning"));
+
+// Function returning concatenated strings
+function get_info(id) {
+    return "ID: " + string(id) + ", Status: Active";
+}
+
+print(get_info(100));
+print(get_info(200));

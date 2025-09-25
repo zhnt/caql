@@ -1,0 +1,30 @@
+// Recursion limits exploration (non-tail recursive)
+
+// Simple non-tail recursive function
+function test_depth(n, depth) {
+    if n <= 0 {
+        return depth
+    }
+    let result = test_depth(n - 1, depth + 1)
+    return result  // Non-tail: we do something after the recursive call
+}
+
+print("=== Recursion Limits Exploration ===")
+
+// Test different depths to find the exact limit
+print("Testing depth 3:")
+let r3 = test_depth(3, 0)
+print("Result: " + string(r3))
+
+print("Testing depth 5:")
+let r5 = test_depth(5, 0)
+print("Result: " + string(r5))
+
+print("Testing depth 7:")
+let r7 = test_depth(7, 0)
+print("Result: " + string(r7))
+
+print("Testing depth 8:")
+let r8 = test_depth(8, 0)
+print("Result: " + string(r8))
+

@@ -1,0 +1,8 @@
+function test_params(a, b, c) {
+    print("a = " + string(a))
+    print("b = " + string(b))
+    print("c = " + string(c))
+    print("sum = " + string(a + b + c))
+}
+
+test_params(10, 20, 30)

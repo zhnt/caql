@@ -1,0 +1,23 @@
+// Multi-return value tests with calculations
+
+// Test 1: Two return values with calculations
+function calculate_pair(x, y) {
+    let sum = x + y
+    let product = x * y
+    return sum, product
+}
+
+// Test 2: Three return values with string operations
+function process_string(text) {
+    let length = 5  // Simplified length calculation
+    let upper = "UPPER"  // Simplified uppercase
+    let lower = "lower"  // Simplified lowercase
+    return length, upper, lower
+}
+
+// Execute tests
+let sum, product = calculate_pair(6, 7)
+print("Calculations: sum=" + string(sum) + ", product=" + string(product))
+
+let len, up, low = process_string("test")
+print("String processing: len=" + string(len) + ", up=" + up + ", low=" + low)

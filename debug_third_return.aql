@@ -1,0 +1,22 @@
+// Debug third return value issue
+
+function inner_calc(a, b) {
+    let sum = a + b
+    let product = a * b
+    return sum, product
+}
+
+function outer_calc(x, y) {
+    let sum, product = inner_calc(x, y)
+    let diff = x - y
+    print("Inside outer_calc:")
+    print("  x=" + string(x) + ", y=" + string(y))
+    print("  sum=" + string(sum) + ", product=" + string(product))
+    print("  diff=" + string(diff))
+    return sum, product, diff
+}
+
+let s1, p1, d1 = outer_calc(8, 3)
+print("Results:")
+print("  s1=" + string(s1) + ", p1=" + string(p1) + ", d1=" + string(d1))
+

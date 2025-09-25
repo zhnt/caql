@@ -1,0 +1,42 @@
+// Complex multi-return value test to identify crash causes
+
+// Test 1: Nested function calls with multi-return
+function inner_calc(a, b) {
+    return a + b, a * b
+}
+
+function outer_calc(x, y) {
+    let sum, product = inner_calc(x, y)
+    let diff = x - y
+    return sum, product, diff
+}
+
+// Test 2: Multi-return with string operations
+function string_ops(text) {
+    let length = 4  // Simplified (avoid 'len' keyword)
+    let upper = "UPPER"
+    let lower = "lower"
+    return length, upper, lower
+}
+
+// Test 3: Multi-return with mixed calculations
+function mixed_calc(a, b) {
+    let add = a + b
+    let sub = a - b
+    let mul = a * b
+    let div_result = a div b
+    let mod_result = a % b
+    return add, sub, mul, div_result, mod_result
+}
+
+// Execute tests
+print("=== Complex Multi-Return Tests ===")
+
+let s1, p1, d1 = outer_calc(8, 3)
+print("Nested: sum=" + string(s1) + ", product=" + string(p1) + ", diff=" + string(d1))
+
+let length, up, low = string_ops("test")
+print("String: length=" + string(length) + ", up=" + up + ", low=" + low)
+
+let add, sub, mul, div_res, mod_res = mixed_calc(15, 4)
+print("Mixed: add=" + string(add) + ", sub=" + string(sub) + ", mul=" + string(mul) + ", div=" + string(div_res) + ", mod=" + string(mod_res))

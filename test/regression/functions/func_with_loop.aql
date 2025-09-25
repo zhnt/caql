@@ -1,0 +1,7 @@
+function count_to_three() {
+    for i in range(3) {
+        print("Count: " + string(i))
+    }
+}
+
+count_to_three()

@@ -1,0 +1,13 @@
+// Test string concatenation with numbers
+print("Number: " + string(42));
+print("Value: " + string(123));
+
+let num = 456;
+print("Result: " + string(num));
+print("Count: " + string(num));
+
+// Multiple mixed concatenations
+let x = 10;
+let y = 20;
+print("Sum: " + string(x) + " + " + string(y) + " = " + string(x + y));
+print("Product: " + string(x) + " * " + string(y) + " = " + string(x * y));

@@ -46,7 +46,7 @@
 /*
 ** Extra stack space for VM operations
 */
-#define EXTRA_STACK   5
+#define EXTRA_STACK   20  /* Increased from 5 for more stack buffer */
 
 /*
 ** Integer type constants

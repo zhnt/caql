@@ -1,0 +1,10 @@
+=== Tail Call Optimization Tests ===
+Factorial tail recursive:
+factorial_tail(5, 1) = 120
+Factorial normal recursive:
+factorial_normal(5) = 120
+Sum tail recursive:
+sum_tail(5, 0) = 15
+Mutual recursion:
+even(6) = 1
+odd(7) = 1

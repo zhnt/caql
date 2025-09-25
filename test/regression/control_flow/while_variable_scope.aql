@@ -1,0 +1,10 @@
+// Test while with variable scope
+let counter = 0
+let outer_var = "outer"
+while counter < 3 {
+    let loop_var = "iteration_" + string(counter)
+    print("Loop " + string(counter) + ": " + outer_var)
+    print("Loop " + string(counter) + ": " + loop_var)
+    counter = counter + 1
+}
+print("Final: " + outer_var + ", counter=" + string(counter))

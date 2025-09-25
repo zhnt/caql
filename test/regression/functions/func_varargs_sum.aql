@@ -1,0 +1,62 @@
+// Complete variadic function tests with actual sum calculation
+
+function sum_all(...) {
+    let args = ...
+    let total = 0
+    let i = 0
+    while i < len(args) {
+        total = total + args[i]
+        i = i + 1
+    }
+    return total
+}
+
+function multiply_all(...) {
+    let args = ...
+    if len(args) == 0 {
+        return 1
+    }
+    let product = 1
+    let i = 0
+    while i < len(args) {
+        product = product * args[i]
+        i = i + 1
+    }
+    return product
+}
+
+function max_of(...) {
+    let args = ...
+    if len(args) == 0 {
+        return 0
+    }
+    let maximum = args[0]
+    let i = 1
+    while i < len(args) {
+        if args[i] > maximum {
+            maximum = args[i]
+        }
+        i = i + 1
+    }
+    return maximum
+}
+
+// Test cases
+print("=== Variadic Function Tests ===")
+
+print("Sum tests:")
+print("sum_all() = " + string(sum_all()))
+print("sum_all(5) = " + string(sum_all(5)))
+print("sum_all(1, 2, 3) = " + string(sum_all(1, 2, 3)))
+print("sum_all(10, 20, 30, 40) = " + string(sum_all(10, 20, 30, 40)))
+
+print("Multiply tests:")
+print("multiply_all() = " + string(multiply_all()))
+print("multiply_all(5) = " + string(multiply_all(5)))
+print("multiply_all(2, 3, 4) = " + string(multiply_all(2, 3, 4)))
+
+print("Max tests:")
+print("max_of() = " + string(max_of()))
+print("max_of(42) = " + string(max_of(42)))
+print("max_of(10, 5, 20, 15) = " + string(max_of(10, 5, 20, 15)))
+print("max_of(100, 200, 50, 300, 150) = " + string(max_of(100, 200, 50, 300, 150)))

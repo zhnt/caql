@@ -1,0 +1,28 @@
+function factorial(n) {
+    if (n <= 1) {
+        return 1
+    }
+    return n * factorial(n - 1)
+}
+
+function fibonacci(n) {
+    if (n <= 1) {
+        return n
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2)
+}
+
+function power(base, exp) {
+    if (exp == 0) {
+        return 1
+    }
+    if (exp == 1) {
+        return base
+    }
+    return base * power(base, exp - 1)
+}
+
+print("factorial(5) = " + string(factorial(5)))
+print("fibonacci(6) = " + string(fibonacci(6)))
+print("power(2, 4) = " + string(power(2, 4)))
+print("power(3, 3) = " + string(power(3, 3)))

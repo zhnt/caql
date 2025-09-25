@@ -1,0 +1,43 @@
+// Basic variadic function tests
+
+// Test 1: Simple variadic function with no fixed parameters
+function print_all(...) {
+    print("Arguments received:")
+    // TODO: Need to implement iteration over varargs
+    return
+}
+
+// Test 2: Variadic function with fixed parameters
+function sum(first, ...) {
+    print("First argument: " + string(first))
+    print("Has varargs")
+    return first
+}
+
+// Test 3: Variadic function with multiple fixed parameters  
+function format_message(prefix, suffix, ...) {
+    print("Prefix: " + prefix)
+    print("Suffix: " + suffix)
+    print("Has additional args")
+    return prefix + suffix
+}
+
+// Test calls
+print("=== Test 1: print_all ===")
+print_all()
+print_all(1)
+print_all(1, 2, 3)
+
+print("=== Test 2: sum ===")
+let result1 = sum(10)
+print("Result1: " + string(result1))
+
+let result2 = sum(10, 20, 30)
+print("Result2: " + string(result2))
+
+print("=== Test 3: format_message ===")
+let result3 = format_message("Hello", "World")
+print("Result3: " + result3)
+
+let result4 = format_message("Start", "End", 1, 2, 3)
+print("Result4: " + result4)

@@ -1,0 +1,27 @@
+// Basic multi-return value tests (1-3 return values)
+
+// Test 1: Single return value
+function get_single() {
+    return 42
+}
+
+// Test 2: Two return values (integers)
+function get_two_integers() {
+    return 10, 20
+}
+
+// Test 3: Three return values (mixed types)
+function get_three_mixed() {
+    return 100, "hello", 200
+}
+
+// Execute tests
+let single = get_single()
+print("Single: " + string(single))
+
+let a, b = get_two_integers()
+print("Two integers: a=" + string(a) + ", b=" + string(b))
+
+let x, y, z = get_three_mixed()
+print("Three mixed: x=" + string(x) + ", y=" + y + ", z=" + string(z))
+

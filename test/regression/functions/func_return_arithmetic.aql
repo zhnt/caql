@@ -1,0 +1,22 @@
+function add(a, b) {
+    return a + b
+}
+
+function multiply(x, y) {
+    return x * y
+}
+
+function calculate(a, b, c) {
+    let sum = add(a, b)
+    let product = multiply(sum, c)
+    return product
+}
+
+let result1 = add(10, 20)
+print("add(10, 20) = " + string(result1))
+
+let result2 = multiply(6, 7)
+print("multiply(6, 7) = " + string(result2))
+
+let result3 = calculate(5, 15, 2)
+print("calculate(5, 15, 2) = " + string(result3))

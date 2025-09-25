@@ -1,0 +1,21 @@
+// Debug nested function multi-return issue
+
+function inner(a, b) {
+    print("Inner: a=" + string(a) + ", b=" + string(b))
+    let sum = a + b
+    let product = a * b
+    print("Inner results: sum=" + string(sum) + ", product=" + string(product))
+    return sum, product
+}
+
+function outer(x, y) {
+    print("Outer: x=" + string(x) + ", y=" + string(y))
+    let s, p = inner(x, y)
+    print("Outer got from inner: s=" + string(s) + ", p=" + string(p))
+    let diff = x - y
+    print("Outer calculated diff=" + string(diff))
+    return s, p, diff
+}
+
+let r1, r2, r3 = outer(8, 3)
+print("Final results: r1=" + string(r1) + ", r2=" + string(r2) + ", r3=" + string(r3))

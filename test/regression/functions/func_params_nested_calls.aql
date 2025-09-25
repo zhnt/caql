@@ -1,0 +1,14 @@
+function add_three(a, b, c) {
+    return a + b + c
+}
+
+function calculate(x, y) {
+    let sum1 = add_three(x, y, 10)
+    let sum2 = add_three(sum1, x, y)
+    print("calculate(" + string(x) + ", " + string(y) + ") = " + string(sum2))
+    return sum2
+}
+
+calculate(5, 15)
+
+

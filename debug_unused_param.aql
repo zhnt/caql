@@ -1,0 +1,14 @@
+// Debug unused parameter issue
+
+function test_with_unused_param(unused_param) {
+    let num = 42
+    let str = "hello"
+    print("Inside: num = " + string(num))
+    print("Inside: str = " + str)
+    return num, str
+}
+
+let a, b = test_with_unused_param("test")
+print("Outside: a = " + string(a))
+print("Outside: b = " + b)
+

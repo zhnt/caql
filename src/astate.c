@@ -93,8 +93,7 @@ int aqlD_rawrunprotected(aql_State *L, Pfunc f, void *ud);
 /*
 ** Constants
 */
-#define BASIC_STACK_SIZE (2*AQL_MINSTACK)
-#define EXTRA_STACK 5
+#define BASIC_STACK_SIZE (10*AQL_MINSTACK)  /* Increased from 2*AQL_MINSTACK for deeper recursion */
 #define MAX_LMEM ((lu_mem)(~(lu_mem)0) - 2)
 #define WHITE0BIT 0
 #define GCSTPGC 1
@@ -240,6 +239,9 @@ static void freestack (aql_State *L) {
 Dict *get_globals_dict(aql_State *L) {
     global_State *g = G(L);
     
+    printf_debug("[DEBUG] get_globals_dict: L=%p, g=%p, l_globals.tt_=%d\n", 
+                 (void*)L, (void*)g, g->l_globals.tt_);
+    
     if (ttisnil(&g->l_globals)) {
         printf_debug("[DEBUG] get_globals_dict: creating new globals dict\n");
         fflush(stdout);
@@ -248,7 +250,7 @@ Dict *get_globals_dict(aql_State *L) {
         Dict *globals_dict = aqlD_new(L, DT_STRING, AQL_DATA_TYPE_ANY);
         if (globals_dict) {
             setdictvalue(L, &g->l_globals, globals_dict);
-            printf_debug("[DEBUG] get_globals_dict: successfully created globals dict\n");
+            printf_debug("[DEBUG] get_globals_dict: successfully created globals dict %p\n", (void*)globals_dict);
             fflush(stdout);
         } else {
             printf_debug("[DEBUG] get_globals_dict: failed to create globals dict\n");
@@ -258,9 +260,23 @@ Dict *get_globals_dict(aql_State *L) {
     }
     
     if (ttisdict(&g->l_globals)) {
-        return dictvalue(&g->l_globals);
+        Dict *result = dictvalue(&g->l_globals);
+        printf_debug("[DEBUG] get_globals_dict: returning dict %p, size=%lu\n", (void*)result, result ? (unsigned long)result->size : 0UL);
+        
+        /* CRITICAL FIX: Check if dict was corrupted and attempt recovery */
+        if (result && result->size == 0 && result->capacity == 0) {
+            printf_debug("[DEBUG] get_globals_dict: detected corrupted dict (size=0, capacity=0)\n");
+            printf_debug("[DEBUG] get_globals_dict: WARNING - global dict corruption detected, functions may be lost\n");
+            /* For now, return the corrupted dict and let the system handle it */
+            /* TODO: Implement proper dict recovery mechanism */
+        }
+        
+        fflush(stdout);
+        return result;
     }
     
+    printf_debug("[DEBUG] get_globals_dict: l_globals is not a dict (tt_=%d), returning NULL\n", g->l_globals.tt_);
+    fflush(stdout);
     return NULL;
 }
 

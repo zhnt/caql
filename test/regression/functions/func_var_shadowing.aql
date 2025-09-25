@@ -1,0 +1,15 @@
+let x = 100
+
+function test_shadow() {
+    print("Global x before local: " + string(x))
+    let x = 5
+    print("Local x: " + string(x))
+}
+
+function test_global() {
+    print("Global x in function: " + string(x))
+}
+
+test_global()
+test_shadow()
+test_global()

@@ -1,0 +1,9 @@
+=== Recursion Limits Exploration ===
+Testing depth 3:
+Result: 3
+Testing depth 5:
+Result: 5
+Testing depth 7:
+Result: 7
+Testing depth 8:
+Result: 8

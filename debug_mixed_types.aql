@@ -1,0 +1,13 @@
+// Debug mixed types issue
+
+function test_mixed() {
+    let num = 42
+    let str = "hello"
+    print("Inside: num = " + string(num))
+    print("Inside: str = " + str)
+    return num, str
+}
+
+let a, b = test_mixed()
+print("Outside: a = " + string(a))
+print("Outside: b = " + b)

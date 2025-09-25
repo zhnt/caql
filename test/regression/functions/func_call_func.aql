@@ -1,0 +1,13 @@
+function helper() {
+    print("Helper function called")
+}
+
+function main_func() {
+    print("Main function start")
+    helper()
+    print("Main function end")
+}
+
+main_func()
+
+

@@ -12,6 +12,7 @@ extern int test_failed;
 extern int test_total;
 extern char current_test_name[256];
 extern char current_suite_name[256];
+extern int suite_header_printed;
 
 /* Colors for output */
 #define COLOR_RED     "\033[31m"
@@ -24,7 +25,10 @@ extern char current_suite_name[256];
 #define TEST_SUITE(name) \
     do { \
         snprintf(current_suite_name, sizeof(current_suite_name), "%s", name); \
-        printf("=== SUITE %s\n", name); \
+        if (!suite_header_printed) { \
+            printf("=== SUITE %s\n", name); \
+            suite_header_printed = 1; \
+        } \
     } while(0)
 
 #define TEST_CASE(name) \
@@ -167,7 +171,9 @@ void print_test_summary(void);
 
 /* Utility functions */
 char* run_aql_code(const char* code);
+char* run_aql_code_with_binary(const char* code, const char* aql_binary);
 int run_aql_code_expect_error(const char* code);
+int run_aql_code_expect_error_with_binary(const char* code, const char* aql_binary);
 char* read_file_content(const char* filename);
 int compare_files(const char* file1, const char* file2);
 

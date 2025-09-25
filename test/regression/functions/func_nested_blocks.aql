@@ -1,0 +1,35 @@
+let global_x = 100
+
+function test_nested_blocks() {
+    print("=== Function start ===")
+    let func_x = 200
+    print("Function x: " + string(func_x))
+    print("Global x in function: " + string(global_x))
+    
+    if true {
+        print("=== If block start ===")
+        let if_x = 300
+        print("If x: " + string(if_x))
+        print("Function x in if: " + string(func_x))
+        print("Global x in if: " + string(global_x))
+        
+        for i = 1, 3 {
+            print("=== For block start ===")
+            let for_x = 400 + i
+            print("For x: " + string(for_x))
+            print("If x in for: " + string(if_x))
+            print("Function x in for: " + string(func_x))
+            print("Global x in for: " + string(global_x))
+        }
+        
+        print("=== Back to if block ===")
+        print("If x after for: " + string(if_x))
+    }
+    
+    print("=== Back to function ===")
+    print("Function x after if: " + string(func_x))
+}
+
+test_nested_blocks()
+print("=== Back to global ===")
+print("Global x after function: " + string(global_x))

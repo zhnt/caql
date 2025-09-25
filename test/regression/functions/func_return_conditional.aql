@@ -1,0 +1,39 @@
+function max(a, b) {
+    if (a > b) {
+        return a
+    } else {
+        return b
+    }
+}
+
+function min(x, y) {
+    if (x < y) {
+        return x
+    }
+    return y
+}
+
+function abs(n) {
+    if (n < 0) {
+        return -n
+    }
+    return n
+}
+
+function sign(value) {
+    if (value > 0) {
+        return 1
+    } elif (value < 0) {
+        return -1
+    } else {
+        return 0
+    }
+}
+
+print("max(15, 8) = " + string(max(15, 8)))
+print("min(15, 8) = " + string(min(15, 8)))
+print("abs(-42) = " + string(abs(-42)))
+print("abs(42) = " + string(abs(42)))
+print("sign(10) = " + string(sign(10)))
+print("sign(-5) = " + string(sign(-5)))
+print("sign(0) = " + string(sign(0)))

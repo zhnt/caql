@@ -157,6 +157,7 @@ AQL_API int aql_loadfile_with_return(aql_State *L, const char *filename) {
                      strncmp(line_copy, "if ", 3) == 0 ||
                      strncmp(line_copy, "while ", 6) == 0 ||
                      strncmp(line_copy, "for ", 4) == 0 ||
+                     strncmp(line_copy, "function ", 9) == 0 ||
                      strncmp(line_copy, "return ", 7) == 0 ||
                      strstr(line_copy, ":=") != NULL ||
                      strcmp(line_copy, "}") == 0 ||

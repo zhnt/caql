@@ -304,6 +304,27 @@ static int aql_is_incomplete(const char *line) {
 }
 
 /*
+** Check if line starts with a statement keyword
+*/
+static int is_statement_keyword(const char *line) {
+  /* Skip leading whitespace */
+  while (isspace(*line)) line++;
+  
+  /* Check for statement keywords */
+  if (strncmp(line, "function ", 9) == 0) return 1;
+  if (strncmp(line, "let ", 4) == 0) return 1;
+  if (strncmp(line, "if ", 3) == 0) return 1;
+  if (strncmp(line, "while ", 6) == 0) return 1;
+  if (strncmp(line, "for ", 4) == 0) return 1;
+  if (strncmp(line, "return ", 7) == 0) return 1;
+  if (strncmp(line, "break", 5) == 0) return 1;
+  if (strncmp(line, "continue", 8) == 0) return 1;
+  if (strncmp(line, "{", 1) == 0) return 1;  /* block statement */
+  
+  return 0;
+}
+
+/*
 ** Read a line and try to load (compile) it first as an expression (by
 ** adding "return " in front of it) and second as a statement.
 ** Similar to Lua's loadline()
@@ -322,16 +343,26 @@ static int aql_loadline(aql_State *L, const char *line) {
   /* Skip empty lines */
   if (!line || strlen(line) == 0) return 0;
   
-  /* First try: parse as expression (like Lua's addreturn) */
-  status = aql_addreturn(L, line);
-  if (status == 0) {
-    return 0;  /* Expression succeeded */
-  }
-  
-  /* Second try: parse as statement */
-  status = aql_multiline(L, line);
-  if (status == 0) {
-    return 0;  /* Statement succeeded */
+  /* Check if this is obviously a statement */
+  if (is_statement_keyword(line)) {
+    printf_debug("[DEBUG] aql_loadline: detected statement keyword, trying as statement first\n");
+    /* Try as statement first */
+    status = aql_multiline(L, line);
+    if (status == 0) {
+      return 0;  /* Statement succeeded */
+    }
+  } else {
+    /* First try: parse as expression (like Lua's addreturn) */
+    status = aql_addreturn(L, line);
+    if (status == 0) {
+      return 0;  /* Expression succeeded */
+    }
+    
+    /* Second try: parse as statement */
+    status = aql_multiline(L, line);
+    if (status == 0) {
+      return 0;  /* Statement succeeded */
+    }
   }
   
   /* Check if input is incomplete */

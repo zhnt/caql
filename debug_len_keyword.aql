@@ -1,0 +1,10 @@
+// Debug len keyword issue
+
+function test_len_keyword(unused_param) {
+    let len = 42
+    print("len = " + string(len))
+    return len
+}
+
+let result = test_len_keyword("test")
+print("result = " + string(result))

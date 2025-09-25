@@ -1,0 +1,6 @@
+param x = 50
+global_x = 100
+local_z = 75
+shadowed x = 999
+local_z still = 75
+param x restored = 50
