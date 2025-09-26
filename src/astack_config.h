@@ -25,13 +25,13 @@
 #define AQL_MINSTACK                20
 
 /* Initial stack size when AQL state is created */
-#define AQL_BASIC_STACK_SIZE        (10 * AQL_MINSTACK)  /* 200 elements */
+#define AQL_BASIC_STACK_SIZE        20  /* Small size for easy debugging and testing */
 
 /* Extra stack buffer for overflow detection and safety */
 #define AQL_EXTRA_STACK             20
 
 /* Total initial stack allocation */
-#define AQL_INITIAL_STACK_TOTAL     (AQL_BASIC_STACK_SIZE + AQL_EXTRA_STACK)  /* 220 elements */
+#define AQL_INITIAL_STACK_TOTAL     (AQL_BASIC_STACK_SIZE + AQL_EXTRA_STACK)  /* 40 elements */
 
 /*
 ** Stack Growth Parameters
@@ -58,6 +58,19 @@
 
 /* Recursion depth warning threshold */
 #define AQL_RECURSION_WARNING       40
+
+/*
+** Stack Reallocation Safety Limits
+*/
+
+/* Maximum CallInfo entries to process during stack reallocation */
+#define AQL_MAX_CALLINFO_REALLOC    50000  /* Handles deep recursion */
+
+/* Maximum upvalue entries to process during stack reallocation */
+#define AQL_MAX_UPVALUE_REALLOC     10000  /* Handles complex closures */
+
+/* Safety buffer for function stack allocation (addresses compiler register allocation issues) */
+#define AQL_FUNCTION_STACK_SAFETY   300    /* Extra registers for very complex functions and deep nested loops */
 
 /*
 ** Stack Memory Calculation Helpers

@@ -23,6 +23,7 @@
 #include "astring.h"
 #include "adict.h"
 #include "adatatype.h"
+#include "astack_config.h"
 
 /*
 ** thread state + extra space
@@ -88,12 +89,12 @@ int aqlD_rawrunprotected(aql_State *L, Pfunc f, void *ud);
 #define gettotalbytes(g) cast(lu_mem, (g)->totalbytes + (g)->GCdebt)
 #define completestate(g) ttisnil(&(g)->nilvalue)
 #define setgcparam(p,v) ((p) = (v))
-#define api_incr_top(L) {L->top++;}
+#define api_incr_top(L) {L->top.p++;}
 
 /*
 ** Constants
 */
-#define BASIC_STACK_SIZE (10*AQL_MINSTACK)  /* Increased from 2*AQL_MINSTACK for deeper recursion */
+#define BASIC_STACK_SIZE AQL_BASIC_STACK_SIZE  /* Use centralized config */
 #define MAX_LMEM ((lu_mem)(~(lu_mem)0) - 2)
 #define WHITE0BIT 0
 #define GCSTPGC 1
@@ -203,31 +204,31 @@ static void aqlE_incCstack (aql_State *L) {
 static void stack_init (aql_State *L1, aql_State *L) {
     int i; CallInfo *ci;
     /* initialize stack array */
-    L1->stack = aqlM_newvector(L, BASIC_STACK_SIZE + EXTRA_STACK, StackValue);
+    L1->stack.p = aqlM_newvector(L, BASIC_STACK_SIZE + EXTRA_STACK, StackValue);
     for (i = 0; i < BASIC_STACK_SIZE + EXTRA_STACK; i++)
-        setnilvalue(s2v(L1->stack + i));  /* erase new stack */
-    L1->top = L1->stack;
-    L1->stack_last = L1->stack + BASIC_STACK_SIZE;
+        setnilvalue(s2v(L1->stack.p + i));  /* erase new stack */
+    L1->top.p = L1->stack.p;
+    L1->stack_last.p = L1->stack.p + BASIC_STACK_SIZE;
     /* initialize first ci */
     ci = &L1->base_ci;
     ci->next = ci->previous = NULL;
     ci->callstatus = CIST_C;
-    ci->func = L1->top;
+    ci->func.p = L1->top.p;
     ci->u.c.k = NULL;
     ci->nresults = 0;
-    setnilvalue(s2v(L1->top));  /* 'function' entry for this 'ci' */
-    L1->top++;
-    ci->top = L1->top + AQL_MINSTACK;
+    setnilvalue(s2v(L1->top.p));  /* 'function' entry for this 'ci' */
+    L1->top.p++;
+    ci->top.p = L1->top.p + AQL_MINSTACK;
     L1->ci = ci;
 }
 
 static void freestack (aql_State *L) {
-    if (L->stack == NULL)
+    if (L->stack.p == NULL)
         return;  /* stack not completely built yet */
     L->ci = &L->base_ci;  /* free the entire 'ci' list */
     freeCI(L);
     aql_assert(L->nci == 0);
-    aqlM_freearray(L, L->stack, stacksize(L) + EXTRA_STACK);  /* free stack */
+    aqlM_freearray(L, L->stack.p, stacksize(L) + EXTRA_STACK);  /* free stack */
 }
 
 /*
@@ -312,7 +313,7 @@ static int f_aqlopen (aql_State *L, void *ud) {
 */
 static void preinit_thread (aql_State *L, global_State *g) {
     G(L) = g;
-    L->stack = NULL;
+    L->stack.p = NULL;
     L->ci = NULL;
     L->nci = 0;
     L->twups = L;  /* thread has no upvalues */
@@ -337,7 +338,7 @@ static void close_state (aql_State *L) {
         L->ci = &L->base_ci;  /* unwind CallInfo list */
         L->errfunc = 0;   /* stack unwind can "throw away" the error function */
         aqlD_closeprotected(L, 1, AQL_OK);  /* close all upvalues */
-        L->top = L->stack + 1;  /* empty the stack to run finalizers */
+        L->top.p = L->stack.p + 1;  /* empty the stack to run finalizers */
         aqlC_freeallobjects(L);  /* collect all objects */
         aqlai_userstateclose(L);
     }
@@ -357,7 +358,7 @@ AQL_API aql_State *aql_newthread (aql_State *L) {
     o = aqlC_newobjdt(L, AQL_TTHREAD, sizeof(AX), offsetof(AX, l));
     L1 = gco2th(o);
     /* anchor it on L stack */
-    setthvalue2s(L, L->top, L1);
+    setthvalue2s(L, L->top.p, L1);
     api_incr_top(L);
     preinit_thread(L1, g);
     L1->hookmask = L->hookmask;
@@ -375,7 +376,7 @@ AQL_API aql_State *aql_newthread (aql_State *L) {
 
 void aqlE_freethread (aql_State *L, aql_State *L1) {
     AX *l = fromstate(L1);
-    aqlF_closeupval(L1, L1->stack);  /* close all upvalues */
+    aqlF_closeupval(L1, L1->stack.p);  /* close all upvalues */
     aql_assert(L1->openupval == NULL);
     aqlai_userstatefree(L, L1);
     freestack(L1);
@@ -384,8 +385,8 @@ void aqlE_freethread (aql_State *L, aql_State *L1) {
 
 int aqlE_resetthread (aql_State *L, int status) {
     CallInfo *ci = L->ci = &L->base_ci;  /* unwind CallInfo list */
-    setnilvalue(s2v(L->stack));  /* 'function' entry for basic 'ci' */
-    ci->func = L->stack;
+    setnilvalue(s2v(L->stack.p));  /* 'function' entry for basic 'ci' */
+    ci->func.p = L->stack.p;
     ci->callstatus = CIST_C;
     if (status == AQL_YIELD)
         status = AQL_OK;
@@ -393,11 +394,11 @@ int aqlE_resetthread (aql_State *L, int status) {
     L->errfunc = 0;   /* stack unwind can "throw away" the error function */
     status = aqlD_closeprotected(L, 1, status);
     if (status != AQL_OK)  /* errors? */
-        aqlD_seterrorobj(L, status, L->stack + 1);
+        aqlD_seterrorobj(L, status, L->stack.p + 1);
     else
-        L->top = L->stack + 1;
-    ci->top = L->top + AQL_MINSTACK;
-    aqlD_reallocstack(L, cast_int(ci->top - L->stack), 0);
+        L->top.p = L->stack.p + 1;
+    ci->top.p = L->top.p + AQL_MINSTACK;
+    aqlD_reallocstack(L, cast_int(ci->top.p - L->stack.p), 0);
     return status;
 }
 
@@ -488,7 +489,7 @@ void aqlE_warning (aql_State *L, const char *msg, int tocont) {
 ** Generate a warning from an error message
 */
 void aqlE_warnerror (aql_State *L, const char *where) {
-    TValue *errobj = s2v(L->top - 1);  /* error object */
+    TValue *errobj = s2v(L->top.p - 1);  /* error object */
     const char *msg = (ttisstring(errobj))
                     ? getstr(tsvalue(errobj))
                     : "error object is not a string";

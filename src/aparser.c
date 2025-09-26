@@ -292,6 +292,10 @@ static void singlevar (LexState *ls, expdesc *var);
 static void singlevar_unified (LexState *ls, expdesc *var);
 static void funcall_unified (LexState *ls, expdesc *v, int func_reg, int args_start_reg, int nargs, int line);
 
+/* Tail call detection functions */
+static int is_tail_call_candidate(FuncState *fs, expdesc *e, int nret);
+static void analyze_tail_call_pattern(FuncState *fs, expdesc *e, int nret);
+
 
 /* Helper functions */
 static void init_exp (expdesc *e, expkind k, int i);
@@ -2398,8 +2402,8 @@ LClosure *aqlY_parser (aql_State *L, struct Zio *z, Mbuffer *buff,
   LClosure *cl = aqlF_newLclosure(L, 1);  /* create main closure */
   
   
-  setclLvalue2s(L, L->top, cl);  /* anchor it (to avoid being collected) */
-  L->top++;  /* increment top for the closure */
+  setclLvalue2s(L, L->top.p, cl);  /* anchor it (to avoid being collected) */
+  L->top.p++;  /* increment top for the closure */
   
   /* TODO: lexstate.h = aqlH_new(L); */ /* create table for scanner */
   lexstate.h = NULL;  /* temporary fix */
@@ -2432,7 +2436,7 @@ LClosure *aqlY_parser (aql_State *L, struct Zio *z, Mbuffer *buff,
   aql_assert(!funcstate.prev && funcstate.nups == 1 && !lexstate.fs);
   /* all scopes should be correctly finished */
   aql_assert(dyd->actvar.n == 0 && dyd->gt.n == 0 && dyd->label.n == 0);
-  L->top--;  /* remove closure from stack (we return it directly) */
+  L->top.p--;  /* remove closure from stack (we return it directly) */
   
   /* Finish debug collections and output debug info */
   finish_token_collection();
@@ -2856,8 +2860,8 @@ AQL_API int aqlP_execute_file(aql_State *L, const char *filename) {
   
   /* Check if there's a result on the stack (last expression value) */
   
-  if (L->top > L->ci->func + 1) {  /* Has result? */
-    TValue *result = s2v(L->top - 1);
+  if (L->top.p > L->ci->func.p + 1) {  /* Has result? */
+    TValue *result = s2v(L->top.p - 1);
     /* Only print non-nil results */
     if (!ttisnil(result)) {
       aqlP_print_value(result);
@@ -2865,7 +2869,7 @@ AQL_API int aqlP_execute_file(aql_State *L, const char *filename) {
     } else {
     }
     /* Clean up stack */
-    L->top = L->ci->func + 1;
+    L->top.p = L->ci->func.p + 1;
   } else {
   }
   

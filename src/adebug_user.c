@@ -627,8 +627,8 @@ void aqlD_format_value(TValue *value, char *buffer, size_t size) {
 */
 void aqlD_dump_vm_state(aql_State *L) {
     aqlD_printf("🔍 VM State Dump:\n");
-    aqlD_printf("  Stack top: %p\n", (void*)L->top);
-    aqlD_printf("  Stack base: %p\n", (void*)L->stack);
+    aqlD_printf("  Stack top: %p\n", (void*)L->top.p);
+    aqlD_printf("  Stack base: %p\n", (void*)L->stack.p);
     aqlD_printf("  Call info: %p\n", (void*)L->ci);
     aqlD_printf("\n");
 }
@@ -637,7 +637,7 @@ void aqlD_dump_stack(aql_State *L) {
     StkId p;
     int i = 0;
     aqlD_printf("📚 Stack Dump:\n");
-    for (p = L->stack; p < L->top; p++, i++) {
+    for (p = L->stack.p; p < L->top.p; p++, i++) {
         char buffer[64];
         aqlD_format_value(s2v(p), buffer, sizeof(buffer));
         aqlD_printf("  [%d] %s\n", i, buffer);

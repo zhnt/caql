@@ -50,6 +50,10 @@ AQL_API void aqlK_finish(FuncState *fs);
 /*
 ** Expression handling
 */
+
+/* get (pointer to) instruction of given 'expdesc' */
+#define getinstruction(fs,e)	((fs)->f->code[(e)->u.info])
+
 struct expdesc;  /* forward declaration */
 AQL_API void aqlK_exp2nextreg(FuncState *fs, struct expdesc *e);
 AQL_API void aqlK_exp2anyreg(FuncState *fs, struct expdesc *e);

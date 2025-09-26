@@ -20,8 +20,8 @@
 /* Temporary implementation of aql_index2addr - should be moved to aql.c later */
 static const TValue *aql_index2addr(aql_State *L, int idx) {
   /* Simplified implementation - assumes positive indices for now */
-  if (idx > 0 && idx <= (L->top - L->stack)) {
-    return s2v(L->stack + idx - 1);
+  if (idx > 0 && idx <= (L->top.p - L->stack.p)) {
+    return s2v(L->stack.p + idx - 1);
   }
   return NULL;
 }
@@ -296,7 +296,7 @@ AQL_API int aqlA_tostring(aql_State *L) {
   /* For now, just return basic array info */
   /* TODO: Implement proper string formatting */
   TString *ts = aqlStr_newlstr(L, b, strlen(b));
-  setsvalue2s(L, L->top - 1, ts);
+  setsvalue2s(L, L->top.p - 1, ts);
   
   aqlM_freearray(L, b, 256);
   return 1;

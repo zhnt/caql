@@ -36,3 +36,4 @@ print("Math: add=" + string(add_res) + ", div=" + string(div_res) + ", mod=" + s
 let a, s, m, d, r = comprehensive_math(20, 3)
 print("Comprehensive: add=" + string(a) + ", sub=" + string(s) + ", mul=" + string(m) + ", div=" + string(d) + ", mod=" + string(r))
 
+

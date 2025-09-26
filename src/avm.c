@@ -43,7 +43,7 @@ static int trace_execution = 1;  /* Enable execution tracing by default in debug
 #ifdef AQL_DEBUG_BUILD
 static void debug_trace_registers(aql_State *L, StkId base, const Instruction *pc, const Proto *p) {
   if (aql_debug_enabled && (aql_debug_flags & AQL_DEBUG_REG)) {
-    int active_regs = (int)(L->top - base);
+    int active_regs = (int)(L->top.p - base);
     int max_stack_size = p->maxstacksize;
     int reg_count = (max_stack_size > 4) ? 4 : max_stack_size; /* Limit to 4 registers */
     
@@ -51,7 +51,7 @@ static void debug_trace_registers(aql_State *L, StkId base, const Instruction *p
     if (reg_count == 0 && max_stack_size > 0) reg_count = 1;
     
     printf("📊 Register State (PC=%d, Active=%d, MaxStack=%d, L->top=%p, base=%p):\n", 
-           (int)(pc - p->code), active_regs, max_stack_size, (void*)L->top, (void*)base);
+           (int)(pc - p->code), active_regs, max_stack_size, (void*)L->top.p, (void*)base);
     
     for (int j = 0; j < reg_count; j++) {
       printf("  R[%d]: ", j);
@@ -131,11 +131,12 @@ static int aqlV_toboolean(const TValue *obj) {
 static StkId safe_RA(StkId base, Instruction i, aql_State *L) {
   int reg = GETARG_A(i);
   StkId result = base + reg;
-  if (result < L->stack || result >= L->stack_last) {
+  if (result < L->stack.p || result >= L->stack_last.p) {
     printf_debug("[ERROR] RA register %d out of bounds (base=%p, result=%p, stack_last=%p)\n", 
-                 reg, (void*)base, (void*)result, (void*)L->stack_last);
+                 reg, (void*)base, (void*)result, (void*)L->stack_last.p);
+    printf_debug("[ERROR] This suggests maxstacksize calculation is insufficient for this function\n");
     aqlG_runerror(L, "register access out of bounds");
-    return NULL;  /* This line won't be reached due to aqlG_runerror */
+    return NULL;
   }
   return result;
 }
@@ -143,7 +144,7 @@ static StkId safe_RA(StkId base, Instruction i, aql_State *L) {
 static StkId safe_RB(StkId base, Instruction i, aql_State *L) {
   int reg = GETARG_B(i);
   StkId result = base + reg;
-  if (result < L->stack || result >= L->stack_last) {
+  if (result < L->stack.p || result >= L->stack_last.p) {
     printf_debug("[ERROR] RB register %d out of bounds\n", reg);
     return NULL;
   }
@@ -153,7 +154,7 @@ static StkId safe_RB(StkId base, Instruction i, aql_State *L) {
 static StkId safe_RC(StkId base, Instruction i, aql_State *L) {
   int reg = GETARG_C(i);
   StkId result = base + reg;
-  if (result < L->stack || result >= L->stack_last) {
+  if (result < L->stack.p || result >= L->stack_last.p) {
     printf_debug("[ERROR] RC register %d out of bounds\n", reg);
     return NULL;
   }
@@ -258,7 +259,7 @@ static StkId safe_RC(StkId base, Instruction i, aql_State *L) {
   \
   /* Print execution completion if tracing is enabled */ \
   AQL_DEBUG_BUILD_ONLY( \
-    if (trace_execution && (L->top > base)) { \
+    if (trace_execution && (L->top.p > base)) { \
       aqlD_print_execution_footer(s2v(base + (a_arg))); \
     } \
   ); \
@@ -527,12 +528,12 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
     return 0;  /* Execution failed */
   }
   
-  if (!ci->func) {
-    printf_debug("[ERROR] aqlV_execute: ci->func is NULL\n");
+  if (!ci->func.p) {
+    printf_debug("[ERROR] aqlV_execute: ci->func.p is NULL\n");
     return 0;  /* Execution failed */
   }
   
-  TValue *func_val = s2v(ci->func);
+  TValue *func_val = s2v(ci->func.p);
   if (!ttisclosure(func_val)) {
     printf_debug("[ERROR] aqlV_execute: function is not a closure\n");
     return 0;  /* Execution failed */
@@ -559,13 +560,15 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
     return 0;  /* Execution failed */
   }
   
-  base = ci->func + 1;
+  base = ci->func.p + 1;
   pc = ci->u.l.savedpc;
   k = cl->p->k;
   
   printf_debug("[DEBUG] aqlV_execute: safety checks passed, starting execution\n");
   printf_debug("[DEBUG] aqlV_execute: initial base=%p, ci->func=%p, L->stack=%p, L->stack_last=%p\n", 
-               (void*)base, (void*)ci->func, (void*)L->stack, (void*)L->stack_last);
+               (void*)base, (void*)ci->func.p, (void*)L->stack.p, (void*)L->stack_last.p);
+  printf_debug("[DEBUG] aqlV_execute: ci->top=%p, stack_size=%d, available_regs=%ld\n",
+               (void*)ci->top.p, stacksize(L), (ci->top.p - base));
   
   AQL_DEBUG(AQL_DEBUG_VM, "aqlV_execute: starting execution loop");
   
@@ -740,7 +743,7 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       aqlD_print_vm_state(&vm_state);
       
       /* Print register states BEFORE instruction execution */
-      int reg_count = (int)(L->top - base);
+      int reg_count = (int)(L->top.p - base);
       if (reg_count > 0 && trace_execution) {
         printf("  Before: ");
         /* Print registers directly without debug flag check */
@@ -763,8 +766,8 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
     /* Enhanced register tracking - simplified approach */
     int max_stack_size = cl->p->maxstacksize;
     
-    aql_assert(base == ci->func + 1);
-    aql_assert(base <= L->top && L->top <= L->stack_last);
+    aql_assert(base == ci->func.p + 1);
+    aql_assert(base <= L->top.p && L->top.p <= L->stack_last.p);
     
     switch (op) {
       /* Base operations */
@@ -785,7 +788,7 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         }
 #ifdef AQL_DEBUG_BUILD
         if (trace_execution) {
-          int reg_count = (int)(L->top - base);
+          int reg_count = (int)(L->top.p - base);
           if (reg_count > 0) {
             printf("  After:  📊 Registers: ");
             for (int j = 0; j < reg_count && j < 8; j++) {
@@ -807,7 +810,7 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         setivalue(s2v(RA(i)), iAsBx(i));
 #ifdef AQL_DEBUG_BUILD
         if (trace_execution) {
-          int reg_count = (int)(L->top - base);
+          int reg_count = (int)(L->top.p - base);
           if (reg_count > 0) {
             printf("  After:  ");
             aqlD_print_registers(s2v(base), reg_count);
@@ -906,7 +909,7 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         ARITH_OP(MUL);
 #ifdef AQL_DEBUG_BUILD
         if (trace_execution) {
-          int reg_count = (int)(L->top - base);
+          int reg_count = (int)(L->top.p - base);
           if (reg_count > 0) {
             printf("  After:  ");
             aqlD_print_registers(s2v(base), reg_count);
@@ -1293,7 +1296,7 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         printf_debug("[DEBUG] OP_CALL: A=%d, func=%p, base=%p\n", GETARG_A(i), (void*)func, (void*)base);
         printf_debug("[DEBUG] OP_CALL: func type=%d, ttisLclosure=%d\n", rawtt(f), ttisLclosure(f));
         
-        if (b != 0) L->top = func + b;  /* else previous instruction set top */
+        if (b != 0) L->top.p = func + b;  /* else previous instruction set top */
         
         /* Save current PC before calling aqlD_precall */
         ci->u.l.savedpc = pc;
@@ -1303,10 +1306,10 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
           /* C function call - already handled by aqlD_precall */
           printf_debug("[DEBUG] OP_CALL: C function call completed\n");
           if (nresults >= 0)
-            L->top = ci->top;  /* adjust results */
-          base = ci->func + 1;
-          printf_debug("[DEBUG] OP_CALL: updated base after C function call, base=%p, ci->func=%p\n", 
-                       (void*)base, (void*)ci->func);
+            L->top.p = ci->top.p;  /* adjust results */
+          base = ci->func.p + 1;
+          printf_debug("[DEBUG] OP_CALL: updated base after C function call, base=%p, ci->func=%p\n",
+                       (void*)base, (void*)ci->func.p);
         } else {
           /* AQL function call - switch to new execution context */
           printf_debug("[DEBUG] OP_CALL: AQL function call, switching context\n");
@@ -1317,7 +1320,7 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       }
       case OP_TAILCALL: {
         int b = GETARG_B(i);
-        if (b != 0) L->top = RA(i) + b;
+        if (b != 0) L->top.p = RA(i) + b;
         aqlD_pretailcall(L, ci, RA(i), b - 1, 0);  /* add missing parameters */
         goto newframe;  /* restart aqlV_execute over new Lua function */
       }
@@ -1325,14 +1328,14 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         RET_OP(
           {
         int b = GETARG_B(i);
-        if (b != 0) L->top = RA(i) + b - 1;
+        if (b != 0) L->top.p = RA(i) + b - 1;
           },
           GETARG_A(i), (GETARG_B(i) > 0 ? GETARG_B(i) - 1 : 0)
         );
       case OP_RET_VOID: 
-        RET_OP(L->top = RA(i), GETARG_A(i), 0);
+        RET_OP(L->top.p = RA(i), GETARG_A(i), 0);
       case OP_RET_ONE: 
-        RET_OP(L->top = RA(i) + 1, GETARG_A(i), 1);
+        RET_OP(L->top.p = RA(i) + 1, GETARG_A(i), 1);
       
       /* Closures */
       case OP_CLOSURE: {
@@ -1390,7 +1393,7 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         }
 #ifdef AQL_DEBUG_BUILD
         if (trace_execution) {
-          int reg_count = (int)(L->top - base);
+          int reg_count = (int)(L->top.p - base);
           if (reg_count > 0) {
             printf("  After:  ");
             aqlD_print_registers(s2v(base), reg_count);
@@ -1476,7 +1479,7 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         }
 #ifdef AQL_DEBUG_BUILD
         if (trace_execution) {
-          int reg_count = (int)(L->top - base);
+          int reg_count = (int)(L->top.p - base);
           if (reg_count > 0) {
             printf("  After:  ");
             aqlD_print_registers(s2v(base), reg_count);
@@ -1729,11 +1732,11 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         
         if (nvar) {
           /* Get actual varargs from the current call frame */
-          StkId func_base = ci->func;
+          StkId func_base = ci->func.p;
           StkId args_start = func_base + 1;  /* First argument position */
           
           /* Calculate how many arguments were actually passed */
-          int nactual = cast_int(L->top - args_start);
+          int nactual = cast_int(L->top.p - args_start);
           int nvarargs = nactual - nfixparams;  /* Number of varargs */
           
           printf_debug("[DEBUG] OP_VARARG: nactual=%d, nvarargs=%d\n", nactual, nvarargs);
@@ -2032,7 +2035,7 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
           if (status == AQL_YIELD || status == AQL_OK) {
             StkId res = RA(i);
             for (int j = 0; j < nresults && j < GETARG_C(i) - 1; j++) {
-              setobj2s(L, res + j, s2v(co_state->stack + j));
+              setobj2s(L, res + j, s2v(co_state->stack.p + j));
             }
           }
         } else {
@@ -2151,7 +2154,7 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
 #ifdef AQL_DEBUG_BUILD
     /* Print register state after instruction execution */
     if (trace_registers) {
-      int current_reg_count = (int)(L->top - base);
+      int current_reg_count = (int)(L->top.p - base);
       if (current_reg_count > 0) {
         /* Find which registers changed */
         int changed_regs[32];  /* Max 32 changed registers to track */
@@ -2215,12 +2218,12 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
     debug_trace_registers(L, base, pc, cl->p);
     
 newframe:
-    cl = clLvalue(s2v(ci->func));
-    base = ci->func + 1;
+    cl = clLvalue(s2v(ci->func.p));
+    base = ci->func.p + 1;
     pc = ci->u.l.savedpc;
     k = cl->p->k;
     printf_debug("[DEBUG] newframe: switched context - base=%p, ci->func=%p, L->stack=%p, L->stack_last=%p\n", 
-                 (void*)base, (void*)ci->func, (void*)L->stack, (void*)L->stack_last);
+                 (void*)base, (void*)ci->func.p, (void*)L->stack.p, (void*)L->stack_last.p);
   }
   
 #ifdef AQL_DEBUG_BUILD
@@ -2251,7 +2254,7 @@ AQL_API void aqlV_concat (aql_State *L, int n) {
   printf_debug("[DEBUG] aqlV_concat: entering with n=%d\n", n);
   if (n <= 1) return;  /* nothing to concatenate */
   
-  StkId top = L->top;
+  StkId top = L->top.p;
   StkId base = top - n;
   printf_debug("[DEBUG] aqlV_concat: top=%p, base=%p\n", (void*)top, (void*)base);
   
@@ -2297,7 +2300,7 @@ AQL_API void aqlV_concat (aql_State *L, int n) {
   }
   
   /* Adjust stack top */
-  L->top = base + 1;
+  L->top.p = base + 1;
 }
 
 /*

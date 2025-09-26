@@ -36,7 +36,6 @@ static void codenot (FuncState *fs, expdesc *e);
 static void codecomp (FuncState *fs, BinOpr opr, expdesc *e1, expdesc *e2, int line);
 static void negatecondition (FuncState *fs, expdesc *e);
 static int validop (int op, TValue *v1, TValue *v2);
-static Instruction *getinstruction (FuncState *fs, expdesc *e);
 static void exp2reg (FuncState *fs, expdesc *e, int reg);
 static Instruction *getjumpcontrol (FuncState *fs, int pc);
 static void removelastinstruction (FuncState *fs);
@@ -101,13 +100,6 @@ static void const2exp (TValue *v, expdesc *e) {
   }
 }
 
-/*
-** Gets the instruction of the indexing operation 'e' (if any).
-** The expression must be a table access (VINDEXED).
-*/
-static Instruction *getinstruction (FuncState *fs, expdesc *e) {
-  return &fs->f->code[e->u.info];
-}
 
 /*
 ** Fix an expression to return the number of results 'nresults'.
@@ -139,13 +131,13 @@ void aqlK_setreturns (FuncState *fs, expdesc *e, int nresults) {
 void aqlK_setoneret (FuncState *fs, expdesc *e) {
   if (e->k == VCALL) {  /* expression is an open function call? */
     /* already returns 1 value */
-    Instruction inst = *getinstruction(fs, e);
+    Instruction inst = getinstruction(fs, e);
     aql_assert(GETARG_C(inst) == 2);
     e->k = VNONRELOC;  /* result has fixed position */
     e->u.info = GETARG_A(inst);
   }
   else if (e->k == VVARARG) {
-    Instruction *pc = getinstruction(fs, e);
+    Instruction *pc = &getinstruction(fs, e);
     *pc = CREATE_ABC(GET_OPCODE(*pc), GETARG_A(*pc), GETARG_B(*pc), 2);
     e->k = VRELOC;  /* can relocate its simple result */
   }
@@ -1035,7 +1027,7 @@ static void negatecondition (FuncState *fs, expdesc *e) {
 */
 static int jumponcond (FuncState *fs, expdesc *e, int cond) {
   if (e->k == VRELOC) {
-    Instruction ie = *getinstruction(fs, e);
+    Instruction ie = getinstruction(fs, e);
     if (GET_OPCODE(ie) == OP_NOT) {
       removelastinstruction(fs);  /* remove previous OP_NOT */
       

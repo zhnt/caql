@@ -104,14 +104,14 @@ static int aql_addreturn(aql_State *L, const char *line) {
       //fflush(stdout);
       
       /* Safety checks for stack access */
-      if (!L->top || !L->ci || !L->ci->func) {
+      if (!L->top.p || !L->ci || !L->ci->func.p) {
         printf_debug("[Error] Invalid stack state after execution\n");
         free(retline);
         return -1;
       }
       
-      if (L->top > L->ci->func + 1) {  /* Has result? */
-        TValue *result = s2v(L->top - 1);
+      if (L->top.p > L->ci->func.p + 1) {  /* Has result? */
+        TValue *result = s2v(L->top.p - 1);
         if (result) {
           /* Check if we should suppress return value display */
           if (should_suppress_return_value(line, result)) {
@@ -131,8 +131,8 @@ static int aql_addreturn(aql_State *L, const char *line) {
       }
       
       /* Clean up stack safely */
-      if (L->ci && L->ci->func) {
-        L->top = L->ci->func + 1;
+      if (L->ci && L->ci->func.p) {
+        L->top.p = L->ci->func.p + 1;
         //AQL_DEBUG(AQL_DEBUG_REPL, "aql_addreturn: cleaned up stack, L->top reset");
         //fflush(stdout);
       }
@@ -145,8 +145,8 @@ static int aql_addreturn(aql_State *L, const char *line) {
     }
     
     /* Clean up stack for failed execution */
-    if (L->ci && L->ci->func) {
-      L->top = L->ci->func + 1;
+    if (L->ci && L->ci->func.p) {
+      L->top.p = L->ci->func.p + 1;
       //AQL_DEBUG(AQL_DEBUG_REPL, "aql_addreturn: cleaned up stack after execution failure");
       //fflush(stdout);
     } else {
@@ -203,7 +203,7 @@ static int aql_multiline(aql_State *L, const char *line) {
       fflush(stdout);
       
       /* Clean up stack */
-      L->top = L->ci->func + 1;
+      L->top.p = L->ci->func.p + 1;
       AQL_DEBUG(AQL_DEBUG_REPL, "aql_multiline: cleaned up stack");
       fflush(stdout);
       
@@ -214,7 +214,7 @@ static int aql_multiline(aql_State *L, const char *line) {
     }
     
     /* Clean up stack for failed execution */
-    L->top = L->ci->func + 1;
+    L->top.p = L->ci->func.p + 1;
     AQL_DEBUG(AQL_DEBUG_REPL, "aql_multiline: cleaned up stack after execution failure");
     fflush(stdout);
   } else {

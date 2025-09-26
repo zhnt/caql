@@ -12,3 +12,4 @@ let a, b = test_with_unused_param("test")
 print("Outside: a = " + string(a))
 print("Outside: b = " + b)
 
+

@@ -59,13 +59,13 @@ static int ttypenv(const TValue *o) {
 static const TValue *index2value(aql_State *L, int idx) {
     CallInfo *ci = L->ci;
     if (idx > 0) {
-        StkId o = ci->func + idx;
-        if (o >= L->top) return &G(L)->nilvalue;
+        StkId o = ci->func.p + idx;
+        if (o >= L->top.p) return &G(L)->nilvalue;
         else return s2v(o);
     }
     else if (idx < 0) {  /* negative index */
-        if (L->top + idx <= ci->func) return &G(L)->nilvalue;
-        return s2v(L->top + idx);
+        if (L->top.p + idx <= ci->func.p) return &G(L)->nilvalue;
+        return s2v(L->top.p + idx);
     }
     else if (idx == AQL_REGISTRYINDEX)
         return &G(L)->l_registry;
@@ -76,21 +76,21 @@ static const TValue *index2value(aql_State *L, int idx) {
 ** Get top of stack
 */
 AQL_API int aql_gettop(aql_State *L) {
-    return cast_int(L->top - (L->ci->func + 1));
+    return cast_int(L->top.p - (L->ci->func.p + 1));
 }
 
 /*
 ** Set top of stack
 */
 AQL_API void aql_settop(aql_State *L, int idx) {
-    StkId func = L->ci->func;
+    StkId func = L->ci->func.p;
     if (idx >= 0) {
-        while (L->top < (func + 1) + idx)
-            setnilvalue(s2v(L->top++));
-        L->top = (func + 1) + idx;
+        while (L->top.p < (func + 1) + idx)
+            setnilvalue(s2v(L->top.p++));
+        L->top.p = (func + 1) + idx;
     }
     else {
-        L->top += idx+1;  /* `subtract' index (index is negative) */
+        L->top.p += idx+1;  /* `subtract' index (index is negative) */
     }
 }
 
@@ -98,40 +98,40 @@ AQL_API void aql_settop(aql_State *L, int idx) {
 ** Push nil value
 */
 AQL_API void aql_pushnil(aql_State *L) {
-    setnilvalue(s2v(L->top));
-    L->top++;
+    setnilvalue(s2v(L->top.p));
+    L->top.p++;
 }
 
 /*
 ** Push boolean value
 */
 AQL_API void aql_pushboolean(aql_State *L, int b) {
-    setbvalue(s2v(L->top), (b != 0));
-    L->top++;
+    setbvalue(s2v(L->top.p), (b != 0));
+    L->top.p++;
 }
 
 /*
 ** Push integer value
 */
 AQL_API void aql_pushinteger(aql_State *L, aql_Integer n) {
-    setivalue(s2v(L->top), n);
-    L->top++;
+    setivalue(s2v(L->top.p), n);
+    L->top.p++;
 }
 
 /*
 ** Push number value
 */
 AQL_API void aql_pushnumber(aql_State *L, aql_Number n) {
-    setfltvalue(s2v(L->top), n);
-    L->top++;
+    setfltvalue(s2v(L->top.p), n);
+    L->top.p++;
 }
 
 /*
 ** Push value from another stack position
 */
 AQL_API void aql_pushvalue(aql_State *L, int idx) {
-    setobj2s(L, L->top, index2value(L, idx));
-    L->top++;
+    setobj2s(L, L->top.p, index2value(L, idx));
+    L->top.p++;
 }
 
 /*
@@ -209,12 +209,12 @@ AQL_API const char *aql_pushstring(aql_State *L, const char *s) {
 
 /* VM Arithmetic implementation */
 AQL_API void aql_arith(aql_State *L, int op) {
-    StkId o2 = L->top - 1;  /* second operand */
-    StkId o1 = L->top - 2;  /* first operand */
+    StkId o2 = L->top.p - 1;  /* second operand */
+    StkId o1 = L->top.p - 2;  /* first operand */
     StkId res = o1;         /* result goes to first operand */
     
     /* Check if we have enough operands on stack */
-    if (o1 < L->stack) {
+    if (o1 < L->stack.p) {
         fprintf(stderr, "AQL Error: not enough operands on stack for arithmetic\n");
         return;
     }
@@ -223,7 +223,7 @@ AQL_API void aql_arith(aql_State *L, int op) {
     aqlO_arith(L, op, s2v(o1), s2v(o2), res);
     
     /* Pop the second operand (result is now in first operand position) */
-    L->top = o2;
+    L->top.p = o2;
 }
 
 /*
@@ -231,10 +231,10 @@ AQL_API void aql_arith(aql_State *L, int op) {
 */
 AQL_API int aql_isinteger(aql_State *L, int idx) {
     /* Basic type checking for integers */
-    if (!L || !L->top) return 0;
+    if (!L || !L->top.p) return 0;
     
-    StkId stk = L->top + idx;
-    if (stk < L->stack || stk >= L->top) return 0;
+    StkId stk = L->top.p + idx;
+    if (stk < L->stack.p || stk >= L->top.p) return 0;
     
     TValue *o = s2v(stk);
     /* Check if it's an integer type */
@@ -243,10 +243,10 @@ AQL_API int aql_isinteger(aql_State *L, int idx) {
 
 AQL_API int aql_isnumber(aql_State *L, int idx) {
     /* Basic type checking for numbers */
-    if (!L || !L->top) return 0;
+    if (!L || !L->top.p) return 0;
     
-    StkId stk = L->top + idx;
-    if (stk < L->stack || stk >= L->top) return 0;
+    StkId stk = L->top.p + idx;
+    if (stk < L->stack.p || stk >= L->top.p) return 0;
     
     TValue *o = s2v(stk);
     /* Check if it's a number type (integer or float) */
@@ -255,13 +255,13 @@ AQL_API int aql_isnumber(aql_State *L, int idx) {
 
 AQL_API aql_Number aql_tonumberx(aql_State *L, int idx, int *pisnum) {
     /* Convert to number with success flag */
-    if (!L || !L->top) {
+    if (!L || !L->top.p) {
         if (pisnum) *pisnum = 0;
         return 0;
     }
     
-    StkId stk = L->top + idx;
-    if (stk < L->stack || stk >= L->top) {
+    StkId stk = L->top.p + idx;
+    if (stk < L->stack.p || stk >= L->top.p) {
         if (pisnum) *pisnum = 0;
         return 0;
     }

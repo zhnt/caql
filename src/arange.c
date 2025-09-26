@@ -19,8 +19,8 @@
 /* Forward declaration for accessing function arguments */
 static const TValue *aql_index2addr(aql_State *L, int idx) {
   /* Simplified implementation - assumes positive indices for now */
-  if (idx > 0 && idx <= (L->top - L->stack)) {
-    return s2v(L->stack + idx - 1);
+  if (idx > 0 && idx <= (L->top.p - L->stack.p)) {
+    return s2v(L->stack.p + idx - 1);
   }
   return NULL;
 }
@@ -111,8 +111,8 @@ AQL_API int aqlR_range1(aql_State *L) {
   }
   
   /* Push the range object onto the stack */
-  setrangevalue(L, s2v(L->top), range);
-  L->top++;  /* Increment stack top */
+  setrangevalue(L, s2v(L->top.p), range);
+  L->top.p++;  /* Increment stack top */
   
   return 1;  /* Return 1 value (the range object) */
 }
@@ -131,8 +131,8 @@ AQL_API int aqlR_range2(aql_State *L) {
   }
   
   /* Push the range object onto the stack */
-  setrangevalue(L, s2v(L->top), range);
-  L->top++;  /* Increment stack top */
+  setrangevalue(L, s2v(L->top.p), range);
+  L->top.p++;  /* Increment stack top */
   
   return 1;  /* Return 1 value (the range object) */
 }
@@ -156,8 +156,8 @@ AQL_API int aqlR_range3(aql_State *L) {
   }
   
   /* Push the range object onto the stack */
-  setrangevalue(L, s2v(L->top), range);
-  L->top++;  /* Increment stack top */
+  setrangevalue(L, s2v(L->top.p), range);
+  L->top.p++;  /* Increment stack top */
   
   return 1;  /* Return 1 value (the range object) */
 }
@@ -173,8 +173,8 @@ AQL_API int aqlR_iter(aql_State *L) {
   }
   
   /* For range objects, __iter returns self */
-  setobj2s(L, L->top, aql_index2addr(L, 1));  /* Copy self to result */
-  L->top++;  /* Increment stack top */
+  setobj2s(L, L->top.p, aql_index2addr(L, 1));  /* Copy self to result */
+  L->top.p++;  /* Increment stack top */
   return 1;
 }
 
@@ -192,14 +192,14 @@ AQL_API int aqlR_next(aql_State *L) {
   
   /* Check if iteration is finished */
   if (range->finished || range->count <= 0) {
-    setnilvalue(s2v(L->top));
-    L->top++;
+    setnilvalue(s2v(L->top.p));
+    L->top.p++;
     return 1;
   }
   
   /* Return current value */
-  setivalue(s2v(L->top), range->current);
-  L->top++;
+  setivalue(s2v(L->top.p), range->current);
+  L->top.p++;
   
   /* Advance to next value */
   range->current += range->step;

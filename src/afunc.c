@@ -104,7 +104,7 @@ UpVal *aqlF_findupval (aql_State *L, StkId level) {
 ** (This function assumes EXTRA_STACK.)
 */
 static void callclosemethod (aql_State *L, TValue *obj, TValue *err, int yy) {
-  StkId top = L->top;
+  StkId top = L->top.p;
   /* TODO: implement metamethod support */
   /* const TValue *tm = aqlT_gettmbyobj(L, obj, TM_CLOSE); */
   /* setobj2s(L, top, tm); */
@@ -235,14 +235,16 @@ static void poptbclist (aql_State *L) {
 */
 StkId aqlF_close (aql_State *L, StkId level, int status, int yy) {
   /* TODO: implement to-be-closed variables support */
-  ptrdiff_t levelrel = savestack(L, level);
+  ptrdiff_t levelrel = ((char *)(level) - (char *)L->stack.p);  /* Expanded savestack macro */
   aqlF_closeupval(L, level);  /* first, close the upvalues */
-  /* while (L->tbclist >= level) {
+  /* TODO: implement to-be-closed variables support
+  while (L->tbclist >= level) {
     StkId tbc = L->tbclist;
     poptbclist(L);
     prepcallclosemth(L, tbc, status, yy);
-    level = restorestack(L, levelrel);
-  } */
+    level = ((StkId)((char *)L->stack.p + (levelrel)));
+  }
+  */
   (void)status; (void)yy; (void)levelrel; /* avoid warnings */
   return level;
 }

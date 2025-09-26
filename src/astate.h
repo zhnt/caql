@@ -35,8 +35,8 @@
 ** before the actual call starts or after the actual return ends.
 */
 typedef struct CallInfo {
-  StkId func;  /* function index in the stack */
-  StkId	top;  /* top for this function */
+  StkIdRel func;  /* function index in the stack */
+  StkIdRel top;  /* top for this function */
   struct CallInfo *previous, *next;  /* dynamic call link */
   union {
     struct {  /* only for AQL functions */
@@ -77,11 +77,11 @@ typedef struct CallInfo {
 */
 struct aql_State {
   CommonHeader;
-  StkId top;  /* first free slot in the stack */
+  StkIdRel top;  /* first free slot in the stack */
   struct global_State *l_G;
   struct CallInfo *ci;  /* call info for current function */
-  StkId stack_last;  /* last free slot in the stack */
-  StkId stack;  /* stack base */
+  StkIdRel stack_last;  /* last free slot in the stack */
+  StkIdRel stack;  /* stack base */
   UpVal *openupval;  /* list of open upvalues in this stack */
   StkId func;  /* current function (CallInfo funcOff) */
   GCObject *gclist;
@@ -134,7 +134,7 @@ struct aql_State {
 */
 #define EXTRA_STACK   20  /* Increased from 5 for more stack buffer */
 
-#define stacksize(th)	cast_int((th)->stack_last - (th)->stack)
+#define stacksize(th)	cast_int((th)->stack_last.p - (th)->stack.p)
 
 /* kinds of Garbage Collection */
 #define KGC_INC		0	/* incremental gc */

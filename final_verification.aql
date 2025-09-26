@@ -1,0 +1,18 @@
+// 最终验证测试
+
+function simple_recursion(n) {
+    if n <= 0 {
+        return 0
+    }
+    return simple_recursion(n - 1) + 1
+}
+
+print("=== 最终验证 ===")
+
+// 测试我们知道工作的范围
+let depths = [10, 20, 30, 40, 50, 55, 58, 60]
+
+for i in range(8) {
+    let depth = depths[i]
+    print("测试", depth, "层:", simple_recursion(depth))
+}

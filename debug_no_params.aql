@@ -9,3 +9,4 @@ function test_no_params() {
 let r1, r2, r3 = test_no_params()
 print("r1=" + string(r1) + ", r2=" + string(r2) + ", r3=" + string(r3))
 
+

@@ -234,6 +234,7 @@ typedef struct FuncState {
   aql_byte freereg;  /* first free register */
   aql_byte iwthabs;  /* instructions issued since last absolute line info */
   aql_byte needclose;  /* function needs to close upvalues when returning */
+  aql_byte in_return_context;  /* flag: currently parsing return statement for tail call optimization */
 } FuncState;
 
 AQL_API LClosure *aqlY_parser (aql_State *L, struct Zio *z, Mbuffer *buff,

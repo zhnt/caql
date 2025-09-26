@@ -23,26 +23,26 @@ typedef struct Zio ZIO;
 ** post-action (for error handling)
 */
 #define aqlD_checkstack(L,n) \
-  if (L->stack_last - L->top <= (n)) \
+  if (L->stack_last.p - L->top.p <= (n)) \
     aqlD_growstack(L, n, 0); \
   else condmovestack(L,,);
 
 #define aqlD_checkstackaux(L,n,pre,pos) \
-  if (L->stack_last - L->top <= (n)) \
+  if (L->stack_last.p - L->top.p <= (n)) \
     { pre; aqlD_growstack(L, n, 1); pos; } \
   else condmovestack(L,pre,pos);
 
 #define aqlD_reallocstack(L, newsize, raiseerror) \
-  aqlM_reallocvector(L, L->stack, stacksize(L), newsize, StackValue)
+  aqlM_reallocvector(L, L->stack.p, stacksize(L), newsize, StackValue)
 
-#define savestack(L,p)		((char *)(p) - (char *)L->stack)
-#define restorestack(L,n)	((StkId)((char *)L->stack + (n)))
+#define savestack(L_,p_)	((char *)(p_) - (char *)(L_)->stack.p)
+#define restorestack(L_,n_)	((StkId)((char *)(L_)->stack.p + (n_)))
 
 /* macro to increment stack top */
-#define incr_top(L) {L->top++; aqlD_checkstack(L,0);}
+#define incr_top(L) {L->top.p++; aqlD_checkstack(L,0);}
 
 /* macro decrement stack top */
-#define decr_top(L) (L->top--)
+#define decr_top(L) (L->top.p--)
 
 /* macro to check GC when we are allocating new objects */
 #define aqlD_checkgc(L,c) \
