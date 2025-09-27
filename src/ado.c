@@ -503,6 +503,12 @@ AQL_API int aqlD_poscall(aql_State *L, CallInfo *ci, int nres) {
   /* Move results to proper place */
   moveresults(L, ci->func.p, nres, wanted);
   
+  /* CRITICAL: Close upvalues before returning (like Lua) */
+  /* This preserves captured variables by copying them from stack to upvalue storage */
+  StkId func_base = ci->func.p + 1;  /* base of function being returned from */
+  printf_debug("[DEBUG] aqlD_poscall: closing upvalues at level %p\n", (void*)func_base);
+  aqlF_closeupval(L, func_base);
+  
   /* Check if this is the base call (main function) */
   if (ci->previous == NULL) {
     printf_debug("[DEBUG] aqlD_poscall: base call, returning 1 (exit VM)\n");

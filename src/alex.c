@@ -212,7 +212,7 @@ static void read_string(LexState *ls, int del, SemInfo *seminfo) {
         break;  /* to avoid warnings */
       case '\\': {  /* escape sequences */
         int c;  /* final character to be saved */
-        save_and_next(ls);  /* keep '\\' for error messages */
+        next(ls);  /* skip '\\' - don't save it */
         switch (ls->current) {
           case 'a': c = '\a'; goto read_save;
           case 'b': c = '\b'; goto read_save;

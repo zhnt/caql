@@ -10,6 +10,7 @@
 #include "aql.h"
 
 #include <stddef.h>
+#include <stdio.h>
 
 #include "adebug_internal.h"
 #include "ado.h"
@@ -86,15 +87,27 @@ static UpVal *newupval (aql_State *L, StkId level, UpVal **prev) {
 UpVal *aqlF_findupval (aql_State *L, StkId level) {
   UpVal **pp = &L->openupval;
   UpVal *p;
+  printf_debug("[DEBUG] aqlF_findupval: looking for level=%p, value_type=%d\n", 
+               (void*)level, ttype(s2v(level)));
+  if (ttisinteger(s2v(level))) {
+    printf_debug("[DEBUG] aqlF_findupval: level points to integer %lld\n", 
+                 (long long)ivalue(s2v(level)));
+  }
   aql_assert(isintwups(L) || L->openupval == NULL);
   while ((p = *pp) != NULL && uplevel(p) >= level) {  /* search for it */
     aql_assert(!isdead(G(L), p));
-    if (uplevel(p) == level)  /* corresponding upvalue? */
+    if (uplevel(p) == level) {  /* corresponding upvalue? */
+      printf_debug("[DEBUG] aqlF_findupval: found existing upvalue %p\n", (void*)p);
       return p;  /* return it */
+    }
     pp = &p->u.open.next;
   }
   /* not found: create a new upvalue after 'pp' */
-  return newupval(L, level, pp);
+  printf_debug("[DEBUG] aqlF_findupval: creating new upvalue for level=%p\n", (void*)level);
+  UpVal *new_uv = newupval(L, level, pp);
+  printf_debug("[DEBUG] aqlF_findupval: created upvalue %p pointing to %p\n", 
+               (void*)new_uv, (void*)level);
+  return new_uv;
 }
 
 
@@ -200,17 +213,29 @@ void aqlF_unlinkupval (UpVal *uv) {
 void aqlF_closeupval (aql_State *L, StkId level) {
   UpVal *uv;
   StkId upl;  /* stack index pointed by 'uv' */
+  printf_debug("[DEBUG] aqlF_closeupval: closing upvalues >= level %p\n", (void*)level);
+  int closed_count = 0;
   while ((uv = L->openupval) != NULL && (upl = uplevel(uv)) >= level) {
     TValue *slot = &uv->u.value;  /* new position for value */
+    printf_debug("[DEBUG] aqlF_closeupval: closing upvalue %p, stack_pos=%p, value_type=%d\n", 
+                 (void*)uv, (void*)upl, ttype(uv->v.p));
+    if (ttisinteger(uv->v.p)) {
+      printf_debug("[DEBUG] aqlF_closeupval: copying integer %lld from stack to upvalue\n", 
+                   (long long)ivalue(uv->v.p));
+    }
     aql_assert(uplevel(uv) < L->top.p);
     aqlF_unlinkupval(uv);  /* remove upvalue from 'openupval' list */
     setobj(L, slot, uv->v.p);  /* move value to upvalue slot */
     uv->v.p = slot;  /* now current value lives here */
+    printf_debug("[DEBUG] aqlF_closeupval: upvalue %p now points to internal storage, value_type=%d\n", 
+                 (void*)uv, ttype(slot));
     if (!iswhite(uv)) {  /* neither white nor dead? */
       nw2black(uv);  /* closed upvalues cannot be gray */
       aqlC_barrier_(L, obj2gco(uv), obj2gco(slot));
     }
+    closed_count++;
   }
+  printf_debug("[DEBUG] aqlF_closeupval: closed %d upvalues\n", closed_count);
 }
 
 

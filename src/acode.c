@@ -859,10 +859,14 @@ void aqlK_setmultret (FuncState *fs, expdesc *e) {
 ** Ensure that expression 'e' is in a register.
 */
 void aqlK_exp2nextreg (FuncState *fs, expdesc *e) {
+  printf_debug("[DEBUG] aqlK_exp2nextreg: before - e->k=%d, e->u.info=%d, freereg=%d\n", 
+               e->k, e->u.info, fs->freereg);
   aqlK_dischargevars(fs, e);
   aqlK_freeexp(fs, e);
   aqlK_reserveregs(fs, 1);
   discharge2reg(fs, e, fs->freereg-1);
+  printf_debug("[DEBUG] aqlK_exp2nextreg: after - e->k=%d, e->u.info=%d, freereg=%d\n", 
+               e->k, e->u.info, fs->freereg);
 }
 
 /*

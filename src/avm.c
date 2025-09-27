@@ -594,9 +594,9 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       printf_debug("[ERROR] aqlV_execute: failed to allocate memory for register tracking\n");
       trace_registers = 0;  /* Disable register tracing */
     } else {
-      /* Initialize previous registers to nil */
-      for (int i = 0; i < max_registers; i++) {
-        setnilvalue(&prev_registers[i]);
+    /* Initialize previous registers to nil */
+    for (int i = 0; i < max_registers; i++) {
+      setnilvalue(&prev_registers[i]);
       }
     }
   }
@@ -656,8 +656,8 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         current_pc, op, aql_opnames[op], GETARG_A(i), GETARG_Bx(i));
     } else {
       /* iABC format */
-      printf_debug("[DEBUG] aqlV_execute: PC=%d, opcode=%d (%s), A=%d, B=%d, C=%d\n", 
-        current_pc, op, aql_opnames[op], GETARG_A(i), GETARG_B(i), GETARG_C(i));
+    printf_debug("[DEBUG] aqlV_execute: PC=%d, opcode=%d (%s), A=%d, B=%d, C=%d\n", 
+      current_pc, op, aql_opnames[op], GETARG_A(i), GETARG_B(i), GETARG_C(i));
     }
     
     /* Debug: Only check critical register conflicts */
@@ -861,13 +861,48 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       }
       case OP_GETUPVAL: {
         int b = GETARG_B(i);
-        setobj2s(L, RA(i), cl->upvals[b]->v.p);
+        printf_debug("[DEBUG] OP_GETUPVAL: A=%d, B=%d, cl->nupvalues=%d\n", 
+                     GETARG_A(i), b, cl->nupvalues);
+        if (b >= cl->nupvalues) {
+          printf_debug("[DEBUG] OP_GETUPVAL: ERROR - upvalue index %d >= nupvalues %d\n", b, cl->nupvalues);
+          setnilvalue(s2v(RA(i)));
+        } else if (!cl->upvals[b]) {
+          printf_debug("[DEBUG] OP_GETUPVAL: ERROR - upvals[%d] is NULL\n", b);
+          setnilvalue(s2v(RA(i)));
+        } else {
+          TValue *upval_ptr = cl->upvals[b]->v.p;
+          printf_debug("[DEBUG] OP_GETUPVAL: upvals[%d]->v.p=%p, value_type=%d\n", 
+                       b, (void*)upval_ptr, upval_ptr ? ttype(upval_ptr) : -1);
+          if (upval_ptr && ttisinteger(upval_ptr)) {
+            printf_debug("[DEBUG] OP_GETUPVAL: upvalue integer value=%lld\n", 
+                         (long long)ivalue(upval_ptr));
+          }
+          setobj2s(L, RA(i), upval_ptr);
+        }
         continue;
       }
       case OP_SETUPVAL: {
-        UpVal *uv = cl->upvals[GETARG_B(i)];
-        setobj(L, uv->v.p, s2v(RA(i)));
-        aqlC_objbarrier(L, uv, s2v(RA(i)));
+        int b = GETARG_B(i);
+        printf_debug("[DEBUG] OP_SETUPVAL: A=%d, B=%d, cl->nupvalues=%d\n", 
+                     GETARG_A(i), b, cl->nupvalues);
+        if (b >= cl->nupvalues) {
+          printf_debug("[DEBUG] OP_SETUPVAL: ERROR - upvalue index %d >= nupvalues %d\n", b, cl->nupvalues);
+          continue;
+        }
+        UpVal *uv = cl->upvals[b];
+        if (!uv) {
+          printf_debug("[DEBUG] OP_SETUPVAL: ERROR - upvals[%d] is NULL\n", b);
+          continue;
+        }
+        TValue *source = s2v(RA(i));
+        printf_debug("[DEBUG] OP_SETUPVAL: setting upvalue[%d], source_type=%d\n", b, ttype(source));
+        if (ttisinteger(source)) {
+          printf_debug("[DEBUG] OP_SETUPVAL: setting integer value %lld to upvalue[%d]\n", 
+                       (long long)ivalue(source), b);
+        }
+        setobj(L, uv->v.p, source);
+        printf_debug("[DEBUG] OP_SETUPVAL: upvalue[%d] updated, new_type=%d\n", b, ttype(uv->v.p));
+        aqlC_objbarrier(L, uv, source);
         continue;
       }
       case OP_EXTRAARG: {
@@ -1296,6 +1331,20 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         printf_debug("[DEBUG] OP_CALL: A=%d, func=%p, base=%p\n", GETARG_A(i), (void*)func, (void*)base);
         printf_debug("[DEBUG] OP_CALL: func type=%d, ttisLclosure=%d\n", rawtt(f), ttisLclosure(f));
         
+        /* DEBUG: Check arguments at func+1, func+2, ... */
+        printf_debug("[DEBUG] OP_CALL: Arguments check (should be at func+1, func+2, ...):\n");
+        for (int arg_idx = 0; arg_idx < 3; arg_idx++) {
+          TValue *arg_val = s2v(func + 1 + arg_idx);
+          printf_debug("[DEBUG] OP_CALL:   func+%d: type=%d", arg_idx + 1, ttype(arg_val));
+          if (ttisstring(arg_val)) {
+            printf_debug(" string='%s'\n", getstr(tsvalue(arg_val)));
+          } else if (ttisinteger(arg_val)) {
+            printf_debug(" integer=%lld\n", (long long)ivalue(arg_val));
+          } else {
+            printf_debug(" other\n");
+          }
+        }
+        
         if (b != 0) L->top.p = func + b;  /* else previous instruction set top */
         
         /* Save current PC before calling aqlD_precall */
@@ -1341,6 +1390,7 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
       case OP_CLOSURE: {
         ra = RA(i);  /* Initialize ra for this instruction */
         Proto *p = cl->p->p[GETARG_Bx(i)];
+        printf_debug("[DEBUG] OP_CLOSURE: creating closure, p->sizeupvalues=%d\n", p->sizeupvalues);
         LClosure *ncl = aqlF_newLclosure(L, p->sizeupvalues);
         ncl->p = p;
         setclLvalue2s(L, ra, ncl);
@@ -1348,9 +1398,21 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         /* Initialize upvalues */
         for (int j = 0; j < p->sizeupvalues; j++) {
           Upvaldesc *uv = &p->upvalues[j];
+          printf_debug("[DEBUG] OP_CLOSURE: upvalue[%d] name='%s', instack=%d, idx=%d\n", 
+                       j, uv->name ? getstr(uv->name) : "NULL", uv->instack, uv->idx);
           if (uv->instack) {  /* upvalue refers to local variable? */
-            ncl->upvals[j] = aqlF_findupval(L, base + uv->idx);
+            StkId target = base + uv->idx;
+            printf_debug("[DEBUG] OP_CLOSURE: upvalue[%d] points to stack[%d], value_type=%d\n", 
+                         j, uv->idx, ttype(s2v(target)));
+            if (ttisinteger(s2v(target))) {
+              printf_debug("[DEBUG] OP_CLOSURE: stack[%d] integer value=%lld\n", 
+                           uv->idx, (long long)ivalue(s2v(target)));
+            }
+            printf_debug("[DEBUG] OP_CLOSURE: calling aqlF_findupval(L, %p)\n", (void*)target);
+            ncl->upvals[j] = aqlF_findupval(L, target);
+            printf_debug("[DEBUG] OP_CLOSURE: aqlF_findupval returned %p\n", (void*)ncl->upvals[j]);
           } else {  /* get upvalue from enclosing function */
+            printf_debug("[DEBUG] OP_CLOSURE: upvalue[%d] from enclosing function upvals[%d]\n", j, uv->idx);
             ncl->upvals[j] = cl->upvals[uv->idx];
           }
         }
@@ -1362,8 +1424,8 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         StkId ra = RA(i);
         if (ttisinteger(s2v(ra + 2))) {  /* integer loop? */
           aql_Integer count = ivalue(s2v(ra + 1));  /* iteration counter */
-          aql_Integer step = ivalue(s2v(ra + 2));
-          aql_Integer idx = ivalue(s2v(ra));  /* internal index */
+            aql_Integer step = ivalue(s2v(ra + 2));
+            aql_Integer idx = ivalue(s2v(ra));  /* internal index */
           aql_Integer old_control = ivalue(s2v(ra + 3));  /* old control variable */
           
           printf_debug("[DEBUG] OP_FORLOOP: count=%lld, step=%lld, idx=%lld, old_control=%lld\n", 
@@ -1503,16 +1565,142 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
         switch (builtin_id) {
           case 0: /* print */ {
             int nargs = GETARG_C(i);  /* 参数数量 */
-            StkId func_base = ra - nargs;  /* 参数在ra之前的nargs个位置 */
-            printf_debug("[DEBUG] print: nargs=%d, ra=%p, func_base=%p\n", 
-                         nargs, (void*)ra, (void*)func_base);
+            StkId args_base = ra - nargs;  /* 参数在result_reg之前 */
+            printf_debug("[DEBUG] print: nargs=%d, ra=%p, args_base=%p, base=%p\n", 
+                         nargs, (void*)ra, (void*)args_base, (void*)base);
+            printf_debug("[DEBUG] print: GETARG_A(i)=%d, ra-base=%ld, args_base-base=%ld\n",
+                         GETARG_A(i), ra - base, args_base - base);
+            
+            /* DEBUG: Print all register contents around the argument area */
+            printf_debug("[DEBUG] print: Register dump around args_base (offset %ld):\n", args_base - base);
+            for (int k = 0; k < 10; k++) {
+              TValue *reg_val = s2v(base + k);
+              printf_debug("[DEBUG] print:   R[%d] (offset %d): type=%d", k, k, ttype(reg_val));
+              if (ttisstring(reg_val)) {
+                printf_debug(" string='%s'\n", getstr(tsvalue(reg_val)));
+              } else if (ttisinteger(reg_val)) {
+                printf_debug(" integer=%lld\n", (long long)ivalue(reg_val));
+              } else {
+                printf_debug(" other\n");
+              }
+            }
+            
             for (int j = 0; j < nargs; j++) {
               if (j > 0) printf("\t");
-              printf_debug("[DEBUG] print: arg[%d] from register %p\n", 
-                           j, (void*)(func_base + j));
+              printf_debug("[DEBUG] print: arg[%d] from register %p (offset %ld from base)\n", 
+                           j, (void*)(args_base + j), (args_base + j) - base);
               
               /* Print value without quotes for strings */
-              TValue *val = s2v(func_base + j);
+              TValue *val = s2v(args_base + j);
+              printf_debug("[DEBUG] print: arg[%d] value_type=%d\n", j, ttype(val));
+              if (ttisstring(val)) {
+                printf_debug("[DEBUG] print: arg[%d] string='%s'\n", j, getstr(tsvalue(val)));
+              } else if (ttisinteger(val)) {
+                printf_debug("[DEBUG] print: arg[%d] integer=%lld\n", j, (long long)ivalue(val));
+              }
+              int tag = ttypetag(val);
+              switch (tag) {
+                case AQL_VNUMINT:
+                  printf("%lld", (long long)ivalue(val));
+            break;
+                case AQL_VNUMFLT:
+                  printf("%.6g", fltvalue(val));
+                  break;
+                case AQL_VSHRSTR:
+                case AQL_VLNGSTR: {
+                  TString *ts = tsvalue(val);
+                  const char *str = getstr(ts);
+                  size_t len = tsslen(ts);
+                  printf("%.*s", (int)len, str);  /* No quotes for print */
+                  break;
+                }
+                case AQL_VNIL:
+                  printf("nil");
+                  break;
+                case AQL_VFALSE:
+                  printf("false");
+                  break;
+                case AQL_VTRUE:
+                  printf("true");
+                  break;
+                default:
+                  /* For other types, fall back to aqlP_print_value */
+                  aqlP_print_value(val);
+                  break;
+              }
+            }
+            printf("\n");
+            /* Set return value to nil (Lua-compatible behavior) */
+            setnilvalue(s2v(ra));
+            break;
+          }
+          case 1: /* type */
+            /* TODO: Implement aqlB_type */
+            aqlG_runerror(L, "type builtin not yet implemented");
+            break;
+          case 99: /* print2 - experimental smart parameter detection */ {
+            int nargs = GETARG_C(i);  /* 参数数量 */
+            /* EXPERIMENTAL: Smart parameter detection */
+            /* Try to find the actual parameter locations by scanning backwards from result_reg */
+            StkId result_reg = RA(i);
+            StkId args_base = result_reg - nargs;  /* Default calculation */
+            
+            /* Smart detection: scan for actual parameter pattern */
+            int found_params = 0;
+            for (int scan_offset = 1; scan_offset <= 10 && found_params < nargs; scan_offset++) {
+              StkId test_base = result_reg - scan_offset;
+              if (test_base >= base) {
+                /* Check if this could be the start of parameters */
+                int valid_params = 0;
+                for (int p = 0; p < nargs && (test_base + p) < result_reg; p++) {
+                  TValue *val = s2v(test_base + p);
+                  if (ttype(val) != AQL_TNIL) {  /* Non-nil value suggests valid parameter */
+                    valid_params++;
+                  }
+                }
+                if (valid_params >= nargs) {
+                  args_base = test_base;
+                  found_params = valid_params;
+                  printf_debug("[DEBUG] print2: found %d valid params starting at offset %ld\n", 
+                               found_params, args_base - base);
+                  break;
+                }
+              }
+            }
+            printf_debug("[DEBUG] print2: nargs=%d, result_reg=%p, args_base=%p, base=%p\n", 
+                         nargs, (void*)result_reg, (void*)args_base, (void*)base);
+            printf_debug("[DEBUG] print2: GETARG_A(i)=%d, result_reg-base=%ld, args_base-base=%ld\n",
+                         GETARG_A(i), result_reg - base, args_base - base);
+            
+            /* DEBUG: Print register dump for comparison */
+            printf_debug("[DEBUG] print2: Register dump around args_base (offset %ld):\n", args_base - base);
+            for (int k = 0; k < 10; k++) {
+              TValue *reg_val = s2v(base + k);
+              printf_debug("[DEBUG] print2:   R[%d] (offset %d): type=%d", k, k, ttype(reg_val));
+              if (ttisstring(reg_val)) {
+                printf_debug(" string='%s'\n", getstr(tsvalue(reg_val)));
+              } else if (ttisinteger(reg_val)) {
+                printf_debug(" integer=%lld\n", (long long)ivalue(reg_val));
+              } else {
+                printf_debug(" other\n");
+              }
+            }
+            
+            printf("PRINT2: ");
+            for (int j = 0; j < nargs; j++) {
+              if (j > 0) printf("\t");
+              printf_debug("[DEBUG] print2: arg[%d] from register %p (offset %ld from base)\n", 
+                           j, (void*)(args_base + j), (args_base + j) - base);
+              
+              /* Print value without quotes for strings */
+              TValue *val = s2v(args_base + j);
+              printf_debug("[DEBUG] print2: arg[%d] value_type=%d\n", j, ttype(val));
+              if (ttisstring(val)) {
+                printf_debug("[DEBUG] print2: arg[%d] string='%s'\n", j, getstr(tsvalue(val)));
+              } else if (ttisinteger(val)) {
+                printf_debug("[DEBUG] print2: arg[%d] integer=%lld\n", j, (long long)ivalue(val));
+              }
+              
               int tag = ttypetag(val);
               switch (tag) {
                 case AQL_VNUMINT:
@@ -1549,15 +1737,11 @@ AQL_API int aqlV_execute (aql_State *L, CallInfo *ci) {
             setnilvalue(s2v(ra));
             break;
           }
-          case 1: /* type */
-            /* TODO: Implement aqlB_type */
-            aqlG_runerror(L, "type builtin not yet implemented");
-            break;
           case 2: /* len */ {
             int nargs = GETARG_C(i);
             if (nargs != 1) {
               aqlG_runerror(L, "len() expects exactly 1 argument, got %d", nargs);
-              break;
+            break;
             }
             
             StkId func_base = ra - nargs;  /* 参数在结果寄存器之前 */

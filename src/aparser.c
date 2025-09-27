@@ -670,11 +670,14 @@ static int searchupvalue (FuncState *fs, TString *name) {
 static Upvaldesc *allocupvalue (FuncState *fs) {
   Proto *f = fs->f;
   int oldsize = f->sizeupvalues;
+  printf_debug("[DEBUG] allocupvalue: fs->nups=%d, oldsize=%d\n", fs->nups, oldsize);
   checklimit(fs, fs->nups + 1, MAXUPVAL, "upvalues");
   aqlM_growvector(fs->ls->L, f->upvalues, fs->nups, f->sizeupvalues,
                   Upvaldesc, MAXUPVAL, "upvalues");
+  printf_debug("[DEBUG] allocupvalue: after growvector, sizeupvalues=%d\n", f->sizeupvalues);
   while (oldsize < f->sizeupvalues)
     f->upvalues[oldsize++].name = NULL;
+  printf_debug("[DEBUG] allocupvalue: returning upvalue[%d]\n", fs->nups);
   return &f->upvalues[fs->nups++];
 }
 
@@ -736,6 +739,8 @@ static void markupval (FuncState *fs, int level) {
 ** 'var' as 'void' as a flag.
 */
 static void singlevaraux (FuncState *fs, TString *n, expdesc *var, int base) {
+  printf_debug("[DEBUG] singlevaraux: searching for '%s', fs=%p, base=%d, freereg=%d\n", 
+               n ? getstr(n) : "NULL", (void*)fs, base, fs ? fs->freereg : -1);
   if (fs == NULL)  /* no more levels? */
     init_exp(var, VVOID, 0);  /* default is global */
   else {
@@ -745,15 +750,24 @@ static void singlevaraux (FuncState *fs, TString *n, expdesc *var, int base) {
         markupval(fs, var->u.var.vidx);  /* local will be used as an upval */
     }
     else {  /* not found as local at current level; try upvalues */
+      printf_debug("[DEBUG] singlevaraux: '%s' not found locally, checking upvalues\n", getstr(n));
       int idx = searchupvalue(fs, n);  /* try existing upvalues */
       if (idx < 0) {  /* not found? */
+        printf_debug("[DEBUG] singlevaraux: '%s' not in upvalues, trying upper levels\n", getstr(n));
         singlevaraux(fs->prev, n, var, 0);  /* try upper levels */
-        if (var->k == VLOCAL || var->k == VUPVAL)  /* local or upvalue? */
+        if (var->k == VLOCAL || var->k == VUPVAL) {  /* local or upvalue? */
+          printf_debug("[DEBUG] singlevaraux: '%s' found in upper level, creating upvalue\n", getstr(n));
           idx  = newupvalue(fs, n, var);  /* will be a new upvalue */
-        else  /* it is a global or a constant */
+          printf_debug("[DEBUG] singlevaraux: created upvalue[%d] for '%s'\n", idx, getstr(n));
+        } else {  /* it is a global or a constant */
+          printf_debug("[DEBUG] singlevaraux: '%s' is global/constant, no upvalue needed\n", getstr(n));
           return;  /* don't need to do anything at this level */
+        }
+      } else {
+        printf_debug("[DEBUG] singlevaraux: '%s' found in existing upvalues[%d]\n", getstr(n), idx);
       }
       init_exp(var, VUPVAL, idx);  /* new or old upvalue */
+      printf_debug("[DEBUG] singlevaraux: set '%s' as VUPVAL with idx=%d\n", getstr(n), idx);
     }
   }
 }
@@ -933,6 +947,12 @@ static void simpleexp (LexState *ls, expdesc *v) {
       aqlX_next(ls);  /* skip false */
       break;
     }
+    case TK_FUNCTION: {
+      /* Function expression: function() { ... } */
+      aqlX_next(ls);  /* skip 'function' */
+      body(ls, v, 0, ls->linenumber);
+      return;
+    }
     case TK_NAME: {
       /* Use unified variable lookup that works for all execution modes */
       singlevar_unified(ls, v);
@@ -958,7 +978,14 @@ static void simpleexp (LexState *ls, expdesc *v) {
         /* Generate function call instruction */
         if (v->k == VBUILTIN) {
           /* Builtin function call - use OP_BUILTIN */
+          /* CRITICAL FIX: Ensure arguments are in consecutive registers for OP_BUILTIN */
+          int args_start = ls->fs->freereg - nargs;  /* Where arguments should start */
           int result_reg = ls->fs->freereg++;
+          
+          /* For now, trust that explist has put arguments in consecutive registers */
+          /* The real issue is that complex expressions create gaps in register allocation */
+          /* This needs a more sophisticated solution in explist or register allocation */
+          
           aqlK_codeABC(ls->fs, OP_BUILTIN, result_reg, v->u.info, nargs);
           init_exp(v, VNONRELOC, result_reg);  /* result is in result_reg */
         } else {
@@ -1465,16 +1492,40 @@ static int explist (LexState *ls, expdesc *v) {
   /* explist -> expr { ',' expr } */
   
   int n = 1;  /* at least one expression */
+  int first_reg = ls->fs->freereg;  /* 记录第一个参数应该在的位置 */
+  int arg_regs[32];  /* 存储每个参数的实际寄存器位置 */
+  printf_debug("[DEBUG] explist: starting, freereg=%d, first_reg=%d\n", ls->fs->freereg, first_reg);
+  
   expr(ls, v);
+  aqlK_exp2nextreg(ls->fs, v);  /* 确保第一个表达式在寄存器中 */
+  arg_regs[0] = v->u.info;
+  printf_debug("[DEBUG] explist: first expr in register %d, freereg=%d\n", arg_regs[0], ls->fs->freereg);
   
   while (testnext(ls, ',')) {
-    aqlK_exp2nextreg(ls->fs, v);
     expr(ls, v);
+    aqlK_exp2nextreg(ls->fs, v);  /* 确保每个表达式都在寄存器中 */
+    arg_regs[n] = v->u.info;
+    printf_debug("[DEBUG] explist: expr[%d] in register %d, freereg=%d\n", n, arg_regs[n], ls->fs->freereg);
     n++;
   }
   
-  /* CRITICAL FIX: Ensure the last expression is also in a register */
-  aqlK_exp2nextreg(ls->fs, v);
+  /* CRITICAL FIX: Reorganize arguments to be consecutive starting from first_reg */
+  printf_debug("[DEBUG] explist: reorganizing %d args to be consecutive from reg %d\n", n, first_reg);
+  for (int i = 0; i < n; i++) {
+    int target_reg = first_reg + i;
+    if (arg_regs[i] != target_reg) {
+      printf_debug("[DEBUG] explist: moving arg[%d] from R[%d] to R[%d]\n", i, arg_regs[i], target_reg);
+      aqlK_codeABC(ls->fs, OP_MOVE, target_reg, arg_regs[i], 0);
+    }
+  }
+  
+  /* Update freereg to reflect the consecutive allocation */
+  ls->fs->freereg = first_reg + n;
+  printf_debug("[DEBUG] explist: final freereg=%d, args in consecutive registers %d to %d\n", 
+               ls->fs->freereg, first_reg, first_reg + n - 1);
+  
+  /* Set v to point to the last argument's new position */
+  init_exp(v, VNONRELOC, first_reg + n - 1);
   
   return n;
 }
@@ -2563,6 +2614,7 @@ static const struct {
   {"string", 3},    /* alias for tostring */
   {"tonumber", 4},
   {"range", 5},
+  {"print2", 99},   /* experimental Lua-style parameter access */
   {NULL, -1}  /* sentinel */
 };
 
