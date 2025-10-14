@@ -1,0 +1,18 @@
+# 多常量复杂计算测试
+# 测试: 多个常量的组合运算
+
+.constants
+K0 INTEGER 10
+K1 INTEGER 20
+K2 INTEGER 30
+
+.code
+LOADK R0, K0       # R0 = 10
+LOADK R1, K1       # R1 = 20
+ADD   R2, R0, R1   # R2 = 10 + 20 = 30
+MMBIN R2, R0, 6    # 元方法调用 (对结果R2)
+LOADK R4, K2       # R4 = 30 (从常量表加载)
+ADD   R3, R2, R4   # R3 = 30 + 30 = 60
+MMBIN R3, R2, 6    # 元方法调用 (对结果R3)
+RETURN1 R3         # 返回 60
+.end

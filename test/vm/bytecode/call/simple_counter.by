@@ -1,0 +1,24 @@
+# simple_counter.by
+# 简化版计数器闭包测试
+
+.main
+K0 STRING "makeCounter"
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
+.code
+CLOSURE   R0, 0            # R0 = makeCounter函数
+SETTABUP  0, K0, R0        # _ENV["makeCounter"] = R0
+
+# 测试makeCounter(10)
+GETTABUP  R1, 0, K0        # R1 = _ENV["makeCounter"]
+LOADI     R2, 10           # R2 = 10
+CALL      R1, 2, 2         # makeCounter(10)
+RETURN1   R1               # 返回闭包函数
+.end
+
+.function makeCounter 1
+.code
+# R0 = start
+LOADI     R1, 42           # 简单测试：直接返回42
+RETURN1   R1
+.end

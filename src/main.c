@@ -30,27 +30,27 @@ static void print_usage(const char *progname) {
     printf("  -e <expr>      Evaluate expression directly\n");
     printf("  --test         Run comprehensive arithmetic tests\n\n");
     printf("Debug Options:\n");
-    printf("  -v             Show all debug details (equivalent to -vt -va -vb -ve -vr)\n");
-    printf("  -vt            Show tokens from lexical analysis\n");
-    printf("  -va            Show abstract syntax tree (AST)\n");
-    printf("  -vb            Show bytecode instructions\n");
-    printf("  -ve            Show execution trace\n");
-    printf("  -vr            Show register values during execution\n");
-    printf("  -vm            Show memory management info\n");
-    printf("  -vg            Show garbage collection info\n");
-    printf("  -vd            Show REPL debug information\n\n");
+    printf("  -v             详细模式 (词法+ AST +字节码 + 执行跟踪)\n");
+    printf("  -vb            只输出字节码 (类似 luac -l)\n");
+    printf("  -vast          只输出 AST\n");
+    printf("  -vt            输出执行跟踪\n");
+    printf("  -vl            输出词流\n");
+    printf("  -vd            详细日志输出 (print_debug激活+ -v模式)\n");
+    printf("  -compare       与 Lua 字节码对比 (需要指定 .lua 文件)\n\n");
     printf("JIT Options:\n");
     printf("  --jit-auto     Enable automatic JIT compilation (default)\n");
     printf("  --jit-off      Disable JIT compilation\n");
     printf("  --jit-force    Force JIT compilation for all functions\n");
     printf("  --jit-stats    Show JIT statistics after execution\n\n");
     printf("Examples:\n");
-    printf("  %s                    # Interactive mode with auto-JIT\n", progname);
-    printf("  %s script.aql         # Execute file with JIT\n", progname);
-    printf("  %s -v script.aql      # Execute with full debug output\n", progname);
-    printf("  %s -vt -ve script.aql # Show tokens and execution trace\n", progname);
-    printf("  %s --jit-off script.aql # Execute without JIT\n", progname);
-    printf("  %s -e \"2 + 3 * 4\"     # Evaluate expression\n", progname);
+    printf("  %s script.aql         # 执行文件\n", progname);
+    printf("  %s -vb script.aql     # 只输出字节码 (类似 luac -l)\n", progname);
+    printf("  %s -v script.aql      # 详细模式 (词法+AST+字节码+执行跟踪)\n", progname);
+    printf("  %s -vast script.aql   # 只输出 AST\n", progname);
+    printf("  %s -vt script.aql     # 输出执行跟踪\n", progname);
+    printf("  %s -vl script.aql     # 输出词流\n", progname);
+    printf("  %s -vd script.aql     # 详细日志输出\n", progname);
+    printf("  %s -e \"2 + 3 * 4\"     # 计算表达式\n", progname);
 }
 
 /*
@@ -151,23 +151,27 @@ int main(int argc, char *argv[]) {
             print_version();
             return 0;
         } else if (strcmp(argv[i], "-v") == 0) {
-            debug_flags = AQL_DEBUG_ALL;
-        } else if (strcmp(argv[i], "-vt") == 0) {
-            debug_flags |= AQL_DEBUG_LEX;
-        } else if (strcmp(argv[i], "-va") == 0) {
-            debug_flags |= AQL_DEBUG_PARSE;
+            // 详细模式 (词法+ AST +字节码 + 执行跟踪)
+            debug_flags = AQL_DEBUG_LEX | AQL_DEBUG_PARSE | AQL_DEBUG_CODE | AQL_DEBUG_VM;
         } else if (strcmp(argv[i], "-vb") == 0) {
-            debug_flags |= AQL_DEBUG_CODE;
-        } else if (strcmp(argv[i], "-ve") == 0) {
-            debug_flags |= AQL_DEBUG_VM;
-        } else if (strcmp(argv[i], "-vr") == 0) {
-            debug_flags |= AQL_DEBUG_REG;
-        } else if (strcmp(argv[i], "-vm") == 0) {
-            debug_flags |= AQL_DEBUG_MEM;
-        } else if (strcmp(argv[i], "-vg") == 0) {
-            debug_flags |= AQL_DEBUG_GC;
+            // 只输出字节码 (类似 luac -l)
+            debug_flags = AQL_DEBUG_CODE;
+        } else if (strcmp(argv[i], "-vast") == 0) {
+            // 只输出 AST
+            debug_flags = AQL_DEBUG_PARSE;
+        } else if (strcmp(argv[i], "-vt") == 0) {
+            // 输出执行跟踪
+            debug_flags = AQL_DEBUG_VM;
+        } else if (strcmp(argv[i], "-vl") == 0) {
+            // 输出词流
+            debug_flags = AQL_DEBUG_LEX;
         } else if (strcmp(argv[i], "-vd") == 0) {
-            debug_flags |= AQL_DEBUG_REPL;
+            // 详细日志输出 (print_debug激活+ -v模式)
+            debug_flags = AQL_DEBUG_ALL;
+        } else if (strcmp(argv[i], "-compare") == 0) {
+            // 与 Lua 字节码对比 (暂时标记，后续实现)
+            printf("Lua bytecode comparison not yet implemented\n");
+            return 1;
         } else if (strcmp(argv[i], "-st") == 0) {
             debug_flags |= AQL_DEBUG_LEX;
             stop_after_lex = 1;

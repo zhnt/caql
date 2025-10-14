@@ -1,0 +1,51 @@
+# ADD指令测试 - 简化版 1+2+3+...+100
+# 使用循环累加的概念，但用字节码展开前10个数字作为示例
+# 期望结果: 55 (1+2+3+4+5+6+7+8+9+10)
+
+.code
+# 初始化累加器
+LOADI R0, 0      # R0 = sum = 0
+
+# 累加 1 到 10
+LOADI R1, 1
+ADD   R0, R0, R1 # sum += 1
+MMBIN R0, R1, 6  # __add 元方法
+
+LOADI R1, 2
+ADD   R0, R0, R1 # sum += 2
+MMBIN R0, R1, 6  # __add 元方法
+
+LOADI R1, 3
+ADD   R0, R0, R1 # sum += 3
+MMBIN R0, R1, 6  # __add 元方法
+
+LOADI R1, 4
+ADD   R0, R0, R1 # sum += 4
+MMBIN R0, R1, 6  # __add 元方法
+
+LOADI R1, 5
+ADD   R0, R0, R1 # sum += 5
+MMBIN R0, R1, 6  # __add 元方法
+
+LOADI R1, 6
+ADD   R0, R0, R1 # sum += 6
+MMBIN R0, R1, 6  # __add 元方法
+
+LOADI R1, 7
+ADD   R0, R0, R1 # sum += 7
+MMBIN R0, R1, 6  # __add 元方法
+
+LOADI R1, 8
+ADD   R0, R0, R1 # sum += 8
+MMBIN R0, R1, 6  # __add 元方法
+
+LOADI R1, 9
+ADD   R0, R0, R1 # sum += 9
+MMBIN R0, R1, 6  # __add 元方法
+
+LOADI R1, 10
+ADD   R0, R0, R1 # sum += 10
+MMBIN R0, R1, 6  # __add 元方法
+
+RETURN1 R0       # return sum (应该是55)
+.end

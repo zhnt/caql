@@ -1,0 +1,7 @@
+# 最简单的测试: 使用标准Lua 5.4操作码
+# 栈大小: 5
+
+.code
+LOADI R0, 42
+RETURN1 R0
+.end

@@ -1,0 +1,30 @@
+# counter_simple.by
+# 简化版计数器闭包，避免复杂的table操作
+
+.main
+.code
+CLOSURE   R0, 0            # R0 = makeCounter函数
+LOADI     R1, 10           # R1 = 10 (起始值)
+CALL      R0, 2, 2         # makeCounter(10)，返回counter函数到R0
+CALL      R0, 1, 2         # 调用counter()，应该返回11
+RETURN1   R0               # 返回结果
+.end
+
+.function makeCounter 1
+.code
+# R0 = start (起始值参数)
+MOVE      R1, R0           # R1 = start (准备作为upvalue)
+CLOSURE   R2, 0            # R2 = counter函数 (会捕获R1作为upvalue)
+RETURN1   R2               # 返回counter函数
+.end
+
+.function counter 0
+.upvalues 1
+.upvalue 0 "count" instack 1    # upvalue[0] = 外层函数的R1
+.code
+# 获取当前计数值并递增
+GETUPVAL  R0, 0            # R0 = upvalue[0] (count)
+ADDI      R1, R0, 1        # R1 = count + 1
+MMBINI    R0, 1, 6, 0      # __add 元方法处理
+RETURN1   R1               # 返回递增后的值
+.end

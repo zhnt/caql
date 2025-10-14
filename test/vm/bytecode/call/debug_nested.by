@@ -1,0 +1,19 @@
+# debug_nested.by
+# 调试嵌套函数调用
+
+.main
+.code
+CLOSURE   R0, 0            # R0 = function <add_one>
+LOADI     R1, 5            # R1 = 5
+CALL      R0, 2, 2         # 调用add_one(5), 结果在R0
+RETURN1   R0               # 返回结果
+.end
+
+.function add_one 1
+K0 INTEGER 1
+.code
+LOADK     R1, 0            # R1 = 1
+ADD       R2, R0, R1       # R2 = R0 + 1
+MMBIN     R0, R1, 6        # 元方法处理 (__add)
+RETURN1   R2               # 返回R2
+.end

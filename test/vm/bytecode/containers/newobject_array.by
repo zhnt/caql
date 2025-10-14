@@ -1,0 +1,11 @@
+# NEWOBJECT指令测试 - 创建AQL数组容器
+# 测试: 创建array容器并进行基本操作
+
+.code
+NEWOBJECT R0, 0, 5   # 创建 array (类型0=CONTAINER_ARRAY, 容量5)
+LOADI     R1, 42     # R1 = 42
+LOADI     R2, 0      # R2 = 0 (索引)
+SETPROP   R0, R2, R1 # R0[0] = 42
+GETPROP   R3, R0, R2 # R3 = R0[0] (应该是42)  
+RETURN1   R3         # 返回 R3
+.end

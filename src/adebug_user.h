@@ -207,6 +207,7 @@ void aqlD_print_constants_pool(TValue *constants, int count);
 void aqlD_print_instruction_header(void);
 void aqlD_print_instruction(AQL_InstrInfo *instr);
 void aqlD_print_bytecode_footer(int total_instructions);
+void aqlD_print_function_bytecode(Proto *f, const char *name);
 
 /* VM execution debug */
 void aqlD_print_execution_header(void);

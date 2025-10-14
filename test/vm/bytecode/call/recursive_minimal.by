@@ -1,0 +1,24 @@
+# recursive_minimal.by
+# 测试: 最小化递归实现（基于Lua模式）
+# 预期结果: 1 (基础情况)
+
+.main
+.code
+CLOSURE   R0, 0            # R0 = function <base_case>
+LOADI     R1, 0            # R1 = 0 (触发基础情况)
+CALL      R0, 2, 2         # 调用base_case(0)
+RETURN1   R0               # 返回结果
+.end
+
+.function base_case 1
+.code
+# R0 = n (参数)
+# 只有基础情况: 如果 n <= 0，返回 1
+LOADI     R1, 0            # R1 = 0
+LE        R0, R1, 0        # 比较 R0 <= R1，如果为真则跳转
+JMP       0, 2             # 跳过失败分支
+LOADI     R2, 999          # R2 = 999 (如果比较失败)
+JMP       0, 1             # 跳过成功分支
+LOADI     R2, 1            # R2 = 1 (如果比较成功，基础情况)
+RETURN1   R2               # 返回结果
+.end

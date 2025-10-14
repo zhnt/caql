@@ -1,0 +1,25 @@
+# settabup_simple.by
+# 测试基础的SETTABUP操作
+# 设置全局变量: x = 42
+
+.main
+K0 STRING "x"
+K1 INTEGER 42
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
+.code
+CLOSURE   R0, 0            # R0 = function <test>
+CALL      R0, 1, 2         # 调用test()
+RETURN1   R0               # 返回结果
+.end
+
+.function test 0
+K0 STRING "x"
+K1 INTEGER 42
+.upvalues 1
+.upvalue 0 "_ENV" upval 0    # 继承主函数的_ENV
+.code
+LOADI     R0, 42           # R0 = 42
+SETTABUP  0, K0, R0        # _ENV["x"] = R0
+RETURN1   R0               # 返回设置的值
+.end

@@ -1,0 +1,15 @@
+# 简单的条件跳转测试
+
+.main
+.constants
+K0 INTEGER 3
+K1 INTEGER 0
+.code
+LOADK     R0, K0      # R0 = 3
+LEI       R0, 0, 0    # 3 <= 0, 应该为假，跳转
+JMP       2           # 跳转偏移2（跳过LOADI和RETURN1）
+LOADI     R1, 42      # 如果条件为真，返回42
+RETURN1   R1          
+LOADI     R2, 99      # 如果条件为假，返回99
+RETURN1   R2
+.end

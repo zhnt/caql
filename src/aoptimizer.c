@@ -258,7 +258,7 @@ AQL_API void aqlCodegen_optimize_dead_code_elimination(CodegenContext *ctx) {
         /* Check if instruction result is used */
         if (testAMode(op) && a < ctx->num_virtual_regs && !is_used[a]) {
             /* Result is not used - mark instruction as dead */
-            if (op != OP_CALL && op != OP_TAILCALL && op != OP_RET) {
+            if (op != OP_CALL && op != OP_TAILCALL && op != OP_RETURN) {
                 /* Don't eliminate instructions with side effects */
                 ctx->bytecode[pc] = CREATE_ABC(OP_MOVE, 0, 0, 0);  /* Replace with NOP */
                 stats.dead_instructions_eliminated++;

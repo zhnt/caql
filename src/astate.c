@@ -288,7 +288,7 @@ static void init_registry (aql_State *L, global_State *g) {
     /* Initialize global variables dict - start with nil, will create on first use */
     setnilvalue(&g->l_globals);
     
-    printf_debug("[DEBUG] init_registry: initialized registry and globals (simplified)\n");
+    //printf_debug("[DEBUG] init_registry: initialized registry and globals (simplified)\n");
     fflush(stdout);
 }
 

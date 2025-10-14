@@ -1,0 +1,16 @@
+# MUL指令测试 - 简化版乘法测试
+# 测试: 2 * 3 * 4 = 24
+
+.code
+LOADI R0, 2      # R0 = 2
+
+LOADI R1, 3
+MUL   R0, R0, R1 # R0 = 2 * 3 = 6
+MMBIN R0, R1, 8  # __mul 元方法 (操作数R0,R1，结果自动到R0)
+
+LOADI R1, 4
+MUL   R0, R0, R1 # R0 = 6 * 4 = 24
+MMBIN R0, R1, 8  # __mul 元方法 (操作数R0,R1，结果自动到R0)
+
+RETURN1 R0       # return 24
+.end

@@ -2,6 +2,11 @@ function calculate() {
     let a = 10
     let b = 20
     let sum = a + b
+    print(sum)
+    let s = string(sum)
+    print(s)
+    print(string(sum))
+    print("Sum is: " + sum)
     print("Sum is: " + string(sum))
 }
 

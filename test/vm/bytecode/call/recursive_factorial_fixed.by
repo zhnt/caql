@@ -1,0 +1,42 @@
+# recursive_factorial_fixed.by
+# 测试: 递归计算阶乘
+# 预期结果: 120 (5! = 5*4*3*2*1)
+
+.main
+K0 STRING "factorial"
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
+.code
+CLOSURE   R0, 0            # R0 = factorial函数
+SETTABUP  0, K0, R0        # _ENV["factorial"] = R0
+GETTABUP  R1, 0, K0        # R1 = _ENV["factorial"]  
+LOADI     R2, 5            # R2 = 5 (参数)
+CALL      R1, 2, 2         # factorial(5), 1个参数, 1个返回值
+RETURN1   R1               # 返回结果
+.end
+
+.function factorial 1
+K0 STRING "factorial"
+.upvalues 1
+.upvalue 0 "_ENV" upval 0
+.code
+# R0 = n (参数)
+# 基础情况: 如果 n <= 1，返回 1
+LEI       R0, 1, 0         # n <= 1? 如果为真跳过JMP，为假执行JMP
+JMP       2                # 跳转到递归情况（跳过基础情况的2条指令）
+
+LOADI     R1, 1            # R1 = 1
+RETURN1   R1               # return 1
+
+# 递归情况: factorial(n) = n * factorial(n-1)
+MOVE      R5, R0           # R5 = n (保存原始值)
+
+GETTABUP  R1, 0, K0        # R1 = _ENV["factorial"]
+ADDI      R2, R0, -1       # R2 = n - 1 (使用原始的R0)
+MMBINI    R0, 1, 7, 0      # __sub 元方法: R0 - 1, TM_SUB=7, flip=0 (结果存回R0)
+CALL      R1, 2, 2         # 递归调用 factorial(n-1)，参数在R2，结果到R1
+
+MUL       R6, R5, R1       # R6 = n * factorial(n-1) (使用保存的R5和递归结果R1)
+MMBIN     R5, R1, 8        # __mul 元方法（操作数R5,R1，结果到R6）
+RETURN1   R6               # 返回结果
+.end

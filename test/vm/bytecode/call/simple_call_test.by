@@ -1,0 +1,23 @@
+# simple_call_test.by
+# 简单的函数调用测试
+# 预期结果: 1
+
+.main
+K0 STRING "test_func"
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
+.code
+CLOSURE   R0, 0            # R0 = test_func函数
+SETTABUP  0, K0, R0        # _ENV["test_func"] = R0
+GETTABUP  R1, 0, K0        # R1 = _ENV["test_func"]  
+CALL      R1, 1, 2         # test_func(), 0个参数, 1个返回值
+RETURN1   R1               # 返回结果
+.end
+
+.function test_func 0
+.upvalues 1
+.upvalue 0 "_ENV" upval 0
+.code
+LOADI     R0, 1            # R0 = 1
+RETURN1   R0               # return 1
+.end

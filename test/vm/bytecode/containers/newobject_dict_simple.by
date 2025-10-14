@@ -1,0 +1,8 @@
+# 简单dict容器测试 - 只创建容器
+# 测试: 只创建dict容器
+
+.code
+NEWOBJECT R0, 2, 8   # 创建 dict (类型2=CONTAINER_DICT, 容量8)
+RETURN1   R0         # 返回容器对象
+.end
+

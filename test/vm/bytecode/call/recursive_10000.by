@@ -1,0 +1,45 @@
+# recursive_10000.by
+# 测试: 10000次递归调用
+# 实现 sum(n) = n <= 0 ? 0 : n + sum(n-1)
+# sum(10000) = 10000 + 9999 + ... + 1 + 0 = 50005000
+
+.main
+K0 STRING "sum"
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
+.code
+CLOSURE   R0, 0            # R0 = sum函数
+SETTABUP  0, K0, R0        # _ENV["sum"] = R0
+
+# 调用sum(10000)
+GETTABUP  R1, 0, K0        # R1 = _ENV["sum"]  
+LOADI     R2, 10000        # R2 = 10000 (参数)
+CALL      R1, 2, 2         # sum(10000), 1个参数, 1个返回值
+RETURN1   R1               # 返回结果
+.end
+
+.function sum 1
+K0 STRING "sum"
+.upvalues 1
+.upvalue 0 "_ENV" upval 0
+.code
+# R0 = n (参数)
+# 基础情况: 如果 n <= 0，返回 0
+LEI       R0, 0, 0         # n <= 0? 如果为真跳过JMP，为假执行JMP
+JMP       3                # 跳转到递归情况
+
+# 基础情况: 返回 0
+LOADI     R1, 0            # R1 = 0
+RETURN1   R1               # return 0
+JMP       7                # 跳转到函数结束（可选，防止执行递归代码）
+
+# 递归情况: return n + sum(n-1)
+GETTABUP  R1, 0, K0        # R1 = _ENV["sum"]
+ADDI      R2, R0, -1       # R2 = n - 1
+MMBINI    R0, 1, 7, 0      # __sub 元方法: R0 - 1, TM_SUB=7, flip=0
+CALL      R1, 2, 2         # sum(n-1)，函数在R1，参数在R2，结果到R1
+ADD       R1, R1, R0       # R1 = sum(n-1) + n
+MMBIN     R1, R0, 6        # __add 元方法（操作数R1,R0，结果到R1）
+RETURN1   R1               # return sum(n-1) + n
+.end
+

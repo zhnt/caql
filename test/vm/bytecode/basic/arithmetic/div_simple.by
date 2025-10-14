@@ -1,0 +1,11 @@
+# DIV指令测试 - 除法运算
+# 测试: 20 / 4 = 5
+
+.code
+LOADI R0, 20     # R0 = 20
+LOADI R1, 4      # R1 = 4
+DIV   R2, R0, R1 # R2 = R0 / R1 = 5 (快速路径)
+MMBIN R0, R1, 11 # 如果 DIV 失败，调用 __div 元方法 (TM_DIV = 11)
+RETURN1 R2       # return R2
+.end
+

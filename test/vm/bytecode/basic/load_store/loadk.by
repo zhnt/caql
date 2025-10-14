@@ -1,0 +1,12 @@
+# LOADK指令测试 - 从常量表加载字符串
+# 测试: LOADK 指令是否能正确从常量表加载字符串
+
+.constants
+K0 STRING "hello"
+K1 STRING "world"
+
+.code
+LOADK R0, 0      # R0 = K[0] = "hello"
+LOADK R1, 1      # R1 = K[1] = "world"  
+RETURN1 R0       # 返回 R0 ("hello")
+.end

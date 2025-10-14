@@ -197,6 +197,137 @@ void aqlD_print_bytecode_footer(int total_instructions) {
 }
 
 /*
+** Enhanced bytecode output similar to luac -l
+*/
+void aqlD_print_function_bytecode(Proto *f, const char *name) {
+    if (!aql_debug_enabled || !(aql_debug_flags & AQL_DEBUG_CODE)) return;
+    
+    printf("\n=== AQL BYTECODE ANALYSIS ===\n");
+    printf("📁 Function: %s\n", name ? name : "main");
+    printf("📊 Stats: %d instructions, %d constants, %d upvalues\n", 
+           f->sizecode, f->sizek, f->sizeupvalues);
+    
+    // Constants pool
+    if (f->sizek > 0) {
+        printf("\n📦 Constants Pool:\n");
+        for (int i = 0; i < f->sizek; i++) {
+            TValue *k = &f->k[i];
+            printf("  K[%d] = ", i);
+            switch (ttypetag(k)) {
+                case AQL_VNIL:
+                    printf("nil");
+                    break;
+                case AQL_VFALSE:
+                    printf("false");
+                    break;
+                case AQL_VTRUE:
+                    printf("true");
+                    break;
+                case AQL_VNUMINT:
+                    printf("%lld", (long long)ivalue(k));
+                    break;
+                case AQL_VNUMFLT:
+                    printf("%.6g", (double)fltvalue(k));
+                    break;
+                case AQL_VSHRSTR:
+                case AQL_VLNGSTR:
+                    printf("\"%s\"", getstr(tsvalue(k)));
+                    break;
+                default:
+                    printf("(unknown type %d)", ttypetag(k));
+                    break;
+            }
+            printf("\n");
+        }
+    }
+    
+    // Bytecode instructions
+    printf("\n📝 Bytecode Instructions:\n");
+    printf("  PC   OPCODE      A    B    C    Description\n");
+    printf("  ---  ------      -    -    -    -----------\n");
+    
+    for (int pc = 0; pc < f->sizecode; pc++) {
+        Instruction i = f->code[pc];
+        OpCode op = GET_OPCODE(i);
+        int a = GETARG_A(i);
+        int b = GETARG_B(i);
+        int c = GETARG_C(i);
+        
+        printf("  %-3d  %-10s  %-3d  %-3d  %-3d  ", pc, aql_opnames[op], a, b, c);
+        
+        // Add description based on opcode
+        switch (op) {
+            case OP_MOVE:
+                printf("R[%d] = R[%d]", a, b);
+                break;
+            case OP_LOADI:
+                printf("R[%d] = %d", a, (int)(b - OFFSET_sBx));
+                break;
+            case OP_LOADK:
+                printf("R[%d] = K[%d]", a, b);
+                break;
+            case OP_LOADTRUE:
+                printf("R[%d] = true", a);
+                break;
+            case OP_LOADFALSE:
+                printf("R[%d] = false", a);
+                break;
+            case OP_LOADNIL:
+                printf("R[%d] = nil", a);
+                break;
+            case OP_GETTABUP:
+                if (c > 255) {
+                    printf("R[%d] = _ENV[K[%d]]", a, c - 256);
+                } else {
+                    printf("R[%d] = _ENV[R[%d]]", a, c);
+                }
+                break;
+            case OP_SETTABUP:
+                if (b > 255 && c > 255) {
+                    printf("_ENV[K[%d]] = R[%d]", b - 256, c);
+                } else if (b > 255) {
+                    printf("_ENV[K[%d]] = R[%d]", b - 256, c);
+                } else {
+                    printf("_ENV[R[%d]] = R[%d]", b, c);
+                }
+                break;
+            case OP_CALL:
+                if (b == 0) {
+                    printf("R[%d](...) ; %d results", a, c - 1);
+                } else {
+                    printf("R[%d](%d args) ; %d results", a, b - 1, c - 1);
+                }
+                break;
+            case OP_RETURN1:
+                printf("return R[%d]", a);
+                break;
+            case OP_RETURN0:
+                printf("return");
+                break;
+            case OP_RETURN:
+                if (b == 0) {
+                    printf("return ...");
+                } else if (b == 1) {
+                    printf("return");
+                } else {
+                    printf("return R[%d]..R[%d]", a, a + b - 2);
+                }
+                break;
+            case OP_CLOSURE:
+                printf("R[%d] = closure(F[%d])", a, b);
+                break;
+            default:
+                printf("(instruction %s)", aql_opnames[op]);
+                break;
+        }
+        printf("\n");
+    }
+    
+    printf("\n🎯 Register Usage: R[0-%d] used, max stack = %d\n", 
+           f->maxstacksize - 1, f->maxstacksize);
+}
+
+/*
 ** VM execution debug output
 */
 void aqlD_print_execution_header(void) {
@@ -490,6 +621,7 @@ const char *aqlD_token_name(int token_type) {
         case TK_RETURN: return "RETURN";
         case TK_LET: return "LET";
         case TK_EOS: return "EOF";
+        case TK_FUNCTION: return "FUNCTION";
         case ';': return "SEMICOLON";
         case '(': return "LPAREN";
         case ')': return "RPAREN";
@@ -525,13 +657,10 @@ const char *aqlD_opcode_name(int opcode) {
         case OP_ADDI: return "ADDI";
         case OP_SUB: return "SUB";
         case OP_SUBK: return "SUBK";
-        case OP_SUBI: return "SUBI";
         case OP_MUL: return "MUL";
         case OP_MULK: return "MULK";
-        case OP_MULI: return "MULI";
         case OP_DIV: return "DIV";
         case OP_DIVK: return "DIVK";
-        case OP_DIVI: return "DIVI";
         case OP_MOD: return "MOD";
         case OP_POW: return "POW";
         case OP_UNM: return "UNM";
@@ -551,15 +680,13 @@ const char *aqlD_opcode_name(int opcode) {
         case OP_JMP: return "JMP";
         case OP_CALL: return "CALL";
         case OP_TAILCALL: return "TAILCALL";
-        case OP_RET: return "RET";
-        case OP_RET_VOID: return "RET_VOID";
-        case OP_RET_ONE: return "RET_ONE";
+        case OP_RETURN: return "RETURN";
+        case OP_RETURN0: return "RETURN0";
+        case OP_RETURN1: return "RETURN1";
         case OP_FORLOOP: return "FORLOOP";
         case OP_FORPREP: return "FORPREP";
         case OP_CLOSURE: return "CLOSURE";
         case OP_VARARG: return "VARARG";
-        case OP_INVOKE: return "INVOKE";
-        case OP_YIELD: return "YIELD";
         default: return "UNKNOWN";
     }
 }

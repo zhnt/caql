@@ -1,0 +1,16 @@
+# simple_test.by
+# 最简单的函数调用测试
+
+.main
+.code
+CLOSURE   R0, 0            # R0 = function <simple>
+CALL      R0, 1, 2         # 调用simple(), 0个参数, 1个返回值
+RETURN1   R0               # 返回结果
+.end
+
+.function simple 0
+K0 INTEGER 5
+.code
+LOADK     R0, 0            # R0 = 5
+RETURN1   R0               # 返回R0
+.end

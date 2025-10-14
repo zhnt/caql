@@ -1,0 +1,10 @@
+# SUB指令测试 - 减法运算
+# 测试SUB指令是否能正确执行减法运算
+
+.code
+LOADI R0, 10     # R0 = 10
+LOADI R1, 3      # R1 = 3
+SUB   R2, R0, R1 # R2 = R0 - R1 = 7 (快速路径)
+MMBIN R0, R1, 7  # 如果 SUB 失败，调用 __sub 元方法 (操作数R0,R1，结果自动到R2)
+RETURN1 R2       # return R2
+.end

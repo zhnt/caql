@@ -1,0 +1,23 @@
+# 08_no_return.by
+# 测试: 无返回值函数（副作用函数）
+# 预期结果: 0 (函数执行但不返回有意义的值)
+
+.main
+.code
+CLOSURE   R0, 0            # R0 = function <side_effect>
+LOADI     R1, 10           # R1 = 10 (参数)
+MOVE      R2, R0           # R2 = side_effect函数
+MOVE      R3, R1           # R3 = 参数10
+CALL      R2, 2, 1         # 调用side_effect(10), 1个参数, 0个返回值期望
+LOADI     R4, 0            # R4 = 0 (默认返回值)
+RETURN1   R4               # 返回0表示成功执行
+.end
+
+.function side_effect 1
+.code
+# 这个函数执行一些操作但不返回有意义的值
+# 模拟副作用: 对参数进行一些计算但不返回结果
+ADD       R1, R0, R0       # R1 = R0 + R0 (副作用操作)
+MMBIN     R0, R0, 6        # 元方法处理 (__add)
+RETURN0                    # 无返回值
+.end

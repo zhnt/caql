@@ -1,0 +1,19 @@
+# 01_single_function.by
+# 测试: 单个函数调用
+# 预期结果: 15 (5 * 3)
+
+.main
+.code
+CLOSURE   R0, 0            # R0 = function <multiply>
+LOADI     R1, 5            # R1 = 5 (参数1)
+LOADI     R2, 3            # R2 = 3 (参数2)
+CALL      R0, 3, 2         # 调用multiply(5, 3), 2个参数, 1个返回值
+RETURN1   R0               # 返回结果
+.end
+
+.function multiply 2
+.code
+MUL       R2, R0, R1       # R2 = R0 * R1 (参数相乘)
+MMBIN     R0, R1, 8        # 元方法处理 (__mul)
+RETURN1   R2               # 返回R2
+.end

@@ -1,0 +1,371 @@
+/*
+** $Id: aopcodes.c $
+** Opcodes for AQL virtual machine
+** See Copyright Notice in aql.h
+*/
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include "aopcodes.h"
+
+/*
+** Opcode names for debugging and disassembly - Lua 5.4 Compatible
+*/
+const char *const aql_opnames[NUM_OPCODES+1] = {
+  /* === Lua 5.4 Compatible Opcodes (0-82) === */
+  "MOVE",         /* 0   A B     R[A] := R[B]                                    */
+  "LOADI",        /* 1   A sBx   R[A] := sBx                                     */
+  "LOADF",        /* 2   A sBx   R[A] := (lua_Number)sBx                         */
+  "LOADK",        /* 3   A Bx    R[A] := K[Bx]                                   */
+  "LOADKX",       /* 4   A       R[A] := K[extra arg]                            */
+  "LOADFALSE",    /* 5   A       R[A] := false                                   */
+  "LFALSESKIP",   /* 6   A       R[A] := false; pc++                             */
+  "LOADTRUE",     /* 7   A       R[A] := true                                    */
+  "LOADNIL",      /* 8   A B     R[A], R[A+1], ..., R[A+B] := nil               */
+  "GETUPVAL",     /* 9   A B     R[A] := UpValue[B]                              */
+  "SETUPVAL",     /* 10  A B     UpValue[B] := R[A]                              */
+  "GETTABUP",     /* 11  A B C   R[A] := UpValue[B][K[C]:shortstring]            */
+  "GETTABLE",     /* 12  A B C   R[A] := R[B][R[C]]                              */
+  "GETI",         /* 13  A B C   R[A] := R[B][C]                                 */
+  "GETFIELD",     /* 14  A B C   R[A] := R[B][K[C]:shortstring]                  */
+  "SETTABUP",     /* 15  A B C   UpValue[A][K[B]:shortstring] := RK(C)           */
+  "SETTABLE",     /* 16  A B C   R[A][R[B]] := RK(C)                             */
+  "SETI",         /* 17  A B C   R[A][B] := RK(C)                                */
+  "SETFIELD",     /* 18  A B C   R[A][K[B]:shortstring] := RK(C)                 */
+  "NEWTABLE",     /* 19  A B C k R[A] := {}                                      */
+  "SELF",         /* 20  A B C   R[A+1] := R[B]; R[A] := R[B][RK(C):string]     */
+  "ADDI",         /* 21  A B sC  R[A] := R[B] + sC                               */
+  "ADDK",         /* 22  A B C   R[A] := R[B] + K[C]:number                      */
+  "SUBK",         /* 23  A B C   R[A] := R[B] - K[C]:number                      */
+  "MULK",         /* 24  A B C   R[A] := R[B] * K[C]:number                      */
+  "MODK",         /* 25  A B C   R[A] := R[B] % K[C]:number                      */
+  "POWK",         /* 26  A B C   R[A] := R[B] ^ K[C]:number                      */
+  "DIVK",         /* 27  A B C   R[A] := R[B] / K[C]:number                      */
+  "IDIVK",        /* 28  A B C   R[A] := R[B] // K[C]:number                     */
+  "BANDK",        /* 29  A B C   R[A] := R[B] & K[C]:integer                     */
+  "BORK",         /* 30  A B C   R[A] := R[B] | K[C]:integer                     */
+  "BXORK",        /* 31  A B C   R[A] := R[B] ~ K[C]:integer                     */
+  "SHRI",         /* 32  A B sC  R[A] := R[B] >> sC                              */
+  "SHLI",         /* 33  A B sC  R[A] := sC << R[B]                              */
+  "ADD",          /* 34  A B C   R[A] := R[B] + R[C]                             */
+  "SUB",          /* 35  A B C   R[A] := R[B] - R[C]                             */
+  "MUL",          /* 36  A B C   R[A] := R[B] * R[C]                             */
+  "MOD",          /* 37  A B C   R[A] := R[B] % R[C]                             */
+  "POW",          /* 38  A B C   R[A] := R[B] ^ R[C]                             */
+  "DIV",          /* 39  A B C   R[A] := R[B] / R[C]                             */
+  "IDIV",         /* 40  A B C   R[A] := R[B] // R[C]                            */
+  "BAND",         /* 41  A B C   R[A] := R[B] & R[C]                             */
+  "BOR",          /* 42  A B C   R[A] := R[B] | R[C]                             */
+  "BXOR",         /* 43  A B C   R[A] := R[B] ~ R[C]                             */
+  "SHL",          /* 44  A B C   R[A] := R[B] << R[C]                            */
+  "SHR",          /* 45  A B C   R[A] := R[B] >> R[C]                            */
+  "MMBIN",        /* 46  A B C   call C metamethod over R[A] and R[B]           */
+  "MMBINI",       /* 47  A sB C k call C metamethod over R[A] and sB            */
+  "MMBINK",       /* 48  A B C k call C metamethod over R[A] and K[B]           */
+  "UNM",          /* 49  A B     R[A] := -R[B]                                   */
+  "BNOT",         /* 50  A B     R[A] := ~R[B]                                   */
+  "NOT",          /* 51  A B     R[A] := not R[B]                                */
+  "LEN",          /* 52  A B     R[A] := #R[B] (length operator)                */
+  "CONCAT",       /* 53  A B     R[A] := R[A].. ... ..R[A + B - 1]              */
+  "CLOSE",        /* 54  A       close all upvalues >= R[A]                     */
+  "TBC",          /* 55  A       mark variable A "to be closed"                 */
+  "JMP",          /* 56  sJ      pc += sJ                                        */
+  "EQ",           /* 57  A B k   if ((R[A] == R[B]) ~= k) then pc++              */
+  "LT",           /* 58  A B k   if ((R[A] <  R[B]) ~= k) then pc++              */
+  "LE",           /* 59  A B k   if ((R[A] <= R[B]) ~= k) then pc++              */
+  "EQK",          /* 60  A B k   if ((R[A] == K[B]) ~= k) then pc++              */
+  "EQI",          /* 61  A sB k  if ((R[A] == sB) ~= k) then pc++                */
+  "LTI",          /* 62  A sB k  if ((R[A] < sB) ~= k) then pc++                 */
+  "LEI",          /* 63  A sB k  if ((R[A] <= sB) ~= k) then pc++                */
+  "GTI",          /* 64  A sB k  if ((R[A] > sB) ~= k) then pc++                 */
+  "GEI",          /* 65  A sB k  if ((R[A] >= sB) ~= k) then pc++                */
+  "TEST",         /* 66  A k     if (not R[A] == k) then pc++                    */
+  "TESTSET",      /* 67  A B k   if (not R[B] == k) then pc++ else R[A] := R[B]  */
+  "CALL",         /* 68  A B C   R[A], ... ,R[A+C-2] := R[A](R[A+1], ... ,R[A+B-1]) */
+  "TAILCALL",     /* 69  A B C k return R[A](R[A+1], ... ,R[A+B-1])             */
+  "RETURN",       /* 70  A B C k return R[A], ... ,R[A+B-2]                     */
+  "RETURN0",      /* 71           return                                         */
+  "RETURN1",      /* 72  A       return R[A]                                     */
+  "FORLOOP",      /* 73  A Bx    update counters; if loop continues then pc-=Bx */
+  "FORPREP",      /* 74  A Bx    <check values and prepare counters>; if not to run then pc+=Bx+1 */
+  "TFORPREP",     /* 75  A Bx    create upvalue for R[A + 3]; pc+=Bx             */
+  "TFORCALL",     /* 76  A C     R[A+4], ... ,R[A+3+C] := R[A](R[A+1], R[A+2])  */
+  "TFORLOOP",     /* 77  A Bx    if R[A+2] ~= nil then { R[A]=R[A+2]; pc -= Bx } */
+  "SETLIST",      /* 78  A B C k R[A][C+i] := R[A+i], 1 <= i <= B               */
+  "CLOSURE",      /* 79  A Bx    R[A] := closure(KPROTO[Bx])                     */
+  "VARARG",       /* 80  A C     R[A], R[A+1], ..., R[A+C-2] = vararg           */
+  "VARARGPREP",   /* 81  A       (adjust vararg parameters)                      */
+  "EXTRAARG",     /* 82  Ax      extra (larger) argument for previous opcode    */
+
+  /* === AQL Extensions (83+) === */
+  "NEWOBJECT",    /* 83  A B C   R[A] := new_object(type[B], size[C])           */
+  "GETPROP",      /* 84  A B C   R[A] := R[B].property[C] or R[B][R[C]]        */
+  "SETPROP",      /* 85  A B C   R[A].property[B] := R[C] or R[A][R[B]] := R[C] */
+  "INVOKE",       /* 86  A B C   R[A] := R[B]:method[C](args...)               */
+  "ITER_INIT",    /* 87  A B     R[A] := iter_init(R[B])                       */
+  "ITER_NEXT",    /* 88  A B C   R[C] := iter_next(R[A], R[B])                 */
+  "LOADBUILTIN",  /* 89  A B     R[A] := builtin_func[B]                       */
+  "SUBI",         /* 90  A B sC  R[A] := R[B] - sC                              */
+  "MULI",         /* 91  A B sC  R[A] := R[B] * sC                              */
+  "DIVI",         /* 92  A B sC  R[A] := R[B] / sC                              */
+  NULL
+};
+
+
+/*
+** Opcode mode table - defines argument types for each AQL instruction
+*/
+const aql_byte aql_opmode[NUM_OPCODES] = {
+/* === 基础指令组 (0-15) === */
+  aqlOpModeABC(0, 1, OpArgR, OpArgR, OpArgN),   /* OP_MOVE */
+  aqlOpModeAsBx(0, 1, OpArgK, OpArgN),          /* OP_LOADI */
+  aqlOpModeAsBx(0, 1, OpArgK, OpArgN),          /* OP_LOADF */
+  aqlOpModeABx(0, 1, OpArgK, OpArgN),           /* OP_LOADK */
+  aqlOpModeABC(0, 1, OpArgN, OpArgN, OpArgN),   /* OP_LOADKX */
+  aqlOpModeABC(0, 1, OpArgN, OpArgN, OpArgN),   /* OP_LOADFALSE */
+  aqlOpModeABC(0, 1, OpArgN, OpArgN, OpArgN),   /* OP_LOADTRUE */
+  aqlOpModeABC(0, 1, OpArgU, OpArgN, OpArgN),   /* OP_LOADNIL */
+  aqlOpModeABC(0, 1, OpArgU, OpArgN, OpArgN),   /* OP_GETUPVAL */
+  aqlOpModeABC(0, 0, OpArgU, OpArgN, OpArgN),   /* OP_SETUPVAL */
+  aqlOpModeABC(0, 1, OpArgU, OpArgK, OpArgN),   /* OP_GETTABUP */
+  aqlOpModeABC(0, 0, OpArgK, OpArgK, OpArgN),   /* OP_SETTABUP */
+  aqlOpModeABC(0, 0, OpArgN, OpArgN, OpArgN),   /* OP_CLOSE */
+  aqlOpModeABC(0, 0, OpArgN, OpArgN, OpArgN),   /* OP_TBC */
+  aqlOpModeABC(0, 1, OpArgR, OpArgN, OpArgN),   /* OP_CONCAT */
+  aqlOpModeAx(0, 0, OpArgU, OpArgN),            /* OP_EXTRAARG */
+
+/* === 算术运算组 (16-31) === */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_ADD */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_ADDK */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_ADDI */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_SUB */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_SUBK */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_SUBI */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_MUL */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_MULK */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_MULI */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_DIV */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_DIVK */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_DIVI */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_MOD */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_POW */
+  aqlOpModeABC(0, 1, OpArgR, OpArgN, OpArgN),   /* OP_UNM */
+  aqlOpModeABC(0, 1, OpArgR, OpArgN, OpArgN),   /* OP_LEN */
+
+/* === 位运算组 (32-39) === */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_BAND */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_BOR */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_BXOR */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_SHL */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_SHR */
+  aqlOpModeABC(0, 1, OpArgR, OpArgN, OpArgN),   /* OP_BNOT */
+  aqlOpModeABC(0, 1, OpArgR, OpArgN, OpArgN),   /* OP_NOT */
+  aqlOpModeABC(0, 1, OpArgK, OpArgK, OpArgN),   /* OP_SHRI */
+
+/* === 比较控制组 (40-47) === */
+  aqlOpModeAsBx(0, 0, OpArgR, OpArgN),          /* OP_JMP */
+  aqlOpModeABC(1, 0, OpArgK, OpArgK, OpArgN),   /* OP_EQ */
+  aqlOpModeABC(1, 0, OpArgK, OpArgK, OpArgN),   /* OP_LT */
+  aqlOpModeABC(1, 0, OpArgK, OpArgK, OpArgN),   /* OP_LE */
+  aqlOpModeABC(1, 0, OpArgR, OpArgN, OpArgN),   /* OP_TEST */
+  aqlOpModeABC(1, 1, OpArgR, OpArgU, OpArgN),   /* OP_TESTSET */
+  aqlOpModeABC(1, 0, OpArgK, OpArgK, OpArgN),   /* OP_EQI */
+  aqlOpModeABC(1, 0, OpArgK, OpArgK, OpArgN),   /* OP_LTI */
+
+/* === 函数调用组 (48-55) === */
+  aqlOpModeABC(0, 0, OpArgU, OpArgU, OpArgN),   /* OP_CALL */
+  aqlOpModeABC(0, 0, OpArgU, OpArgU, OpArgN),   /* OP_TAILCALL */
+  aqlOpModeABC(0, 0, OpArgU, OpArgU, OpArgN),   /* OP_RET */
+  aqlOpModeABC(0, 0, OpArgU, OpArgU, OpArgN),   /* OP_RET_VOID */
+  aqlOpModeABC(0, 0, OpArgU, OpArgU, OpArgN),   /* OP_RET_ONE */
+  aqlOpModeAsBx(0, 0, OpArgR, OpArgN),          /* OP_FORLOOP */
+  aqlOpModeAsBx(0, 0, OpArgR, OpArgN),          /* OP_FORPREP */
+  aqlOpModeABx(0, 1, OpArgU, OpArgN),           /* OP_CLOSURE */
+
+/* === AQL容器组 (56-59) === */
+  aqlOpModeABC(0, 1, OpArgU, OpArgU, OpArgN),   /* OP_NEWOBJECT */
+  aqlOpModeABC(0, 1, OpArgR, OpArgR, OpArgN),   /* OP_GETPROP */
+  aqlOpModeABC(0, 0, OpArgR, OpArgR, OpArgN),   /* OP_SETPROP */
+  aqlOpModeABC(0, 1, OpArgR, OpArgK, OpArgN),   /* OP_INVOKE */
+
+/* === AQL扩展组 (60-64) === */
+  aqlOpModeABC(0, 0, OpArgU, OpArgU, OpArgN),   /* OP_YIELD */
+  aqlOpModeABC(0, 1, OpArgR, OpArgR, OpArgN),   /* OP_RESUME */
+  aqlOpModeABC(0, 1, OpArgU, OpArgN, OpArgN),   /* OP_LOADBUILTIN */
+  aqlOpModeABC(0, 0, OpArgU, OpArgU, OpArgN),   /* OP_VARARG */
+};
+
+/*
+** Instruction manipulation utilities
+*/
+Instruction aqlO_create_ABC(OpCode o, int a, int b, int c) {
+  return ((cast(Instruction, o) << POS_OP) |
+          (cast(Instruction, a) << POS_A) |
+          (cast(Instruction, b) << POS_B) |
+          (cast(Instruction, c) << POS_C));
+}
+
+Instruction aqlO_create_ABx(OpCode o, int a, unsigned int bx) {
+  return ((cast(Instruction, o) << POS_OP) |
+          (cast(Instruction, a) << POS_A) |
+          (cast(Instruction, bx) << POS_Bx));
+}
+
+Instruction aqlO_create_AsBx(OpCode o, int a, int sbx) {
+  return ((cast(Instruction, o) << POS_OP) |
+          (cast(Instruction, a) << POS_A) |
+          (cast(Instruction, sbx + MAXARG_sBx) << POS_Bx));
+}
+
+Instruction aqlO_create_Ax(OpCode o, unsigned int ax) {
+  return ((cast(Instruction, o) << POS_OP) |
+          (cast(Instruction, ax) << POS_Ax));
+}
+
+/*
+** Disassembly utilities for debugging
+*/
+void aqlO_disasm_instruction(Instruction i, int pc) {
+  OpCode op = GET_OPCODE(i);
+  int a = GETARG_A(i);
+  
+  printf("%4d\t%-10s\t", pc, aql_opnames[op]);
+  
+  switch (GET_OPMODE(op)) {
+    case iABC: {
+      int b = GETARG_B(i);
+      int c = GETARG_C(i);
+      printf("%d", a);
+      if (getBMode(op) != OpArgN) printf(" %d", ISK(b) ? -1-INDEXK(b) : b);
+      if (getCMode(op) != OpArgN) printf(" %d", ISK(c) ? -1-INDEXK(c) : c);
+      break;
+    }
+    case iABx: {
+      unsigned int bx = GETARG_Bx(i);
+      printf("%d %d", a, bx);
+      break;
+    }
+    case iAsBx: {
+      int sbx = GETARG_sBx(i);
+      printf("%d %d", a, sbx);
+      break;
+    }
+    case iAx: {
+      unsigned int ax = GETARG_Ax(i);
+      printf("%d", ax);
+      break;
+    }
+  }
+  printf("\n");
+}
+
+/*
+** 通用指令解析函数 - 根据操作码名称和参数解析指令
+** 返回值：1=成功，0=失败
+*/
+int aql_parse_instruction(const char *opcode, const char *arg1, 
+                         const char *arg2, const char *arg3, 
+                         int args, Instruction *result) {
+    OpCode op = NUM_OPCODES; // 无效值
+    
+    // 查找操作码
+    for (int i = 0; i < NUM_OPCODES; i++) {
+        if (strcmp(aql_opnames[i], opcode) == 0) {
+            op = (OpCode)i;
+            break;
+        }
+    }
+    
+    if (op >= NUM_OPCODES) {
+        return 0; // 未找到操作码
+    }
+    
+    // 解析参数
+    int a = 0, b = 0, c = 0, k = 0;
+    
+    // 解析A参数（寄存器）
+    if (args >= 2 && arg1 && arg1[0] == 'R') {
+        a = atoi(arg1 + 1);
+    }
+    
+    // 根据操作码类型解析其他参数
+    enum OpMode mode = getOpMode(op);
+    
+    switch (op) {
+        // 特殊处理的指令
+        case OP_TEST:
+            if (args >= 3) {
+                k = atoi(arg2);
+                *result = CREATE_ABCk(op, a, b, c, k);
+                return 1;
+            }
+            break;
+            
+        case OP_JMP:
+            if (args >= 2) {
+                int offset = atoi(arg1);
+                *result = CREATE_sJ(op, offset, 0);
+                return 1;
+            }
+            break;
+            
+        case OP_LOADI:
+        case OP_LOADF:
+            if (args >= 3) {
+                int sbx = atoi(arg2);
+                *result = CREATE_AsBx(op, a, sbx);
+                return 1;
+            }
+            break;
+            
+        case OP_LOADK:
+            if (args >= 3) {
+                int bx = atoi(arg2);
+                *result = CREATE_ABx(op, a, bx);
+                return 1;
+            }
+            break;
+            
+        // 标准ABC格式指令
+        default:
+            switch (mode) {
+                case iABC:
+                    if (args >= 3 && arg2) {
+                        b = (arg2[0] == 'R') ? atoi(arg2 + 1) : atoi(arg2);
+                    }
+                    if (args >= 4 && arg3) {
+                        c = (arg3[0] == 'R') ? atoi(arg3 + 1) : atoi(arg3);
+                    }
+                    *result = CREATE_ABC(op, a, b, c);
+                    return 1;
+                    
+                case iABx:
+                    if (args >= 3) {
+                        int bx = atoi(arg2);
+                        *result = CREATE_ABx(op, a, bx);
+                        return 1;
+                    }
+                    break;
+                    
+                case iAsBx:
+                    if (args >= 3) {
+                        int sbx = atoi(arg2);
+                        *result = CREATE_AsBx(op, a, sbx);
+                        return 1;
+                    }
+                    break;
+                    
+                case iAx:
+                    if (args >= 2) {
+                        int ax = atoi(arg1);
+                        *result = CREATE_Ax(op, ax);
+                        return 1;
+                    }
+                    break;
+            }
+            break;
+    }
+    
+    return 0; // 解析失败
+} 

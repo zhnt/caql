@@ -1,0 +1,12 @@
+# 简单测试ADD指令
+
+.main
+.constants
+K0 INTEGER 42
+.code
+LOADI     R0, 5       # R0 = 5
+LOADK     R2, K0      # R2 = 42 (先加载常量到寄存器)
+ADD       R1, R0, R2  # R1 = 5 + 42 = 47
+MMBIN     R1, R0, 6   # 对结果寄存器R1进行元方法绑定
+RETURN1   R1          # 应该返回47
+.end

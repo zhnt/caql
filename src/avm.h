@@ -322,56 +322,11 @@ AQL_API const char *aqlF_getlocalname (const Proto *func, int local_number,
 
 /*
 ** {==================================================================
-** Tables
+** Tables - Now handled by atable.h
 ** ===================================================================
 */
 
-typedef struct Node {
-  TValue i_val;
-  union {
-    struct Node *next;  /* for chaining */
-    aql_Unsigned hnext;  /* index for next node */
-  } u;
-  TValue i_key;
-} Node;
-
-/* copy a value into a key */
-#define setnodekey(L,node,obj) \
-	{ Node *n_=(node); const TValue *io_=(obj); \
-	  n_->i_key.value_ = io_->value_; n_->i_key.tt_ = io_->tt_; \
-	  (void)L; checkliveness(L,io_); }
-
-typedef struct Table {
-  CommonHeader;
-  aql_byte flags;  /* 1<<p means tagmethod(p) is not present */
-  aql_byte lsizenode;  /* log2 of size of 'node' array */
-  unsigned int alimit;  /* "limit" of 'array' array */
-  TValue *array;  /* array part */
-  Node *node;
-  Node *lastfree;  /* any free position is before this position */
-  struct Table *metatable;
-  GCObject *gclist;
-/* Table already defined in aobject.h */
-}Table;
-
-/*
-** Macros to manipulate keys inserted in nodes
-*/
-#define keytt(node)		((node)->i_key.tt_)
-#define keyval(node)		((node)->i_key.value_)
-
-#define keyisnil(node)		(keytt(node) == AQL_TNIL)
-#define keyisinteger(node)	(keytt(node) == AQL_VNUMINT)
-#define keyival(node)		(keyval(node).i)
-#define keyisshrstr(node)	(keytt(node) == AQL_VSHRSTR)
-#define keystrval(node)		(gco2ts(keyval(node).gc))
-
-#define setnilkey(node)		(keytt(node) = AQL_TNIL)
-
-#define keyiscollectable(node)	(keytt(node) & BIT_ISCOLLECTABLE)
-
-#define gckey(n)	(keyval(n).gc)
-#define gckeyN(n)	(keyiscollectable(n) ? gckey(n) : NULL)
+/* Table definitions moved to atable.h for better organization */
 
 /* }================================================================== */
 

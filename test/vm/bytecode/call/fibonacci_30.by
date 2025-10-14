@@ -1,0 +1,53 @@
+# fibonacci_30.by
+# 测试AQL对中等大整数的支持: fib(30) = 832040
+# 基于Lua字节码模式的斐波那契递归
+
+.main
+K0 STRING "fib"
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
+.code
+CLOSURE   R0, 0            # R0 = fib函数
+SETTABUP  0, K0, R0        # _ENV["fib"] = R0
+
+# 调用fib(30)
+GETTABUP  R1, 0, K0        # R1 = _ENV["fib"]  
+LOADI     R2, 30           # R2 = 30
+CALL      R1, 2, 2         # fib(30), 1个参数, 1个返回值
+RETURN1   R1               # 返回结果
+.end
+
+.function fib 1
+K0 STRING "fib"
+.upvalues 1
+.upvalue 0 "_ENV" upval 0
+.code
+# R0 = n (参数)
+
+# 基础情况: 如果 n <= 1，返回 n
+LEI       R0, 1, 0         # n <= 1? 如果为真跳过JMP，为假执行JMP
+JMP       2                # 跳转到递归情况
+RETURN1   R0               # return n
+JMP       11               # 跳转到RETURN0
+
+# 递归情况: return fib(n-1) + fib(n-2)
+# 计算 fib(n-1)
+GETTABUP  R1, 0, K0        # R1 = _ENV["fib"]
+ADDI      R2, R0, -1       # R2 = n - 1
+MMBINI    R0, 1, 7, 0      # __sub 元方法
+CALL      R1, 2, 2         # fib(n-1)，参数在R2，结果到R1
+
+# 计算 fib(n-2)
+GETTABUP  R2, 0, K0        # R2 = _ENV["fib"]
+ADDI      R3, R0, -2       # R3 = n - 2
+MMBINI    R0, 2, 7, 0      # __sub 元方法
+CALL      R2, 2, 2         # fib(n-2)，参数在R3，结果到R2
+
+# 计算 fib(n-1) + fib(n-2)
+ADD       R1, R1, R2       # R1 = fib(n-1) + fib(n-2)
+MMBIN     R1, R2, 6        # __add 元方法
+RETURN1   R1               # return fib(n-1) + fib(n-2)
+
+# 函数结束
+RETURN0                    # 函数结束
+.end

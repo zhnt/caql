@@ -437,7 +437,9 @@ void aqlT_analyze_instruction(TypeInferContext *ctx, Instruction inst, int pc) {
             break;
         }
         
-        case OP_RET: {
+        case OP_RETURN:
+        case OP_RETURN0:
+        case OP_RETURN1: {
             /* 返回语句，分析返回值类型 */
             int a = GETARG_A(inst);
             if ((uint32_t)a < state->local_count && state->locals[a]) {

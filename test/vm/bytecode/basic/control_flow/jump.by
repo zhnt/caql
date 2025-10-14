@@ -1,0 +1,19 @@
+# 条件跳转测试: if (true) return 200; else return 100;
+# TEST+JMP模式
+# 执行流程：
+# 1. LOADTRUE R0 → R0 = true
+# 2. TEST R0, 0 → cond = !l_isfalse(true) = true; if (true != 0) pc++; else donextjump
+# 3. 因为 true != 0，所以执行 pc++，跳过JMP指令
+# 4. 执行then分支：LOADI R1, 200; RETURN1 R1 → 返回200
+# 5. JMP 2跳过else分支（如果执行到这里的话）
+
+.code
+LOADTRUE R0      # R0 = true
+TEST     R0, 0   # 测试条件：如果R0为真且k=0，则跳过下一条指令
+JMP      3       # 跳转到else分支（被TEST跳过，不会执行）
+LOADI    R1, 200 # then分支：R1 = 200
+RETURN1  R1      # 返回200（then分支结果）
+JMP      2       # 跳过else分支
+LOADI    R1, 100 # else分支：R1 = 100（不会执行到）
+RETURN1  R1      # 返回100（else分支结果）
+.end

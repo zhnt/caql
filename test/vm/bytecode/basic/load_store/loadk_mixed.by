@@ -1,0 +1,14 @@
+# LOADK指令测试 - 从常量表加载混合类型
+# 测试: LOADK 指令是否能正确从常量表加载不同类型的常量
+
+.constants
+K0 STRING "hello"
+K1 INTEGER 42
+K2 FLOAT 3.14
+
+.code
+LOADK R0, 0      # R0 = K[0] = "hello"
+LOADK R1, 1      # R1 = K[1] = 42  
+LOADK R2, 2      # R2 = K[2] = 3.14
+RETURN1 R1       # 返回 R1 (42)
+.end

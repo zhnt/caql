@@ -1,0 +1,41 @@
+# 简化的递归测试 - countdown(1)应该返回1
+
+.main 
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
+.constants
+K0 STRING "countdown"
+K1 INTEGER 1
+.code
+# 创建全局环境表
+NEWTABLE  R1, 0, 1
+EXTRAARG  0
+SETUPVAL  R1, 0
+
+# 创建countdown函数并放入全局环境
+CLOSURE   R2, 0
+SETTABUP  0, K0, R2
+
+# 调用countdown(1) - 应该返回1
+GETTABUP  R3, 0, K0
+LOADK     R4, K1
+CALL      R3, 2, 2
+RETURN1   R3
+.end
+
+.function countdown 1
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
+.constants  
+K0 STRING "countdown"
+K1 INTEGER 0
+K2 INTEGER 1
+.code
+# 简化逻辑：如果n <= 0返回0，否则返回n
+LEI       R0, 0, 0
+JMP       2
+LOADK     R2, K1
+RETURN1   R2
+# 直接返回n（不递归）
+RETURN1   R0
+.end

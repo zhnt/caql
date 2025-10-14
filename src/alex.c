@@ -280,9 +280,9 @@ static int isreserved(TString *ts) {
   
   /* Check for mathematical keywords */
   if (strcmp(s, "div") == 0) {
-    return TK_DIV_KW;
+    return TK_DIV_KW;  /* Note: This won't be debug-collected, but it's a keyword */
   }
-  
+
   /* Check for basic keywords that we need */
   if (strcmp(s, "let") == 0) return TK_LET;
   if (strcmp(s, "const") == 0) return TK_CONST;
@@ -291,7 +291,7 @@ static int isreserved(TString *ts) {
   if (strcmp(s, "true") == 0) return TK_TRUE;
   if (strcmp(s, "false") == 0) return TK_FALSE;
   if (strcmp(s, "nil") == 0) return TK_NIL;
-  
+
   /* Control flow keywords */
   if (strcmp(s, "if") == 0) return TK_IF;
   if (strcmp(s, "else") == 0) return TK_ELSE;
@@ -372,7 +372,7 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
       case '+': {
         int start_col = ls->column;
         next(ls);
-        return TK_PLUS;
+        RETURN_TOKEN(TK_PLUS, NULL);
       }
       case '-': {
         next(ls);
@@ -511,16 +511,18 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
         }
       } else if (aqlX_isdigit(ls->current)) {
         /* Number starting with '.' */
-        return read_numeral(ls, seminfo);
+        RETURN_TOKEN(read_numeral(ls, seminfo), NULL);
+        //return read_numeral(ls, seminfo);
       } else {
-        return TK_DOT;  /* '.' */
+        //return TK_DOT;  /* '.' */
+        RETURN_TOKEN(TK_DOT, NULL);
       }
     }
       
       /* Strings */
       case '"': case '\'': {
         read_string(ls, ls->current, seminfo);
-        return TK_STRING;
+        RETURN_TOKEN(TK_STRING, getstr(seminfo->ts));
       }
       
       /* End of input */

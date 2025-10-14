@@ -1,0 +1,37 @@
+# recursive_no_closure.by
+# 测试: 避免在递归中使用CLOSURE
+# 预期结果: 计算阶乘但避免段错误
+
+.main
+.code
+CLOSURE   R0, 0            # R0 = function <simple_factorial>
+LOADI     R1, 3            # R1 = 3
+CALL      R0, 2, 2         # 调用simple_factorial(3)
+RETURN1   R0               # 返回结果
+.end
+
+.function simple_factorial 1
+.upvalues 1
+.upvalue 0 "self" instack 0    # upvalue[0] = 函数自身引用
+.code
+# R0 = n (参数)
+# 基础情况: 如果 n <= 1，返回 1
+LOADI     R1, 1            # R1 = 1
+LE        R0, R1, 0        # 比较 R0 <= R1，如果为真则跳转到基础情况
+JMP       0, 2             # 跳过递归分支
+# 递归情况: n * factorial(n-1)
+LOADI     R2, 1            # R2 = 1
+SUB       R3, R0, R2       # R3 = n - 1
+MMBIN     R0, R2, 7        # 元方法处理 (__sub)
+GETUPVAL  R4, 0            # R4 = upvalue[0] (函数自身，避免CLOSURE)
+MOVE      R5, R3           # R5 = n - 1 (参数)
+CALL      R4, 2, 2         # 递归调用 factorial(n-1)
+MUL       R6, R0, R4       # R6 = n * factorial(n-1)
+MMBIN     R0, R4, 8        # 元方法处理 (__mul)
+RETURN1   R6               # 返回递归结果
+JMP       0, 1             # 跳过基础情况
+# 基础情况
+RETURN1   R1               # 返回1
+.end
+
+

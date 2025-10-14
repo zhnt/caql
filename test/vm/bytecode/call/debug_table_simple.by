@@ -1,0 +1,23 @@
+# 测试Table的基本设置和获取功能 - 匹配Lua字节码模式
+
+.main
+.constants
+K0 STRING "key1"
+K1 STRING "value1"
+.code
+# 创建一个新表
+NEWTABLE  R0, 0, 0    # 创建新表到R0
+EXTRAARG  0           # NEWTABLE的额外参数
+
+# 加载键和值到寄存器（匹配Lua模式）
+LOADK     R1, K0      # R1 = "key1"
+LOADK     R2, K1      # R2 = "value1"
+
+# 使用SETTABLE设置值（table=R0, key=R1, value=R2）
+SETTABLE  R0, R1, R2  # R0[R1] = R2
+
+# 使用GETTABLE获取值（result=R3, table=R0, key=R1）
+GETTABLE  R3, R0, R1  # R3 = R0[R1]
+
+RETURN1   R3          # 返回结果
+.end

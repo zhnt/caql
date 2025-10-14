@@ -1,0 +1,29 @@
+# gettabup_simple.by
+# 测试基础的GETTABUP操作
+# 先设置全局变量，然后读取: x = 42, return x
+
+.main
+K0 STRING "x"
+K1 INTEGER 42
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
+.code
+CLOSURE   R0, 0            # R0 = function <test>
+CALL      R0, 1, 2         # 调用test()
+RETURN1   R0               # 返回结果
+.end
+
+.function test 0
+K0 STRING "x"
+K1 INTEGER 42
+.upvalues 1
+.upvalue 0 "_ENV" upval 0    # 继承主函数的_ENV
+.code
+# 先设置全局变量
+LOADI     R0, 42           # R0 = 42
+SETTABUP  0, K0, R0        # _ENV["x"] = R0
+
+# 然后读取全局变量
+GETTABUP  R1, 0, K0        # R1 = _ENV["x"]
+RETURN1   R1               # 返回读取的值
+.end

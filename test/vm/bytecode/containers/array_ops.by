@@ -1,0 +1,16 @@
+# Array 容器完整操作测试
+# 测试: 创建array，设置元素，获取元素
+# 模拟 Lua: local t = {}; t[0] = 42; t[1] = 100; return t[0]
+
+.code
+NEWOBJECT R0, 0, 5   # R0 = new Array(capacity=5) 
+LOADI     R1, 42     # R1 = 42
+LOADI     R2, 0      # R2 = 0 (索引)
+SETPROP   R0, R2, R1 # R0[0] = 42 (array[index] = value)
+LOADI     R3, 100    # R3 = 100  
+LOADI     R4, 1      # R4 = 1 (索引)
+SETPROP   R0, R4, R3 # R0[1] = 100
+LOADI     R5, 0      # R5 = 0 (要获取的索引)
+GETPROP   R6, R0, R5 # R6 = R0[0] (应该是42)
+RETURN1   R6         # 返回 R6 (42)
+.end

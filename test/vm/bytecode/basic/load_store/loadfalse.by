@@ -1,0 +1,7 @@
+# LOADFALSE指令测试 - 加载布尔值false
+# 测试LOADFALSE指令是否能正确加载false值到寄存器
+
+.code
+LOADFALSE R0
+RETURN1 R0
+.end

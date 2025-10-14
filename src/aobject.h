@@ -16,6 +16,7 @@
 ** Extra internal types for collectable non-values
 ** (Basic types AQL_TNIL through AQL_TVECTOR are defined in aql.h)
 */
+#define AQL_TCONTAINER  AQL_TARRAY  /* 容器类型使用 AQL_TARRAY 作为基础 */
 #define AQL_TUPVAL	AQL_NUMTYPES  /* upvalues */
 #define AQL_TPROTO	(AQL_NUMTYPES+1)  /* function prototypes */
 #define AQL_TDEADKEY	(AQL_NUMTYPES+2)  /* removed keys in tables */
@@ -160,6 +161,9 @@ typedef union {
 /* Value returned for a key not found in a table (absent key) */
 #define AQL_VABSTKEY	makevariant(AQL_TNIL, 2)
 
+/* Builtin function */
+#define AQL_VBUILTIN	makevariant(AQL_TBUILTIN, 0)
+
 /* macro to test for (any kind of) nil */
 #define ttisnil(v)		checktype((v), AQL_TNIL)
 /* macro to test for a standard nil */
@@ -205,8 +209,8 @@ typedef union {
 
 #define bvalue(o)		check_exp(ttisboolean(o), val_(o).ub)
 
-#define setbfvalue(obj)		settt_(obj, AQL_VFALSE)
-#define setbtvalue(obj)		settt_(obj, AQL_VTRUE)
+#define setbfvalue(obj)		{ TValue *io=(obj); val_(io).ub=0; settt_(io, AQL_VFALSE); }
+#define setbtvalue(obj)		{ TValue *io=(obj); val_(io).ub=1; settt_(io, AQL_VTRUE); }
 
 #define setbvalue(obj,x) \
   { TValue *io=(obj); val_(io).ub=(x); settt_(io, (x) ? AQL_VTRUE : AQL_VFALSE); }
@@ -625,6 +629,12 @@ typedef struct RangeObject RangeObject;
 #define ttisvector(o)		checktag((o), ctb(AQL_VVECTOR))
 #define ttisrange(o)		checktag((o), ctb(AQL_VRANGE))
 
+/* 通用容器类型检查 */
+#define ttiscontainer(o)    (ttisarray(o) || ttisslice(o) || ttisdict(o) || ttisvector(o))
+
+/* 通用容器值访问器 */
+#define containervalue(o)   ((AQL_ContainerBase*)val_(o).gc)
+
 /* Container value accessors */
 #define arrayvalue(o)	check_exp(ttisarray(o), gco2array(val_(o).gc))
 #define slicevalue(o)	check_exp(ttisslice(o), gco2slice(val_(o).gc))
@@ -637,6 +647,21 @@ typedef struct RangeObject RangeObject;
 #define vecvalue(o)     vectorvalue(o)
 
 /* Container setters */
+/* Container setters */
+#define setcontainervalue(L,obj,x) \
+  { TValue *io = (obj); AQL_ContainerBase *x_ = (x); \
+    val_(io).gc = obj2gco(x_); \
+    switch (x_->type) { \
+      case CONTAINER_ARRAY: settt_(io, ctb(AQL_VARRAY)); break; \
+      case CONTAINER_SLICE: settt_(io, ctb(AQL_VSLICE)); break; \
+      case CONTAINER_DICT: settt_(io, ctb(AQL_VDICT)); break; \
+      case CONTAINER_VECTOR: settt_(io, ctb(AQL_VVECTOR)); break; \
+    } \
+    checkliveness(L,io); }
+
+/* 向后兼容的别名 */
+#define setcontainer(L,obj,x) setcontainervalue(L,obj,x)
+
 #define setarrayvalue(L,obj,x) \
   { TValue *io = (obj); Array *x_ = (x); \
     val_(io).gc = obj2gco(x_); settt_(io, ctb(AQL_VARRAY)); \

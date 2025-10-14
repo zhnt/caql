@@ -1,0 +1,31 @@
+# multiple_calls.by
+# 测试: 多次函数调用（非递归）
+# 预期结果: 15 (5*3)
+
+.main
+.code
+CLOSURE   R0, 0            # R0 = function <multiply>
+LOADI     R1, 5            # R1 = 5
+LOADI     R2, 3            # R2 = 3
+CALL      R0, 3, 2         # 第一次调用multiply(5, 3)
+MOVE      R3, R0           # R3 = 结果15
+
+# 再次调用同一个函数
+CLOSURE   R4, 0            # R4 = function <multiply>
+LOADI     R5, 1            # R5 = 1
+LOADI     R6, 1            # R6 = 1
+CALL      R4, 3, 2         # 第二次调用multiply(1, 1)
+# R4现在是1
+
+ADD       R7, R3, R4       # R7 = 15 + 1 = 16
+MMBIN     R3, R4, 6        # 元方法处理 (__add)
+RETURN1   R7               # 返回结果
+.end
+
+.function multiply 2
+.code
+MUL       R2, R0, R1       # R2 = R0 * R1
+MMBIN     R0, R1, 8        # 元方法处理 (__mul)
+RETURN1   R2               # 返回R2
+.end
+

@@ -1,0 +1,42 @@
+# simple_tail_call.by
+# 最简单的尾递归调用例子: countdown(3) 
+# 简化版：只返回最终结果，不打印中间过程
+
+.main
+K0 STRING "countdown"
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
+.code
+CLOSURE   R0, 0            # R0 = countdown函数
+SETTABUP  0, K0, R0        # _ENV["countdown"] = R0
+
+# 调用countdown(3)
+GETTABUP  R1, 0, K0        # R1 = _ENV["countdown"]  
+LOADI     R2, 5            # R2 = 5 (参数)
+CALL      R1, 2, 2         # countdown(3), 1个参数, 1个返回值
+RETURN1   R1               # 返回结果
+.end
+
+.function countdown 1
+K0 STRING "countdown"
+K1 INTEGER 42              # 测试返回值
+.upvalues 1
+.upvalue 0 "_ENV" upval 0
+.code
+# R0 = n (参数)
+
+# 基础情况: 如果 n <= 0，返回 42
+LEI       R0, 0, 0         # n <= 0? 如果为真继续，为假跳转
+JMP       4                # 跳转到递归情况
+
+# 基础情况: 返回 42
+LOADK     R1, K1           # R1 = 42
+RETURN1   R1               # return 42
+
+# 递归情况: return countdown(n-1) - 尾调用
+GETTABUP  R1, 0, K0        # R1 = _ENV["countdown"]
+ADDI      R2, R0, -1       # R2 = n - 1
+MMBINI    R0, 1, 7, 0      # __sub 元方法: R0 - 1, TM_SUB=7, flip=0
+TAILCALL  R1, 2, 0         # countdown(n-1) - 尾调用优化
+RETURN    R1, 0, 0         # 返回所有结果
+.end

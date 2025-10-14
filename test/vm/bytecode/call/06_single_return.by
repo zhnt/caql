@@ -1,0 +1,17 @@
+# 06_single_return.by
+# 测试: 单个返回值函数
+# 预期结果: 42
+
+.main
+.code
+CLOSURE   R0, 0            # R0 = function <get_answer>
+CALL      R0, 1, 2         # 调用get_answer(), 0个参数, 1个返回值
+RETURN1   R0               # 返回结果
+.end
+
+.function get_answer 0
+K0 INTEGER 42
+.code
+LOADK     R0, 0            # R0 = 42 (生命、宇宙以及一切的答案)
+RETURN1   R0               # 返回R0
+.end

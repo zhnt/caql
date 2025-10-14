@@ -1,0 +1,36 @@
+# 03_real_nested_functions.by
+# 测试: 真正的嵌套函数调用 - 函数内部调用其他函数
+# 预期结果: 18 (double_square(3) 内部调用 square(3) = 9，然后 * 2 = 18)
+
+.main
+.code
+CLOSURE   R0, 0            # R0 = function <double_square>
+LOADI     R1, 3            # R1 = 3 (参数)
+MOVE      R2, R0           # R2 = double_square函数
+MOVE      R3, R1           # R3 = 参数3
+CALL      R2, 2, 2         # 调用double_square(3)
+RETURN1   R2               # 返回结果
+.end
+
+.function double_square 1
+.code
+# 在这个函数内部调用square函数
+CLOSURE   R1, 0            # R1 = function <square> (修复：应该是索引0)
+MOVE      R2, R1           # R2 = square函数
+MOVE      R3, R0           # R3 = 参数x (R0是传入的参数)
+CALL      R2, 2, 2         # 调用square(x), 结果在R2
+
+# 将square的结果乘以2
+K0 INTEGER 2
+LOADK     R4, 0            # R4 = 2
+MUL       R5, R2, R4       # R5 = square_result * 2
+MMBIN     R2, R4, 8        # 元方法处理 (__mul)
+RETURN1   R5               # 返回最终结果
+.end
+
+.function square 1
+.code
+MUL       R1, R0, R0       # R1 = x * x
+MMBIN     R0, R0, 8        # 元方法处理 (__mul)
+RETURN1   R1               # 返回R1
+.end

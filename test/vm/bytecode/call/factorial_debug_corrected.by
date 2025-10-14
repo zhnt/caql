@@ -1,0 +1,41 @@
+# factorial_debug_corrected.by
+# 修正的阶乘测试，factorial(3) = 6
+# 预期结果: 6
+
+.main
+K0 STRING "factorial"
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
+.code
+CLOSURE   R0, 0            # R0 = factorial函数
+SETTABUP  0, K0, R0        # _ENV["factorial"] = R0
+GETTABUP  R1, 0, K0        # R1 = _ENV["factorial"]  
+LOADI     R2, 5            # R2 = 5 (参数)
+CALL      R1, 2, 2         # factorial(3)
+RETURN1   R1               # 返回结果
+.end
+
+.function factorial 1
+K0 STRING "factorial"
+.upvalues 1
+.upvalue 0 "_ENV" upval 0
+.code
+# R0 = n (参数)
+# 基础情况: 如果 n <= 1，返回 1
+LEI       R0, 1, 0         # n <= 1? 如果为真跳过JMP，为假执行JMP
+JMP       3                # 跳转到递归情况
+
+# 基础情况: 返回 1
+LOADI     R1, 1            # R1 = 1
+RETURN1   R1               # return 1
+JMP       7                # 跳转到函数结束（防止执行递归代码）
+
+# 递归情况: return n * factorial(n-1)
+GETTABUP  R1, 0, K0        # R1 = _ENV["factorial"]
+ADDI      R2, R0, -1       # R2 = n - 1
+MMBINI    R0, 1, 7, 0      # __sub 元方法: R0 - 1, TM_SUB=7, flip=0
+CALL      R1, 2, 2         # factorial(n-1)，函数在R1，参数在R2，结果到R1
+MUL       R3, R0, R1       # R3 = n * factorial(n-1)
+MMBIN     R0, R1, 13       # __mul 元方法（操作数R0,R1，结果到R3）
+RETURN1   R3               # return n * factorial(n-1)
+.end

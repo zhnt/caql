@@ -1,530 +1,2563 @@
-[DEBUG] init_registry: initialized registry and globals (simplified)
-[DEBUG] internshrstr: str='test_function_basic.aql', len=23, hash=745848503, table_size=128, table_nuse=0
-[DEBUG] internshrstr: str='_ENV', len=4, hash=2089965421, table_size=128, table_nuse=1
-[DEBUG] enterblock: entered block, nactvar=0, isloop=0, mode=0
-next: f (102) -> u (117)next: u (117) -> n (110)next: n (110) -> c (99)next: c (99) -> t (116)next: t (116) -> i (105)next: i (105) -> o (111)next: o (111) -> n (110)next: n (110) ->   (32)[DEBUG] internshrstr: str='function', len=8, hash=3559143499, table_size=128, table_nuse=2
-[DEBUG] statlist: entering, current token = 266
-[DEBUG] statlist: in loop, current token = 266
-next:   (32) -> h (104)next: h (104) -> e (101)next: e (101) -> l (108)next: l (108) -> l (108)next: l (108) -> o (111)next: o (111) -> ( (40)[DEBUG] internshrstr: str='hello', len=5, hash=261238937, table_size=128, table_nuse=3
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ( (40) -> ) (41)[DEBUG] aqlK_indexed: using register 0 (freereg was 0)
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-[DEBUG] enterblock: entered block, nactvar=0, isloop=0, mode=0
-[DEBUG] checknext: calling check for token 329
-[DEBUG] check: expecting token 329, got token 329
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 329
-next: ) (41) ->   (32)[DEBUG] checknext: aqlX_next completed, current token after = 330
-[DEBUG] adjustlocalvars: activating 0 variables, reglevel=0
-[DEBUG] checknext: calling check for token 330
-[DEBUG] check: expecting token 330, got token 330
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
-next:   (32) -> { (123)next: { (123) -> ? (10)[DEBUG] checknext: aqlX_next completed, current token after = 123
-[DEBUG] checknext: calling check for token 123
-[DEBUG] check: expecting token 123, got token 123
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 123
-next: ? (10) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) ->   (32)next:   (32) -> p (112)next: p (112) -> r (114)next: r (114) -> i (105)next: i (105) -> n (110)next: n (110) -> t (116)next: t (116) -> ( (40)[DEBUG] internshrstr: str='print', len=5, hash=271190290, table_size=128, table_nuse=4
-[DEBUG] checknext: aqlX_next completed, current token after = 351
-[DEBUG] statlist: entering, current token = 351
-[DEBUG] statlist: in loop, current token = 351
-[DEBUG] exprstat: calling singlevar_unified
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ( (40) -> " (34)[DEBUG] exprstat: singlevar_unified returned, v.k=20
-next: " (34) -> H (72)next: H (72) -> e (101)next: e (101) -> l (108)next: l (108) -> l (108)next: l (108) -> o (111)next: o (111) ->   (32)next:   (32) -> f (102)next: f (102) -> r (114)next: r (114) -> o (111)next: o (111) -> m (109)next: m (109) ->   (32)next:   (32) -> f (102)next: f (102) -> u (117)next: u (117) -> n (110)next: n (110) -> c (99)next: c (99) -> t (116)next: t (116) -> i (105)next: i (105) -> o (111)next: o (111) -> n (110)next: n (110) -> ! (33)next: ! (33) -> " (34)next: " (34) -> ) (41)[DEBUG] internshrstr: str='Hello from function!', len=20, hash=3456136724, table_size=128, table_nuse=5
-[DEBUG] expr: entering, current token = 295
-[DEBUG] simpleexp: entering, current token = 295
-next: ) (41) -> ? (10)[DEBUG] getbinopr: input token=330 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 330, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 330
-[DEBUG] aqlK_dischargevars: entering, e->k=7
-[DEBUG] aqlK_dischargevars: switching on e->k=7
-[DEBUG] aqlK_dischargevars: default case for e->k=7
-[DEBUG] aqlK_dischargevars: entering, e->k=7
-[DEBUG] aqlK_dischargevars: switching on e->k=7
-[DEBUG] aqlK_dischargevars: default case for e->k=7
-[DEBUG] checknext: calling check for token 330
-[DEBUG] check: expecting token 330, got token 330
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
-next: ? (10) -> } (125)next: } (125) -> ? (10)[DEBUG] checknext: aqlX_next completed, current token after = 125
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] statlist: statement completed, current token = 125
-[DEBUG] statlist: exiting loop, current token = 125
-[DEBUG] checknext: calling check for token 125
-[DEBUG] check: expecting token 125, got token 125
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 125
-next: ? (10) -> ? (10)next: ? (10) -> r (114)next: r (114) -> e (101)next: e (101) -> t (116)next: t (116) -> u (117)next: u (117) -> r (114)next: r (114) -> n (110)next: n (110) ->   (32)[DEBUG] internshrstr: str='return', len=6, hash=422601765, table_size=128, table_nuse=6
-[DEBUG] checknext: aqlX_next completed, current token after = 275
-[DEBUG] aqlK_dischargevars: entering, e->k=17
-[DEBUG] aqlK_dischargevars: switching on e->k=17
-[DEBUG] aqlK_dischargevars: default case for e->k=17
-[DEBUG] aqlK_dischargevars: entering, e->k=17
-[DEBUG] aqlK_dischargevars: switching on e->k=17
-[DEBUG] aqlK_dischargevars: default case for e->k=17
-[DEBUG] leaveblock: leaving block, cleaning up from level 0
-[DEBUG] leaveblock: cleaned up containers to count 0
-[DEBUG] leaveblock: normal cleanup, freereg=0
-[DEBUG] leaveblock: completed, freereg=0, active_vars=0
-[DEBUG] aqlK_storevar: entering, var->k=17, ex->k=8
-[DEBUG] aqlK_storevar: VINDEXUP=13, VLOCAL=9, VUPVAL=10
-[DEBUG] aqlK_storevar: VRELOC case, handling global assignment
-[DEBUG] aqlK_storevar: previous instruction opcode=10 (OP_GETTABUP=10)
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] aqlK_storevar: generating SETTABUP with table=0, key=128, value=1
-[DEBUG] statlist: statement completed, current token = 275
-[DEBUG] statlist: in loop, current token = 275
-next:   (32) -> h (104)next: h (104) -> e (101)next: e (101) -> l (108)next: l (108) -> l (108)next: l (108) -> o (111)next: o (111) -> ( (40)[DEBUG] internshrstr: str='hello', len=5, hash=261238937, table_size=128, table_nuse=7
-[DEBUG] expr: entering, current token = 351
-[DEBUG] simpleexp: entering, current token = 351
-[DEBUG] check: expecting token 351, got token 351
-[DEBUG] check: token matched successfully
-next: ( (40) -> ) (41)[DEBUG] aqlK_indexed: using register 0 (freereg was 0)
-[DEBUG] aqlK_dischargevars: entering, e->k=4
-[DEBUG] aqlK_dischargevars: switching on e->k=4
-[DEBUG] aqlK_dischargevars: default case for e->k=4
-next: ) (41) -> ? (-1)[DEBUG] checknext: calling check for token 330
-[DEBUG] check: expecting token 330, got token 330
-[DEBUG] check: token matched successfully
-[DEBUG] checknext: check passed, calling aqlX_next, current token before = 330
-[DEBUG] checknext: aqlX_next completed, current token after = 348
-[DEBUG] getbinopr: input token=348 (TK_GE=319)
-[DEBUG] getbinopr: unknown token 348, returning OPR_NOBINOPR
-[DEBUG] expr: exiting, current token = 348
-[DEBUG] aqlK_dischargevars: entering, e->k=8
-[DEBUG] aqlK_dischargevars: switching on e->k=8
-[DEBUG] aqlK_dischargevars: default case for e->k=8
-[DEBUG] check: expecting token 348, got token 348
-[DEBUG] check: token matched successfully
-[DEBUG] leaveblock: leaving block, cleaning up from level 0
-[DEBUG] leaveblock: cleaned up containers to count 0
-[DEBUG] leaveblock: normal cleanup, freereg=0
-[DEBUG] leaveblock: completed, freereg=0, active_vars=0
+aqlV_execute2 开始执行
+L=0x7faca700e408, ci=0x7faca6c06350
+ci->func.p=0x7faca700f010, ci->top.p=0x7faca7010380, ci->u.l.savedpc=0x7faca6c060c0
+newframe: 进入新帧，ci=0x7faca6c06350, L->ci=0x7faca6c06350
+newframe: 准备访问ci->func.p=0x7faca700f010
+newframe: clLvalue成功，cl=0x7faca6c06180
+初始化完成: cl=0x7faca6c06180, k=0x7faca6c060e0, base=0x7faca700f020, pc=0x7faca6c060c0
+函数原型: code=0x7faca6c060c0, sizecode=3, maxstacksize=10
+进入主执行循环
+准备 vmfetch: savedpc=0x7faca6c060c0, current_pc=0
+vmfetch完成: i=0x0000004F
+PC=0: CLOSURE (op=79)
+准备 vmfetch: savedpc=0x7faca6c060c8, current_pc=1
+vmfetch完成: i=0x02010044
+PC=1: CALL (op=68)
+newframe: 进入新帧，ci=0x7faca6c05de0, L->ci=0x7faca6c05de0
+newframe: 准备访问ci->func.p=0x7faca700f020
+newframe: clLvalue成功，cl=0x7faca6c05db0
+初始化完成: cl=0x7faca6c05db0, k=0x7faca6c06290, base=0x7faca700f030, pc=0x7faca6c06260
+函数原型: code=0x7faca6c06260, sizecode=6, maxstacksize=10
+进入主执行循环
+准备 vmfetch: savedpc=0x7faca6c06260, current_pc=0
+vmfetch完成: i=0x80048001
+PC=0: LOADI (op=1)
+LOADI: ra=0x7faca700f030, A=0, sBx=10
+LOADI完成: ra指向的值=10
+准备 vmfetch: savedpc=0x7faca6c06268, current_pc=1
+vmfetch完成: i=0x0000000F
+PC=1: SETTABUP (op=15)
+SETTABUP: A=0, B=0, C=0
+SETTABUP: cl=0x7faca6c05db0, nupvalues=1
+SETTABUP: upval=0x7faca6c062f8, upval类型=5
+SETTABUP: key=0x7faca6c06290, key类型=4
+SETTABUP: value=0x7faca700f030, value类型=3
+SETTABUP: 设置key='counter1'
+SETTABUP: key类型=4, AQL_VSHRSTR=4
+SETTABUP: key长度=8
+[DEBUG] aqlH_getshortstr: 开始查找key='counter1'
 
-🔍 === LEXICAL ANALYSIS (Tokens) ===
-   0: UNKNOWN      value=function (line 1, col 9)
-   1: IDENTIFIER   value=hello (line 1, col 15)
-   2: LBRACE       value={ (line 1, col 19)
-   3: IDENTIFIER   value=print (line 2, col 10)
-   4: RBRACE       value=} (line 3, col 2)
-   5: RETURN       value=return (line 5, col 7)
-   6: IDENTIFIER   value=hello (line 5, col 13)
+[DEBUG] aqlH_getshortstr: isdummy(t)=1, n=0x107e65c58
 
-📊 Total tokens: 7
+[DEBUG] aqlH_getshortstr: 检查节点n=0x107e65c58, keyisshrstr(n)=0
 
-✅ Lexical analysis completed successfully
+[DEBUG] aqlH_getshortstr: 键不匹配，nx=0
 
-🔍 === ABSTRACT SYNTAX TREE (AST) ===
+[DEBUG] aqlH_getshortstr: 链表结束，未找到
 
-📊 AST Statistics:
-  Total nodes: 0
+SETTABUP: 使用完整设置
+SETTABUP: 调用aqlV_finishset - table=0x7faca6c06310, key='counter1', value_type=3
+SETTABUP: 即将进入aqlV_finishset
+aqlV_finishset: 开始 - t类型=5, key类型=4, val类型=3, slot=0x107e65c48
+aqlV_finishset: 循环 0/2000
+aqlV_finishset: t是表，h=0x7faca6c06310
+aqlV_finishset: 获取__newindex元方法，tm=0x0
+aqlV_finishset: 没有元方法，直接设置
+[DEBUG] aqlH_newkey: 开始插入新键
 
+[DEBUG] aqlH_newkey: isdummy(t)=1, t->lastfree=0x0
 
-⚙️  === BYTECODE INSTRUCTIONS ===
-📦 Constants Pool:
-  CONST[0] = "hello"
-  CONST[1] = nil
-  CONST[2] = nil
-  CONST[3] = nil
+[DEBUG] aqlH_newkey: key类型=4, value类型=3
 
-📝 Instructions:
-  PC    OPCODE       A        B        C       
-  ---   ------       -        -        -       
-  0     GETTABUP     0        0        128       # GETTABUP 0 0 128
-  1     CLOSURE      1        0        0         # CLOSURE 1 0 0
-  2     SETTABUP     0        128      1         # SETTABUP 0 128 1
-  3     GETTABUP     0        0        128       # GETTABUP 0 0 128
-  4     CALL         3        1        2         # CALL 3 1 2
-  5     RET_ONE      3        2        0         # return R(3)
-  6     RET_VOID     0        0        0         # return
-  7     MOVE         0        0        0         # MOVE 0 0 0
+[DEBUG] aqlH_newkey: 开始计算主位置
 
-📊 Total instructions: 8
+[DEBUG] aqlH_newkey: mp=0x107e65c58, isempty(gval(mp))=1
 
-✅ Bytecode generation completed successfully
-[DEBUG] f_execute: entering
-[DEBUG] f_execute: initializing _ENV upvalue
-[DEBUG] get_globals_dict: creating new globals dict
-[DEBUG] get_globals_dict: successfully created globals dict
-[DEBUG] f_execute: _ENV upvalue set to globals dict
-[DEBUG] f_execute: calling aqlV_execute
-[DEBUG] aqlV_execute: entering VM execution
-[DEBUG] aqlV_execute: safety checks passed, starting execution
-aqlV_execute: starting execution loop
-🚀 === EXECUTION TRACE ===
+[DEBUG] aqlH_newkey: 主位置被占用或表为dummy，需要获取空闲位置
 
+[DEBUG] aqlH_newkey: 需要重新哈希或获取空闲位置，f=0x0
 
-🔍 === REGISTER STATE ===
+[DEBUG] aqlH_newkey: 无空闲位置，开始rehash
 
-🚀 === EXECUTION TRACE ===
+[DEBUG] rehash: 开始rehash，t=0x7faca6c06310
 
-[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=0, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: found empty entry at index 9, key_type=0
-[DEBUG] aqlD_get: entry not found
-OP_GETTABUP: global variable not found, setting nil[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
-📍 PC=1: CLOSURE A=1 B=0 C=0
-[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
-📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
-OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
-OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=0, dict=0x7fec8b5040e0
-[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
-[DEBUG] aqlD_set: before setobj, hash=261238937
-[DEBUG] aqlD_set: after setobj, hash=261238937
-[DEBUG] aqlD_set: created entry with hash=261238937
-[DEBUG] aqlD_set: stored entry at index 9 with hash=261238937
-[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
-📍 PC=4: CALL A=3 B=1 C=2
-[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
-📍 PC=1: CLOSURE A=1 B=0 C=0
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
-📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
-OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
-[DEBUG] aqlD_set: before setobj, hash=261238937
-[DEBUG] aqlD_set: after setobj, hash=261238937
-[DEBUG] aqlD_set: created entry with hash=261238937
-[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
-📍 PC=4: CALL A=3 B=1 C=2
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
-📍 PC=1: CLOSURE A=1 B=0 C=0
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
-📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
-OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
-[DEBUG] aqlD_set: before setobj, hash=261238937
-[DEBUG] aqlD_set: after setobj, hash=261238937
-[DEBUG] aqlD_set: created entry with hash=261238937
-[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
-📍 PC=4: CALL A=3 B=1 C=2
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
-📍 PC=1: CLOSURE A=1 B=0 C=0
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
-📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
-OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
-[DEBUG] aqlD_set: before setobj, hash=261238937
-[DEBUG] aqlD_set: after setobj, hash=261238937
-[DEBUG] aqlD_set: created entry with hash=261238937
-[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
-📍 PC=4: CALL A=3 B=1 C=2
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
-📍 PC=1: CLOSURE A=1 B=0 C=0
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
-📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
-OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
-[DEBUG] aqlD_set: before setobj, hash=261238937
-[DEBUG] aqlD_set: after setobj, hash=261238937
-[DEBUG] aqlD_set: created entry with hash=261238937
-[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
-📍 PC=4: CALL A=3 B=1 C=2
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
-📍 PC=1: CLOSURE A=1 B=0 C=0
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
-📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
-OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
-[DEBUG] aqlD_set: before setobj, hash=261238937
-[DEBUG] aqlD_set: after setobj, hash=261238937
-[DEBUG] aqlD_set: created entry with hash=261238937
-[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
-📍 PC=4: CALL A=3 B=1 C=2
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
-📍 PC=1: CLOSURE A=1 B=0 C=0
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
-📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
-OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
-[DEBUG] aqlD_set: before setobj, hash=261238937
-[DEBUG] aqlD_set: after setobj, hash=261238937
-[DEBUG] aqlD_set: created entry with hash=261238937
-[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
-📍 PC=4: CALL A=3 B=1 C=2
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
-📍 PC=1: CLOSURE A=1 B=0 C=0
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
-📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
-OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
-[DEBUG] aqlD_set: before setobj, hash=261238937
-[DEBUG] aqlD_set: after setobj, hash=261238937
-[DEBUG] aqlD_set: created entry with hash=261238937
-[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
-📍 PC=4: CALL A=3 B=1 C=2
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
-📍 PC=1: CLOSURE A=1 B=0 C=0
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
-📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
-OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
-[DEBUG] aqlD_set: before setobj, hash=261238937
-[DEBUG] aqlD_set: after setobj, hash=261238937
-[DEBUG] aqlD_set: created entry with hash=261238937
-[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
-📍 PC=4: CALL A=3 B=1 C=2
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=1, opcode=55 (CLOSURE), A=1, B=0, C=0
-📍 PC=1: CLOSURE A=1 B=0 C=0
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-[DEBUG] aqlV_execute: PC=2, opcode=11 (SETTABUP), A=0, B=128, C=1
-📍 PC=2: SETTABUP UPVAL[128][R(1)] := R(0)
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_SETTABUP: A=0 B=128 C=1OP_SETTABUP: upval type=11, key type=4, val type=6[DEBUG] OP_SETTABUP: key is string 'hello', length=5
-OP_SETTABUP: setting global variable in dict[DEBUG] aqlD_set: setting key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] aqlD_set: computed hash=261238937 for key 'hello'
-[DEBUG] aqlD_set: before setobj, hash=261238937
-[DEBUG] aqlD_set: after setobj, hash=261238937
-[DEBUG] aqlD_set: created entry with hash=261238937
-[DEBUG] aqlV_execute: PC=3, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=3: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
-OP_GETTABUP: found global variable, type=6[DEBUG] aqlV_execute: PC=4, opcode=48 (CALL), A=3, B=1, C=2
-📍 PC=4: CALL A=3 B=1 C=2
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-[DEBUG] aqlV_execute: PC=0, opcode=10 (GETTABUP), A=0, B=0, C=128
-📍 PC=0: GETTABUP R(0) := UPVAL[0][R(128)]
-  Before: 📊 Registers: R0=<function> R1=<function> R2=nil R3=nil 
-OP_GETTABUP: A=0 B=0 C=128OP_GETTABUP: cl=0x7fec8b5040a0, cl->upvals=0x7fec8b5040c0OP_GETTABUP: cl->nupvalues=1OP_GETTABUP: upval type=11, key type=4OP_GETTABUP: accessing global dict with key[DEBUG] OP_GETTABUP: key is string 'hello', length=5
-[DEBUG] aqlD_get: looking for key 'hello', dict size=1, dict=0x7fec8b5040e0
-[DEBUG] findentry: searching for key 'hello', hash=261238937, index=9
-[DEBUG] findentry: checking entry at index 9, hash=261238937, distance=0
-[DEBUG] findentry: entry key is string 'hello'
-[DEBUG] findentry: found matching entry!
-[DEBUG] aqlD_get: found entry, value type=6
+[DEBUG] rehash: 计算数组部分键数量
+
+[DEBUG] rehash: 数组部分键数量=0，计算哈希部分键数量
+
+[DEBUG] rehash: 总键数量=0，处理额外键
+
+[DEBUG] rehash: 最终总键数量=1，计算新尺寸
+
+[DEBUG] rehash: 新数组尺寸=0，新哈希尺寸=1，调用aqlH_resize
+
+[DEBUG] rehash: aqlH_resize完成
+
+[DEBUG] aqlH_newkey: rehash完成，递归调用aqlH_set
+
+[DEBUG] aqlH_getshortstr: 开始查找key='counter1'
+
+[DEBUG] aqlH_getshortstr: isdummy(t)=0, n=0x7faca6c05e20
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=0
+
+[DEBUG] aqlH_getshortstr: 键不匹配，nx=0
+
+[DEBUG] aqlH_getshortstr: 链表结束，未找到
+
+[DEBUG] aqlH_newkey: 开始插入新键
+
+[DEBUG] aqlH_newkey: isdummy(t)=0, t->lastfree=0x7faca6c05e38
+
+[DEBUG] aqlH_newkey: key类型=4, value类型=3
+
+[DEBUG] aqlH_newkey: 开始计算主位置
+
+[DEBUG] aqlH_newkey: mp=0x7faca6c05e20, isempty(gval(mp))=1
+
+[DEBUG] aqlH_newkey: 准备设置节点键，key类型=4
+
+[DEBUG] aqlH_newkey: 节点键设置完成，keytt(mp)=68
+
+[DEBUG] aqlH_newkey: 节点值设置完成
+
+[DEBUG] aqlH_newkey: rehash完成，递归插入
+
+aqlV_finishset: 设置完成，返回
+SETTABUP: aqlV_finishset完成
+SETTABUP: 设置完成
+准备 vmfetch: savedpc=0x7faca6c06270, current_pc=2
+vmfetch完成: i=0x80318081
+PC=2: LOADI (op=1)
+LOADI: ra=0x7faca700f040, A=1, sBx=100
+LOADI完成: ra指向的值=100
+准备 vmfetch: savedpc=0x7faca6c06278, current_pc=3
+vmfetch完成: i=0x0101000F
+PC=3: SETTABUP (op=15)
+SETTABUP: A=0, B=1, C=1
+SETTABUP: cl=0x7faca6c05db0, nupvalues=1
+SETTABUP: upval=0x7faca6c062f8, upval类型=5
+SETTABUP: key=0x7faca6c062a0, key类型=4
+SETTABUP: value=0x7faca700f040, value类型=3
+SETTABUP: 设置key='counter2'
+SETTABUP: key类型=4, AQL_VSHRSTR=4
+SETTABUP: key长度=8
+[DEBUG] aqlH_getshortstr: 开始查找key='counter2'
+
+[DEBUG] aqlH_getshortstr: isdummy(t)=0, n=0x7faca6c05e20
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20, keyisshrstr(n)=1
+
+[DEBUG] aqlH_getshortstr: 节点key='counter1', eqshrstr=0
+
+[DEBUG] aqlH_getshortstr: 检查节点n=0x7faca6c05e20,

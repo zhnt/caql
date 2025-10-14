@@ -1,0 +1,10 @@
+# 算术运算测试 with 元方法支持: 5 + 3 = 8
+# 栈大小: 10
+
+.code
+LOADI R0, 5      # R0 = 5
+LOADI R1, 3      # R1 = 3  
+ADD   R2, R0, R1 # R2 = R0 + R1 (快速路径)
+MMBIN R0, R1, 6  # 如果 ADD 失败，调用 __add 元方法 (操作数R0,R1，结果自动到R2)
+RETURN1 R2       # return R2
+.end

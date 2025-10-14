@@ -1,0 +1,7 @@
+# 简单slice容器测试 - 只创建容器
+# 测试: 只创建slice容器
+
+.code
+NEWOBJECT R0, 1, 5   # 创建 slice (类型1=CONTAINER_SLICE, 容量5)
+RETURN1   R0         # 返回容器对象
+.end

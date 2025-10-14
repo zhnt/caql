@@ -1,0 +1,14 @@
+# LOADK指令测试 - 从常量表加载整数
+# 测试: LOADK 指令是否能正确从常量表加载整数
+
+.constants
+K0 INTEGER 42
+K1 INTEGER 100
+
+.code
+LOADK R0, 0      # R0 = K[0] = 42
+LOADK R1, 1      # R1 = K[1] = 100  
+ADD   R2, R0, R1 # R2 = R0 + R1 = 142
+MMBIN R2, R0, 6  # 元方法调用 (TM_ADD = 6)
+RETURN1 R2       # 返回 R2 (142)
+.end

@@ -1,0 +1,42 @@
+
+main <factorial.lua:0,0> (12 instructions at 0x7fbd806040f0)
+0+ params, 4 slots, 1 upvalue, 0 locals, 4 constants, 2 functions
+	1	[1]	VARARGPREP	0
+	2	[13]	CLOSURE  	0 0	; 0x7fbd806042b0
+	3	[6]	SETTABUP 	0 0 0	; _ENV "factorial_tail"
+	4	[18]	CLOSURE  	0 1	; 0x7fbd80604450
+	5	[16]	SETTABUP 	0 1 0	; _ENV "factorial"
+	6	[20]	GETTABUP 	0 0 2	; _ENV "print"
+	7	[20]	LOADK    	1 3	; "\229\176\190\233\128\146\229\189\146\231\137\136\230\156\172:"
+	8	[20]	GETTABUP 	2 0 1	; _ENV "factorial"
+	9	[20]	LOADI    	3 5
+	10	[20]	CALL     	2 2 0	; 1 in all out
+	11	[20]	CALL     	0 0 1	; all in 0 out
+	12	[20]	RETURN   	0 1 1	; 0 out
+
+function <factorial.lua:6,13> (15 instructions at 0x7fbd806042b0)
+2 params, 5 slots, 1 upvalue, 2 locals, 1 constant, 0 functions
+	1	[7]	TEST     	1 1
+	2	[7]	JMP      	1	; to 4
+	3	[7]	LOADI    	1 1
+	4	[8]	LEI      	0 1 0
+	5	[8]	JMP      	2	; to 8
+	6	[9]	RETURN1  	1
+	7	[9]	JMP      	7	; to 15
+	8	[11]	GETTABUP 	2 0 0	; _ENV "factorial_tail"
+	9	[11]	ADDI     	3 0 -1
+	10	[11]	MMBINI   	0 1 7 0	; __sub
+	11	[11]	MUL      	4 0 1
+	12	[11]	MMBIN    	0 1 8	; __mul
+	13	[11]	TAILCALL 	2 3 0	; 2 in
+	14	[11]	RETURN   	2 0 0	; all out
+	15	[13]	RETURN0  	
+
+function <factorial.lua:16,18> (6 instructions at 0x7fbd80604450)
+1 param, 4 slots, 1 upvalue, 1 local, 1 constant, 0 functions
+	1	[17]	GETTABUP 	1 0 0	; _ENV "factorial_tail"
+	2	[17]	MOVE     	2 0
+	3	[17]	LOADI    	3 1
+	4	[17]	TAILCALL 	1 3 0	; 2 in
+	5	[17]	RETURN   	1 0 0	; all out
+	6	[18]	RETURN0  	

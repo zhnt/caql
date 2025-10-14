@@ -1,0 +1,18 @@
+# 04_single_parameter.by
+# 测试: 单个参数函数
+# 预期结果: 25 (5^2)
+
+.main
+.code
+CLOSURE   R0, 0            # R0 = function <square>
+LOADI     R1, 5            # R1 = 5 (参数)
+CALL      R0, 2, 2         # 调用square(5), 1个参数, 1个返回值
+RETURN1   R0               # 返回结果
+.end
+
+.function square 1
+.code
+MUL       R1, R0, R0       # R1 = x * x (R0是参数x)
+MMBIN     R0, R0, 8        # 元方法处理 (__mul)
+RETURN1   R1               # 返回R1
+.end

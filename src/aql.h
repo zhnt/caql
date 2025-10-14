@@ -20,11 +20,12 @@
 #define DEBUG_DISABLED 1
 #endif
 
-/* Macro to disable old printf DEBUG statements */
+/* Macro to control old printf DEBUG statements */
 #if DEBUG_DISABLED
 #define printf_debug(...) ((void)0)
 #else
-#define printf_debug printf
+/* 使用新的调试系统 */
+#define printf_debug(...) aql_debug(__VA_ARGS__)
 #endif
 
 #define AQL_VERSION_MAJOR	"1"
@@ -82,10 +83,11 @@ typedef struct aql_State aql_State;
 #define AQL_TARRAY		9
 #define AQL_TSLICE		10
 #define AQL_TDICT		11
-#define AQL_TVECTOR		12
-#define AQL_TRANGE		13
+#define AQL_TBUILTIN		12  /* builtin functions */
+#define AQL_TVECTOR		13
+#define AQL_TRANGE		14
 
-#define AQL_NUMTYPES		15
+#define AQL_NUMTYPES		16
 
 /* minimum AQL stack available to a C function */
 #define AQL_MINSTACK	20

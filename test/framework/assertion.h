@@ -41,13 +41,13 @@ extern int suite_header_printed;
 #define TEST_PASS() \
     do { \
         test_passed++; \
-        printf(COLOR_GREEN "--- PASS: %s/%s" COLOR_RESET "\n", current_suite_name, current_test_name); \
+        printf(COLOR_GREEN "--- PASS: %s%s" COLOR_RESET "\n", current_test_name,".aql"); \
     } while(0)
 
 #define TEST_FAIL(msg, ...) \
     do { \
         test_failed++; \
-        printf(COLOR_RED "--- FAIL: %s/%s" COLOR_RESET "\n", current_suite_name, current_test_name); \
+        printf(COLOR_RED "--- FAIL: %s%s" COLOR_RESET "\n",  current_test_name,".aql"); \
         printf("    " msg "\n", ##__VA_ARGS__); \
     } while(0)
 

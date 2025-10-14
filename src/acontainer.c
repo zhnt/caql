@@ -22,6 +22,9 @@ AQL_API AQL_ContainerBase *acontainer_new(aql_State *L, ContainerType type,
     AQL_ContainerBase *c = (AQL_ContainerBase*)aqlM_malloc_tagged(L, sizeof(AQL_ContainerBase), 0);
     if (!c) return NULL;
     
+    /* 简化初始化 - 暂时不使用GC */
+    memset(c, 0, sizeof(AQL_ContainerBase));
+    
     /* 初始化基本字段 */
     c->dtype = dtype;
     c->type = type;

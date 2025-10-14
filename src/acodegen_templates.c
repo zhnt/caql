@@ -190,9 +190,9 @@ const InstructionTemplate aql_instruction_templates[NUM_OPCODES] = {
     },
 
     /* OP_RET: return R(A), ..., R(A+B-2) */
-    [OP_RET] = {
+    [OP_RETURN] = {
         .type = TEMPLATE_RETURN,
-        .aql_opcode = OP_RET,
+        .aql_opcode = OP_RETURN,
         .x86_64 = {
             .encoding = {RET},  /* ret */
             .length = 1,

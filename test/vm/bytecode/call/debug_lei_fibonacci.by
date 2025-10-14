@@ -1,0 +1,34 @@
+# debug_lei_fibonacci.by
+# 调试LEI指令在斐波那契函数中的行为
+
+.main
+K0 STRING "fib"
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
+.code
+CLOSURE   R0, 0            # R0 = fib函数
+SETTABUP  0, K0, R0        # _ENV["fib"] = R0
+
+# 调用fib(1) - 应该触发基础情况
+GETTABUP  R1, 0, K0        # R1 = _ENV["fib"]  
+LOADI     R2, 1            # R2 = 1 (参数)
+CALL      R1, 2, 2         # fib(1), 1个参数, 1个返回值
+RETURN1   R1               # 返回结果
+.end
+
+.function fib 1
+.upvalues 1
+.upvalue 0 "_ENV" upval 0
+.code
+# R0 = n (参数)
+# 基础情况: 如果 n <= 1，返回 n
+LEI       R0, 1, 0         # n <= 1? 如果为真跳过JMP，为假执行JMP
+JMP       2                # 跳转到递归情况
+
+# 基础情况: 返回 n
+RETURN1   R0               # return n
+
+# 递归情况: 这里只是占位，不会执行
+LOADI     R1, 999          # 占位指令
+RETURN1   R1               # return 999
+.end

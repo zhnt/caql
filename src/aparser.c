@@ -158,10 +158,10 @@ static void collect_bytecode_from_proto(Proto *proto) {
             case OP_DIV:
                 snprintf(desc_buf, sizeof(desc_buf), "R(%d) := R(%d) / R(%d)", instr->a, instr->b, instr->c);
                 break;
-            case OP_RET_ONE:
+            case OP_RETURN1:
                 snprintf(desc_buf, sizeof(desc_buf), "return R(%d)", instr->a);
                 break;
-            case OP_RET_VOID:
+            case OP_RETURN0:
                 snprintf(desc_buf, sizeof(desc_buf), "return");
                 break;
             default:
@@ -175,26 +175,10 @@ static void collect_bytecode_from_proto(Proto *proto) {
 static void finish_bytecode_collection(Proto *proto) {
     if (!debug_collecting_bytecode) return;
     
-    /* Collect bytecode from the completed proto */
-    collect_bytecode_from_proto(proto);
-    
-    /* Print bytecode debug output */
-    aqlD_print_bytecode_header();
-    
-    /* Print constants if any */
-    if (proto && proto->sizek > 0) {
-        aqlD_print_constants_pool(proto->k, proto->sizek);
+    /* Use the new enhanced bytecode output function */
+    if (proto) {
+        aqlD_print_function_bytecode(proto, "main");
     }
-    
-    /* Print instructions */
-    aqlD_print_instruction_header();
-    for (int i = 0; i < debug_bytecode_count; i++) {
-        aqlD_print_instruction(&debug_bytecode[i]);
-        if (debug_bytecode[i].description) {
-            free((void*)debug_bytecode[i].description);
-        }
-    }
-    aqlD_print_bytecode_footer(debug_bytecode_count);
     
     debug_collecting_bytecode = 0;
     debug_bytecode_count = 0;
@@ -306,6 +290,7 @@ static void check_match (LexState *ls, int what, int who, int where);
 static void codestring (expdesc *e, TString *s);
 
 #define hasmultret(k)		((k) == VCALL || (k) == VVARARG)
+#define aqlK_setmultret(fs,e)	aqlK_setreturns(fs, e, AQL_MULTRET)
 
 /* because all strings are unified by the scanner, the parser
    can use pointer equality for string equality */
@@ -345,6 +330,7 @@ typedef struct BlockCnt {
 */
 static void statement (LexState *ls);
 static void expr (LexState *ls, expdesc *v);
+static void funcargs (LexState *ls, expdesc *f);
 static void retstat (LexState *ls);
 static int explist (LexState *ls, expdesc *v);
 
@@ -960,43 +946,9 @@ static void simpleexp (LexState *ls, expdesc *v) {
       /* Check for postfix operations: function calls or array indexing */
       while (ls->t.token == TK_LPAREN || ls->t.token == '[') {
       if (ls->t.token == TK_LPAREN) {
-        /* Function call detected */
-        int line = ls->linenumber;
-        int nargs = 0;
-        
-        aqlX_next(ls);  /* skip '(' */
-        
-        /* Parse arguments using explist */
-        if (ls->t.token != TK_RPAREN) {  /* are there arguments? */
-          expdesc arg;
-          nargs = explist(ls, &arg);  /* parse comma-separated argument list */
-          aqlK_exp2nextreg(ls->fs, &arg);  /* ensure last argument is in register */
-        }
-        
-        checknext(ls, TK_RPAREN);  /* check and skip ')' */
-        
-        /* Generate function call instruction */
-        if (v->k == VBUILTIN) {
-          /* Builtin function call - use OP_BUILTIN */
-          /* CRITICAL FIX: Ensure arguments are in consecutive registers for OP_BUILTIN */
-          int args_start = ls->fs->freereg - nargs;  /* Where arguments should start */
-          int result_reg = ls->fs->freereg++;
-          
-          /* For now, trust that explist has put arguments in consecutive registers */
-          /* The real issue is that complex expressions create gaps in register allocation */
-          /* This needs a more sophisticated solution in explist or register allocation */
-          
-          aqlK_codeABC(ls->fs, OP_BUILTIN, result_reg, v->u.info, nargs);
-          init_exp(v, VNONRELOC, result_reg);  /* result is in result_reg */
-        } else {
-          /* Regular function call - use OP_CALL with the function in register, arguments already set up */
-            /* BACKUP: Original code */
-            /* aqlK_codeABC(ls->fs, OP_CALL, v->u.info, nargs + 1, 2); */
-            /* init_exp(v, VNONRELOC, v->u.info); */
-            
-            /* NEW VERSION: Use unified function call handler */
-            funcall_unified(ls, v, -1, -1, nargs, line);
-          }
+        /* Function call detected - use unified funcargs */
+        aqlK_exp2nextreg(ls->fs, v);  /* ensure function is in a register */
+        funcargs(ls, v);  /* handle function call with Lua-style approach */
         } else if (ls->t.token == '[') {
           /* Array indexing: obj[index] */
           int line = ls->linenumber;
@@ -1438,10 +1390,6 @@ static void retstat (LexState *ls) {
     nret = 0;  /* return no values */
     first = 0;  /* no return values */
   } else {
-    /* For return statements, we want to preserve original register locations
-     * when possible, rather than forcing expressions into consecutive registers */
-    first = fs->freereg;  /* save current freereg as starting point */
-    
     /* Parse the first expression */
     nret = 1;
     expr(ls, &e);
@@ -1452,37 +1400,85 @@ static void retstat (LexState *ls) {
       expr(ls, &e);  /* parse next expression */
       nret++;
     }
+    
+    printf_debug("[DEBUG] retstat: after expr, e.k=%d, hasmultret=%d\n", e.k, hasmultret(e.k));
     if (hasmultret(e.k)) {
+      printf_debug("[DEBUG] retstat: handling multret, e.k=%d, nret=%d\n", e.k, nret);
       aqlK_setmultret(fs, &e);
       if (e.k == VCALL && nret == 1 && !fs->bl->insidetbc) {  /* tail call? */
-        /* TODO: Tail call optimization disabled due to stack issues */
-        /* Convert the last OP_CALL instruction to OP_TAILCALL (like Lua) */
-        /*
-        if (fs->pc > 0) {
-          Instruction *last_inst = &fs->f->code[fs->pc - 1];
-          if (GET_OPCODE(*last_inst) == OP_CALL) {
-            SET_OPCODE(*last_inst, OP_TAILCALL);
-          }
-        }
-        */
+        /* For single function call in return, treat as single return value */
+        printf_debug("[DEBUG] retstat: single function call, treating as nret=1\n");
+        aqlK_exp2anyreg(fs, &e);  /* put result in a register */
+        first = e.u.info;  /* use the register where result was placed */
+        nret = 1;  /* single return value */
+      } else {
+        nret = AQL_MULTRET;  /* return all values */
+        first = 0;  /* multret doesn't use first */
       }
-      nret = AQL_MULTRET;  /* return all values */
     }
     else {
+      printf_debug("[DEBUG] retstat: handling non-multret, e.k=%d, nret=%d\n", e.k, nret);
       if (nret == 1) {  /* only one single value? */
         aqlK_exp2anyreg(fs, &e);  /* can use original slot */
         first = e.u.info;  /* get the register where expression was placed */
+        printf_debug("[DEBUG] retstat: single value, first=%d, e.u.info=%d\n", first, e.u.info);
       }
       else {  /* multiple return values */
+        /* FIXED: Put the last expression in the next register */
         aqlK_exp2nextreg(fs, &e);  /* put last expression in next register */
-        /* All expressions are now in consecutive registers starting from 'first' */
-        /* Verify that we have the expected number of values (like Lua does) */
-        /* fs->freereg should now be first + nret */
+        /* All expressions are now in consecutive registers starting from first */
+        first = fs->freereg - nret;  /* first register is freereg - nret */
       }
     }
   }
+  printf_debug("[DEBUG] retstat: calling aqlK_ret(first=%d, nret=%d)\n", first, nret);
   aqlK_ret(fs, first, nret);
   testnext(ls, ';');  /* skip optional semicolon */
+}
+
+/*
+** AQL function arguments implementation (based on Lua's funcargs)
+*/
+static void funcargs (LexState *ls, expdesc *f) {
+  FuncState *fs = ls->fs;
+  expdesc args;
+  int base, nparams;
+  int line = ls->linenumber;
+  switch (ls->t.token) {
+    case TK_LPAREN: {  /* funcargs -> '(' [ explist ] ')' */
+      aqlX_next(ls);
+      if (ls->t.token == TK_RPAREN)  /* arg list is empty? */
+        args.k = VVOID;
+      else {
+        explist(ls, &args);
+        if (hasmultret(args.k))
+          aqlK_setmultret(fs, &args);
+      }
+      checknext(ls, TK_RPAREN);
+      break;
+    }
+    default: {
+      aqlX_syntaxerror(ls, "function arguments expected");
+    }
+  }
+  aql_assert(f->k == VNONRELOC);
+  base = f->u.info;  /* base register for call */
+  printf_debug("[DEBUG] funcargs: base=%d, args.k=%d, hasmultret=%d, freereg=%d\n", 
+               base, args.k, hasmultret(args.k), fs->freereg);
+  if (hasmultret(args.k))
+    nparams = AQL_MULTRET;  /* open call */
+  else {
+    if (args.k != VVOID)
+      aqlK_exp2nextreg(fs, &args);  /* close last argument */
+    nparams = fs->freereg - (base + 1);
+    printf_debug("[DEBUG] funcargs: after calculation, nparams=%d (freereg=%d - (base=%d + 1))\n", 
+                 nparams, fs->freereg, base);
+  }
+  printf_debug("[DEBUG] funcargs: generating CALL with base=%d, B=%d, C=2\n", base, nparams + 1);
+  init_exp(f, VCALL, aqlK_codeABC(fs, OP_CALL, base, nparams + 1, 2));
+  aqlK_fixline(fs, line);
+  fs->freereg = base + 1;  /* call removes function and arguments and leaves
+                              one result (unless changed later) */
 }
 
 /*
@@ -1490,44 +1486,15 @@ static void retstat (LexState *ls) {
 */
 static int explist (LexState *ls, expdesc *v) {
   /* explist -> expr { ',' expr } */
-  
+  /* EXACTLY like Lua - simple and direct, no special handling */
   int n = 1;  /* at least one expression */
-  int first_reg = ls->fs->freereg;  /* 记录第一个参数应该在的位置 */
-  int arg_regs[32];  /* 存储每个参数的实际寄存器位置 */
-  printf_debug("[DEBUG] explist: starting, freereg=%d, first_reg=%d\n", ls->fs->freereg, first_reg);
-  
   expr(ls, v);
-  aqlK_exp2nextreg(ls->fs, v);  /* 确保第一个表达式在寄存器中 */
-  arg_regs[0] = v->u.info;
-  printf_debug("[DEBUG] explist: first expr in register %d, freereg=%d\n", arg_regs[0], ls->fs->freereg);
-  
   while (testnext(ls, ',')) {
-    expr(ls, v);
-    aqlK_exp2nextreg(ls->fs, v);  /* 确保每个表达式都在寄存器中 */
-    arg_regs[n] = v->u.info;
-    printf_debug("[DEBUG] explist: expr[%d] in register %d, freereg=%d\n", n, arg_regs[n], ls->fs->freereg);
+    aqlK_exp2nextreg(ls->fs, v);  /* move previous expression to next register */
+    expr(ls, v);                  /* parse next expression */
     n++;
   }
-  
-  /* CRITICAL FIX: Reorganize arguments to be consecutive starting from first_reg */
-  printf_debug("[DEBUG] explist: reorganizing %d args to be consecutive from reg %d\n", n, first_reg);
-  for (int i = 0; i < n; i++) {
-    int target_reg = first_reg + i;
-    if (arg_regs[i] != target_reg) {
-      printf_debug("[DEBUG] explist: moving arg[%d] from R[%d] to R[%d]\n", i, arg_regs[i], target_reg);
-      aqlK_codeABC(ls->fs, OP_MOVE, target_reg, arg_regs[i], 0);
-    }
-  }
-  
-  /* Update freereg to reflect the consecutive allocation */
-  ls->fs->freereg = first_reg + n;
-  printf_debug("[DEBUG] explist: final freereg=%d, args in consecutive registers %d to %d\n", 
-               ls->fs->freereg, first_reg, first_reg + n - 1);
-  
-  /* Set v to point to the last argument's new position */
-  init_exp(v, VNONRELOC, first_reg + n - 1);
-  
-  return n;
+  return n;  /* return number of expressions, v contains info about last one */
 }
 
 static void block (LexState *ls) {
@@ -1678,193 +1645,165 @@ static void fixforjump (FuncState *fs, int pc, int dest, int back) {
 }
 
 /*
-** AQL numeric for statement: for name = start, end [, step] { statlist }
+** Lua-style forbody implementation
+** nvars: number of declared variables (excluding control variables)
+** isgen: whether this is a generic for loop (1) or numeric (0)
 */
-static void forstat_numeric (LexState *ls, int line, TString *varname) {
-  /* forstat_numeric -> NAME '=' exp ',' exp [',' exp] '{' block '}' */
-  /* Note: varname is already parsed, FOR and NAME tokens consumed */
-  FuncState *fs = ls->fs;
-  int base = fs->freereg;
+static void forbody (LexState *ls, int base, int line, int nvars, int isgen) {
   BlockCnt bl;
+  FuncState *fs = ls->fs;
   int prep, endfor;
   
-  /* FOR and variable name already consumed by caller */
+  printf_debug("[DEBUG] forbody: base=%d, nvars=%d, isgen=%d\n", base, nvars, isgen);
+  
+  /* Generate FORPREP instruction */
+  prep = aqlK_codeAsBx(fs, OP_FORPREP, base, 0);
+  
+  /* Enter loop block */
+  enterblock(fs, &bl, 1);  /* isloop = 1 */
+  
+  /* Adjust local variables */
+  adjustlocalvars(ls, nvars);
+  
+  /* Reserve one register for the loop variable */
+  aqlK_reserveregs(fs, 1);
+  
+  printf_debug("[DEBUG] forbody: after setup - freereg=%d\n", fs->freereg);
+  
+  /* Parse loop body */
+  block(ls);
+  
+  /* Leave loop block */
+  leaveblock(fs);
+  
+  checknext(ls, '}');  /* expect '}' */
+  
+  /* Generate FORLOOP instruction */
+  endfor = aqlK_codeAsBx(fs, OP_FORLOOP, base, 0);
+  
+  /* Fix jump addresses */
+  fixforjump(fs, prep, aqlK_getlabel(fs), 0);   /* FORPREP jumps to after loop */
+  fixforjump(fs, endfor, prep + 1, 1);          /* FORLOOP jumps back to after FORPREP */
+  
+  /* Patch break and continue statements */
+  aqlK_patchtohere(fs, bl.breaklist);
+  aqlK_patchlist(fs, bl.continuelist, endfor);
+  
+  printf_debug("[DEBUG] forbody: completed for loop at base=%d\n", base);
+}
+
+/*
+** AQL numeric for statement: for name = start, end [, step] { statlist }
+** Rewritten to follow Lua's exact pattern
+*/
+static void forstat_numeric (LexState *ls, int line, TString *varname) {
+  /* forstat_numeric -> NAME '=' exp ',' exp [',' exp] forbody */
+  FuncState *fs = ls->fs;
+  int base = fs->freereg;
+  
+  printf_debug("[DEBUG] forstat_numeric: starting at base=%d\n", base);
+  
+  /* Create control variables exactly like Lua */
+  new_localvar(ls, aqlStr_newlstr(ls->L, "(for state)", 11));  /* base+0: internal index */
+  new_localvar(ls, aqlStr_newlstr(ls->L, "(for state)", 11));  /* base+1: limit */  
+  new_localvar(ls, aqlStr_newlstr(ls->L, "(for state)", 11));  /* base+2: step */
+  new_localvar(ls, varname);  /* base+3: user variable */
   
   checknext(ls, TK_ASSIGN);  /* expect '=' */
   
+  /* FIXED: Parse expressions and ensure they go to correct registers */
+  expdesc e;
+  
   /* Parse initial value */
-  expdesc init;
-  expr(ls, &init);
-  aqlK_exp2anyreg(fs, &init);  /* evaluate to any register first */
-  if (init.u.info != base) {
-    /* Move to correct register if needed */
-    aqlK_codeABC(fs, OP_MOVE, base, init.u.info, 0);
+  expr(ls, &e);  /* initial value */
+  aqlK_exp2anyreg(fs, &e);
+  if (e.u.info != base) {
+    aqlK_codeABC(fs, OP_MOVE, base, e.u.info, 0);
   }
-  aqlK_reserveregs(fs, 1);  /* reserve base register */
   
   checknext(ls, ',');  /* expect ',' */
   
   /* Parse limit value */
-  expdesc limit;
-  expr(ls, &limit);
-  aqlK_exp2anyreg(fs, &limit);  /* evaluate to any register first */
-  if (limit.u.info != base + 1) {
-    /* Move to correct register if needed */
-    aqlK_codeABC(fs, OP_MOVE, base + 1, limit.u.info, 0);
+  expr(ls, &e);  /* limit value */
+  aqlK_exp2anyreg(fs, &e);
+  if (e.u.info != base + 1) {
+    aqlK_codeABC(fs, OP_MOVE, base + 1, e.u.info, 0);
   }
-  aqlK_reserveregs(fs, 1);  /* reserve base+1 register */
   
-  /* Parse optional step value - 智能步长推断版本 */
   if (testnext(ls, ',')) {
-    expdesc step;
-    expr(ls, &step);
-    aqlK_exp2anyreg(fs, &step);  /* evaluate to any register first */
-    if (step.u.info != base + 2) {
-      /* Move to correct register if needed */
-      aqlK_codeABC(fs, OP_MOVE, base + 2, step.u.info, 0);
+    /* Parse step value */
+    expr(ls, &e);  /* optional step */
+    aqlK_exp2anyreg(fs, &e);
+    if (e.u.info != base + 2) {
+      aqlK_codeABC(fs, OP_MOVE, base + 2, e.u.info, 0);
     }
-    aqlK_reserveregs(fs, 1);  /* reserve base+2 register */
   } else {
-    /* 智能步长：用nil标记需要运行时推断 */
-    aqlK_nil(fs, base + 2, 1);  /* 设置步长寄存器为nil */
-    aqlK_reserveregs(fs, 1);
+    /* Default step = 1 (or smart inference) */
+    aqlK_nil(fs, base + 2, 1);  /* Use nil for smart inference */
   }
   
-  /* Create loop variable */
-  new_localvar(ls, varname);
+  /* Reserve the registers we used */
+  fs->freereg = base + 3;
+  
+  /* Adjust control variables */
+  adjustlocalvars(ls, 3);  /* 3 control variables */
   
   checknext(ls, '{');  /* expect '{' */
   
-  /* Generate FORPREP instruction */
-  prep = aqlK_codeAsBx(fs, OP_FORPREP, base, 0);
-  
-  /* Enter loop block */
-  enterblock(fs, &bl, 1);  /* isloop = 1 */
-  
-  /* CRITICAL: Protect for-loop control registers */
-  /* For-loop uses 4 consecutive registers starting from base */
-  /* We need to ensure these registers are not reused during loop body execution */
-  int for_loop_base = base;  /* Save the for-loop base register */
-  int for_loop_end = base + 4;  /* End of for-loop control registers */
-  
-  /* Force new allocations to start after for-loop control registers */
-  int old_freereg = fs->freereg;
-  if (fs->freereg < for_loop_end) {
-    fs->freereg = for_loop_end;  /* Ensure we don't allocate in for-loop control range */
-  }
-  
-  adjustlocalvars(ls, 1);  /* adjust for loop variable */
-  aqlK_reserveregs(fs, 1);
-  
-  /* Fix: Loop variable should be at base+3 (Lua standard) */
-  /* The for loop control registers are: base+0=internal_index, base+1=limit, base+2=step, base+3=control_variable */
-  Vardesc *loopvar = getlocalvardesc(fs, fs->nactvar - 1);
-  loopvar->vd.ridx = base + 3;  /* Force loop variable to correct position */
-  
-  
-  /* Parse loop body */
-  block(ls);
-  
-  /* Leave loop block */
-  leaveblock(fs);
-  
-  checknext(ls, '}');  /* expect '}' */
-  
-  /* Generate FORLOOP instruction */
-  endfor = aqlK_codeAsBx(fs, OP_FORLOOP, base, 0);
-  
-  /* Fix jump addresses - similar to Lua's forbody */
-  fixforjump(fs, prep, aqlK_getlabel(fs), 0);   /* FORPREP jumps to after loop */
-  fixforjump(fs, endfor, prep + 1, 1);          /* FORLOOP jumps back to after FORPREP */
-  
-  /* Patch break statements to jump here */
-  aqlK_patchtohere(fs, bl.breaklist);
-  
-  /* Patch continue statements to jump to FORLOOP instruction */
-  aqlK_patchlist(fs, bl.continuelist, endfor);
-  
+  /* Call unified forbody */
+  forbody(ls, base, line, 1, 0);  /* 1 user variable, numeric for (isgen=0) */
 }
 
 /*
-** Convert range(...) to numeric for loop
+** Convert range(...) to numeric for loop - Lua style
 */
 static void forstat_range_to_numeric(LexState *ls, int line, TString *varname, 
                                      expdesc *start, expdesc *stop, expdesc *step) {
+  printf_debug("[DEBUG] forstat_range_to_numeric: converting range to numeric for loop\n");
+  
   FuncState *fs = ls->fs;
   int base = fs->freereg;
-  BlockCnt bl;
-  int prep, endfor;
   
-  /* Generate code for start, stop, step expressions */
-  /* Ensure they are in consecutive registers starting from base */
+  /* Create control variables exactly like Lua */
+  new_localvar(ls, aqlStr_newlstr(ls->L, "(for state)", 11));  /* base+0: internal index */
+  new_localvar(ls, aqlStr_newlstr(ls->L, "(for state)", 11));  /* base+1: limit */  
+  new_localvar(ls, aqlStr_newlstr(ls->L, "(for state)", 11));  /* base+2: step */
+  new_localvar(ls, varname);  /* base+3: user variable */
   
-  /* Use aqlK_exp2anyreg and then move to ensure correct register allocation */
-  aqlK_exp2anyreg(fs, start);  /* evaluate start to any register */
+  /* FIXED: Evaluate expressions and ensure they go to the correct registers */
+  /* We need to ensure expressions are evaluated to specific registers base, base+1, base+2 */
+  
+  /* Evaluate start expression to base register */
+  aqlK_exp2anyreg(fs, start);
   if (start->u.info != base) {
     aqlK_codeABC(fs, OP_MOVE, base, start->u.info, 0);
   }
-  aqlK_reserveregs(fs, 1);  /* reserve base register */
   
-  aqlK_exp2anyreg(fs, stop);   /* evaluate stop to any register */
+  /* Evaluate stop expression to base+1 register */
+  aqlK_exp2anyreg(fs, stop);
   if (stop->u.info != base + 1) {
     aqlK_codeABC(fs, OP_MOVE, base + 1, stop->u.info, 0);
   }
-  aqlK_reserveregs(fs, 1);  /* reserve base+1 register */
   
-  /* Note: No stop-1 adjustment needed since numeric for loop now uses left-closed, right-open semantics */
-  
-  aqlK_exp2anyreg(fs, step);   /* evaluate step to any register */
+  /* Evaluate step expression to base+2 register */
+  aqlK_exp2anyreg(fs, step);
   if (step->u.info != base + 2) {
     aqlK_codeABC(fs, OP_MOVE, base + 2, step->u.info, 0);
   }
-  aqlK_reserveregs(fs, 1);  /* reserve base+2 register */
   
+  /* Reserve the registers we just used */
+  fs->freereg = base + 3;
   
-  /* Create loop variable */
-  new_localvar(ls, varname);
+  printf_debug("[DEBUG] forstat_range_to_numeric: expressions placed at R[%d], R[%d], R[%d]\n", 
+               base, base + 1, base + 2);
+  
+  /* Adjust control variables */
+  adjustlocalvars(ls, 3);  /* 3 control variables */
   
   checknext(ls, '{');  /* expect '{' */
   
-  /* Generate FORPREP instruction */
-  prep = aqlK_codeAsBx(fs, OP_FORPREP, base, 0);
-  
-  /* Enter loop block */
-  enterblock(fs, &bl, 1);  /* isloop = 1 */
-  
-  /* CRITICAL: Reserve registers 0,1,2,3 for for-loop control before any other allocation */
-  /* This must be done before adjustlocalvars to prevent conflicts */
-  int old_freereg = fs->freereg;
-  fs->freereg = base + 4;  /* Force allocation to start from register 4 */
-  
-  adjustlocalvars(ls, 1);  /* adjust for loop variable */
-  aqlK_reserveregs(fs, 1);
-  
-  /* Fix: Loop variable should be at base+3 (Lua standard) */
-  /* The for loop control registers are: base+0=internal_index, base+1=limit, base+2=step, base+3=control_variable */
-  Vardesc *loopvar = getlocalvardesc(fs, fs->nactvar - 1);
-  loopvar->vd.ridx = base + 3;  /* Force loop variable to correct position */
-  
-  
-  /* Parse loop body */
-  block(ls);
-  
-  /* Leave loop block */
-  leaveblock(fs);
-  
-  checknext(ls, '}');  /* expect '}' */
-  
-  /* Generate FORLOOP instruction */
-  endfor = aqlK_codeAsBx(fs, OP_FORLOOP, base, 0);
-  
-  /* Fix jump addresses - similar to numeric for loop */
-  fixforjump(fs, prep, aqlK_getlabel(fs), 0);   /* FORPREP jumps to after loop */
-  fixforjump(fs, endfor, prep + 1, 1);          /* FORLOOP jumps back to after FORPREP */
-  
-  /* Patch break statements to jump here */
-  aqlK_patchtohere(fs, bl.breaklist);
-  
-  /* Patch continue statements to jump to FORLOOP instruction */
-  aqlK_patchlist(fs, bl.continuelist, endfor);
+  /* Call unified forbody */
+  forbody(ls, base, line, 1, 0);  /* 1 user variable, numeric for (isgen=0) */
 }
 
 /*
@@ -2178,15 +2117,12 @@ static int is_function_call(expdesc *e) {
 ** Helper function: mark function call as statement (no return value saved)
 */
 static void mark_statement_call(FuncState *fs, expdesc *e) {
-  if (e->k == VBUILTIN) {
-    /* Builtin function calls are already handled correctly */
-    return;
-  }
   if (e->k == VCALL) {
-    /* Mark regular function call to not save return value */
+    /* Mark function call to not save return value */
     Instruction *inst = &fs->f->code[e->u.info];
     SETARG_C(*inst, 1);  /* 1 = no return value saved */
   }
+  /* Note: All function calls (including builtins) now use VCALL after funcargs */
 }
 
 /*
@@ -2224,51 +2160,13 @@ static void exprstat(LexState *ls) {
     /* Assignment: name = expr */
     assignment_from_var(ls, &v);
   }
-  else if (ls->t.token == TK_LPAREN && v.k == VBUILTIN) {
-    /* Builtin function call: name(...) */
-    int nargs = 0;
-    
-    aqlX_next(ls);  /* skip '(' */
-    
-    /* Parse arguments */
-    if (ls->t.token != TK_RPAREN) {
-      expdesc arg;
-      nargs = explist(ls, &arg);
-      aqlK_exp2nextreg(fs, &arg);
-    }
-    
-    checknext(ls, TK_RPAREN);
-    
-    /* Generate builtin call */
-    int result_reg = fs->freereg++;
-    aqlK_codeABC(fs, OP_BUILTIN, result_reg, v.u.info, nargs);
-    init_exp(&v, VNONRELOC, result_reg);
+  else if (ls->t.token == TK_LPAREN && (v.k == VNONRELOC || v.k == VRELOC || v.k == VINDEXUP || v.k == VLOCAL)) {
+    /* Function call: name(...) - use unified funcargs */
+    aqlK_exp2nextreg(fs, &v);  /* ensure function is in a register */
+    funcargs(ls, &v);  /* handle function call with Lua-style approach */
     
     /* Result not used in statement context */
     aqlK_exp2nextreg(fs, &v);
-  }
-  else if (ls->t.token == TK_LPAREN && (v.k == VRELOC || v.k == VINDEXUP || v.k == VLOCAL)) {
-    /* Regular function call: name(...) */
-    
-    /* CRITICAL: Ensure function is in a register BEFORE parsing arguments */
-    aqlK_exp2nextreg(fs, &v);
-    int func_reg = v.u.info;
-    
-    /* Parse function call arguments */
-    aqlX_next(ls);  /* skip '(' */
-    int nargs = 0;
-    int args_start_reg = fs->freereg;  /* Arguments will start here */
-    
-    if (ls->t.token != TK_RPAREN) {
-      expdesc arg;
-      nargs = explist(ls, &arg);
-      /* explist ensures arguments are in consecutive registers starting at args_start_reg */
-    }
-    checknext(ls, TK_RPAREN);
-    
-    
-    /* Use unified function call handler with explicit register information */
-    funcall_unified(ls, &v, func_reg, args_start_reg, nargs, ls->linenumber);
   }
   else {
     /* Not supported as statement */
@@ -2397,7 +2295,7 @@ static void close_func (LexState *ls) {
   Proto *f = fs->f;
   
   /* Generate final return instruction for function */
-  aqlK_codeABC(fs, OP_RET_VOID, 0, 0, 0);  /* return with no values */
+  aqlK_codeABC(fs, OP_RETURN0, 0, 0, 0);  /* return with no values */
   
   leaveblock(fs);
   aql_assert(fs->bl == NULL);
@@ -2636,8 +2534,18 @@ static void singlevar_unified(LexState *ls, expdesc *var) {
   /* First check if this is a builtin function */
   int builtin_id = get_builtin_id(varname);
   if (builtin_id >= 0) {
-    /* This is a builtin function - set up for OP_BUILTIN */
-    init_exp(var, VBUILTIN, builtin_id);
+    /* This is a builtin function - put it in a register like any other function */
+    if (fs != NULL) {
+      /* Compilation mode: load builtin function into a register */
+      aqlK_reserveregs(fs, 1);
+      int reg = fs->freereg - 1;
+      /* Generate instruction to load builtin function into register */
+      aqlK_codeABC(fs, OP_LOADBUILTIN, reg, builtin_id, 0);
+      init_exp(var, VNONRELOC, reg);
+    } else {
+      /* REPL mode: for now, keep the old VBUILTIN behavior */
+      init_exp(var, VBUILTIN, builtin_id);
+    }
     return;
   }
   

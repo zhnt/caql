@@ -1,0 +1,7 @@
+# LOADTRUE指令测试 - 加载布尔值true
+# 测试LOADTRUE指令是否能正确加载true值到寄存器
+
+.code
+LOADTRUE R0
+RETURN1 R0
+.end

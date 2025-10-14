@@ -24,6 +24,7 @@ TEST_BIN_DIR = bin/test
 # Target executables
 TARGET_RELEASE = $(BIN_DIR)/aql
 TARGET_DEBUG = $(BIN_DIR)/aqld
+TARGET_VM = $(BIN_DIR)/aqlm
 
 # Test executables
 TEST_RUNNER = $(TEST_BIN_DIR)/test_runner
@@ -46,13 +47,15 @@ CORE_SOURCES = \
     $(SRC_DIR)/atype.c \
     $(SRC_DIR)/astring.c \
     $(SRC_DIR)/arange.c \
+    $(SRC_DIR)/adebug.c \
     $(SRC_DIR)/adebug_internal.c \
     $(SRC_DIR)/adebug_user.c \
     $(SRC_DIR)/aperf.c \
     $(SRC_DIR)/atypeinfer.c \
-    $(SRC_DIR)/avm.c \
+    $(SRC_DIR)/avm_core.c \
     $(SRC_DIR)/astate.c \
     $(SRC_DIR)/afunc.c \
+    $(SRC_DIR)/atable.c \
     $(SRC_DIR)/ajit.c \
     $(SRC_DIR)/acodegen.c \
     $(SRC_DIR)/acodegen_templates.c \
@@ -66,6 +69,9 @@ CORE_SOURCES = \
     $(SRC_DIR)/aerror.c \
     $(SRC_DIR)/arepl.c \
     $(SRC_DIR)/main.c
+
+# VM source files (for aqlm, excludes main.c, uses avm_core.c)
+VM_SOURCES = $(filter-out $(SRC_DIR)/main.c, $(CORE_SOURCES))
 
 # Object files (replace .c with .o and move to build dir)
 # Object files for different build types
@@ -84,18 +90,21 @@ PROBLEM_SOURCES = \
 HEADERS = $(wildcard $(SRC_DIR)/*.h)
 
 # Default target
-.PHONY: all both debug release clean dirs test test_phase1 test_phase2 test_phase3 test_phase4
+.PHONY: all both debug release aqlm clean dirs test test_phase1 test_phase2 test_phase3 test_phase4
 
 all: both
 
 # Build both debug and release versions
-both: dirs $(TARGET_DEBUG) $(TARGET_RELEASE)
+both: dirs $(TARGET_DEBUG) $(TARGET_RELEASE) $(TARGET_VM)
 
 # Build only debug version
 debug: dirs $(TARGET_DEBUG)
 
 # Build only release version  
 release: dirs $(TARGET_RELEASE)
+
+# Build only VM version
+aqlm: dirs $(TARGET_VM)
 
 # Create necessary directories
 dirs:
@@ -113,6 +122,12 @@ $(TARGET_DEBUG): $(DEBUG_OBJECTS)
 	@echo "Linking AQL Debug executable..."
 	$(CC) $(DEBUG_OBJECTS) -o $@ $(LDFLAGS)
 	@echo "✅ Successfully built AQL Debug: $@"
+
+# Build VM version (aqlm - bytecode executor)
+$(TARGET_VM): $(SRC_DIR)/aqlm.c $(VM_SOURCES) | dirs
+	@echo "Building AQL VM (aqlm)..."
+	$(CC) $(BASE_CFLAGS) -DAQL_VM_BUILD -g -O0 $(SRC_DIR)/aqlm.c $(VM_SOURCES) -o $@ $(LDFLAGS)
+	@echo "✅ Successfully built AQL VM: $@"
 
 # Compile debug version
 $(DEBUG_BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
@@ -134,7 +149,7 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
 # Smart clean: remove main executables but keep object files (for faster rebuild)
 clean:
 	@echo "Smart cleaning: removing main executables but keeping object files..."
-	rm -f $(TARGET_DEBUG) $(TARGET_RELEASE)
+	rm -f $(TARGET_DEBUG) $(TARGET_RELEASE) $(TARGET_VM)
 	@echo "✅ Smart clean complete (objects preserved for faster rebuild)"
 
 # Test target (run the executable)
@@ -253,7 +268,6 @@ $(BUILD_DIR)/avector.o: $(SRC_DIR)/avector.c
 $(BUILD_DIR)/adatatype.o: $(SRC_DIR)/adatatype.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/avm.o: $(SRC_DIR)/avm.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/main.o: $(SRC_DIR)/main.c
@@ -317,6 +331,7 @@ help:
 	@echo "  alltest      - Run all tests (unit + regression + integration)"
 	@echo "  unittest     - Run unit tests only"
 	@echo "  rtest        - Run regression tests (fast, production-like)"
+	@echo "  vmtest       - Run VM bytecode tests (test avm_core.c)"
 	@echo "  itest        - Run integration tests"
 	@echo "  quick-test   - Fast regression test (minimal rebuild)"
 	@echo "  dev-test     - Development cycle (incremental build + test)"
@@ -417,7 +432,7 @@ $(TEST_RUNNER): $(TEST_FRAMEWORK_OBJS)
 
 # 执行所有测试 (All Tests)
 .PHONY: alltest
-alltest: unittest rtest itest
+alltest: unittest rtest vmtest itest
 	@echo "========================================="
 	@echo "All tests completed!"
 	@echo "========================================="
@@ -439,6 +454,22 @@ rtest: $(TEST_RUNNER) $(TARGET_RELEASE)
 	@echo "========================================="
 	@$(TEST_RUNNER) regression $(TEST_DIR)/regression $(TARGET_RELEASE)
 	@echo ""
+
+# 执行 VM 字节码测试 (VM Tests)
+.PHONY: vmtest
+vmtest: $(TARGET_VM) $(BIN_DIR)/vmtest
+	@echo "========================================="
+	@echo "Running VM Bytecode Tests..."
+	@echo "========================================="
+	@echo "🚀 运行 VM 字节码测试..."
+	@$(BIN_DIR)/vmtest $(TEST_DIR)/vm/bytecode $(TARGET_VM)
+	@echo ""
+
+# VM测试工具编译规则
+$(BIN_DIR)/vmtest: $(TEST_DIR)/vm/vmtest_runner.c | $(BIN_DIR)
+	@echo "🔨 编译 VM 测试工具..."
+	$(CC) $(DEBUG_CFLAGS) -o $@ $< $(LDFLAGS)
+	@echo "✅ 编译完成: $@"
 
 # 执行集成测试 (Integration Tests) - 默认使用release版本
 .PHONY: itest

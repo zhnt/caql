@@ -1,0 +1,52 @@
+# tail_fibonacci_correct.by
+# 基于Lua TAILCALL字节码模式的尾递归斐波那契
+# fib(10) = 55
+
+.main
+K0 STRING "fib"
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
+.code
+CLOSURE   R0, 0            # R0 = fib函数  
+SETTABUP  0, K0, R0        # _ENV["fib"] = R0
+GETTABUP  R1, 0, K0        # R1 = _ENV["fib"]
+LOADI     R2, 10           # R2 = 10
+CALL      R1, 2, 2         # fib(10), 1个参数, 1个返回值
+RETURN1   R1               # 返回结果
+.end
+
+.function fib 1
+K0 STRING "fib"
+.upvalues 1  
+.upvalue 0 "_ENV" upval 0
+.code
+# R0 = n (1个参数)
+# 实现尾递归 fib_tail(n, 0, 1)
+# 直接在这里实现，避免多个函数的复杂性
+
+# 初始化 a=0, b=1
+LOADI     R1, 0            # R1 = a = 0
+LOADI     R2, 1            # R2 = b = 1
+
+# 循环标签 loop:
+# if n == 0 then return a
+EQI       R0, 0, 0         # n == 0?
+JMP       2                # 跳过return
+RETURN1   R1               # return a
+
+# if n == 1 then return b  
+EQI       R0, 1, 0         # n == 1?
+JMP       2                # 跳过return
+RETURN1   R2               # return b
+
+# 尾递归: n--, a=b, b=a+b
+ADDI      R0, R0, -1       # n = n - 1
+MMBINI    R0, 1, 7, 0      # __sub 元方法
+ADD       R3, R1, R2       # R3 = a + b (新的b)
+MMBIN     R1, R2, 6        # __add 元方法
+MOVE      R1, R2           # a = 旧的b
+MOVE      R2, R3           # b = 新的b
+JMP       -10              # 跳回循环开始
+
+RETURN0                    # 函数结束
+.end

@@ -1,0 +1,7 @@
+# LOADI指令测试 - 加载整数立即数
+# 测试LOADI指令是否能正确加载整数值到寄存器
+
+.code
+LOADI R0, 42
+RETURN1 R0
+.end

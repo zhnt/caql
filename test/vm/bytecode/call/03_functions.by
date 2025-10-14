@@ -1,0 +1,38 @@
+# 03_nested_functions.by
+# 测试: 嵌套函数调用
+# 预期结果: 18 (double(square(3)) = double(9) = 18)
+
+.main
+.code
+CLOSURE   R0, 0            # R0 = function <square>
+CLOSURE   R1, 1            # R1 = function <double>
+
+# 第一步：调用square(3)
+LOADI     R2, 3            # R2 = 3 (参数)
+MOVE      R3, R0           # R3 = square函数
+MOVE      R4, R2           # R4 = 参数3
+CALL      R3, 2, 2         # 调用square(3), 结果在R3
+
+# 第二步：调用double(square_result)  
+MOVE      R5, R1           # R5 = double函数
+MOVE      R6, R3           # R6 = square的结果
+CALL      R5, 2, 2         # 调用double(square_result), 结果在R5
+
+RETURN1   R5               # 返回最终结果
+.end
+
+.function square 1
+.code
+MUL       R1, R0, R0       # R1 = x * x
+MMBIN     R0, R0, 8        # 元方法处理 (__mul)
+RETURN1   R1               # 返回R1
+.end
+
+.function double 1
+K0 INTEGER 2
+.code
+LOADK     R1, 0            # R1 = 2 (常量)
+MUL       R2, R0, R1       # R2 = x * 2
+MMBIN     R0, R1, 8        # 元方法处理 (__mul)
+RETURN1   R2               # 返回R2
+.end

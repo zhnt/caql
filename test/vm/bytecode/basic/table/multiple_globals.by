@@ -1,0 +1,37 @@
+# multiple_globals.by
+# 测试多个全局变量的设置和读取
+# 模拟独立状态管理
+
+.main
+K0 STRING "counter1"
+K1 STRING "counter2"
+K2 INTEGER 10
+K3 INTEGER 100
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
+.code
+CLOSURE   R0, 0            # R0 = function <test>
+CALL      R0, 1, 2         # 调用test()
+RETURN1   R0               # 返回结果
+.end
+
+.function test 0
+K0 STRING "counter1"
+K1 STRING "counter2"
+K2 INTEGER 10
+K3 INTEGER 100
+.upvalues 1
+.upvalue 0 "_ENV" upval 0    # 继承主函数的_ENV
+.code
+# 设置第一个计数器
+LOADI     R0, 10           # R0 = 10
+SETTABUP  0, K0, R0        # _ENV["counter1"] = 10
+
+# 设置第二个计数器
+LOADI     R1, 100          # R1 = 100
+SETTABUP  0, K1, R1        # _ENV["counter2"] = 100
+
+# 读取第一个计数器并返回
+GETTABUP  R2, 0, K0        # R2 = _ENV["counter1"]
+RETURN1   R2               # 返回counter1的值 (应该是10)
+.end

@@ -1,0 +1,19 @@
+# 复杂运算测试: (10 * 2) + (15 - 5) = 30
+# 栈大小: 15
+
+.code
+LOADI R0, 10     # R0 = 10
+LOADI R1, 2      # R1 = 2
+MUL   R2, R0, R1 # R2 = R0 * R1 = 20 (快速路径)
+MMBIN R0, R1, 8  # __mul 元方法 (TM_MUL = 8)
+
+LOADI R3, 15     # R3 = 15
+LOADI R4, 5      # R4 = 5
+SUB   R5, R3, R4 # R5 = R3 - R4 = 10 (快速路径)
+MMBIN R3, R4, 7  # __sub 元方法 (TM_SUB = 7)
+
+ADD   R6, R2, R5 # R6 = R2 + R5 = 30 (快速路径)
+MMBIN R2, R5, 6  # __add 元方法 (TM_ADD = 6)
+
+RETURN1 R6       # return R6
+.end

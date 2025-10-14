@@ -1,0 +1,37 @@
+# multiple_calls_simulation.by
+# 测试: 多次函数调用模拟递归效果
+# 预期结果: 3 (模拟3次调用链)
+
+.main
+.code
+CLOSURE   R0, 0            # R0 = function <decrement>
+LOADI     R1, 5            # R1 = 5
+
+# 第一次调用: decrement(5) -> 4
+CALL      R0, 2, 2         # 调用decrement(5)
+MOVE      R2, R0           # R2 = 4
+
+# 第二次调用: decrement(4) -> 3
+CLOSURE   R3, 0            # R3 = function <decrement>
+MOVE      R4, R2           # R4 = 4 (参数)
+CALL      R3, 2, 2         # 调用decrement(4)
+MOVE      R5, R3           # R5 = 3
+
+# 第三次调用: decrement(3) -> 2
+CLOSURE   R6, 0            # R6 = function <decrement>
+MOVE      R7, R5           # R7 = 3 (参数)
+CALL      R6, 2, 2         # 调用decrement(3)
+
+RETURN1   R6               # 返回最终结果 (2)
+.end
+
+.function decrement 1
+.code
+# R0 = n (参数)
+LOADI     R1, 1            # R1 = 1
+SUB       R2, R0, R1       # R2 = n - 1
+MMBIN     R0, R1, 7        # 元方法处理 (__sub)
+RETURN1   R2               # 返回 n - 1
+.end
+
+

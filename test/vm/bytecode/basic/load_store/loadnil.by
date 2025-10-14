@@ -1,0 +1,8 @@
+# LOADNIL指令测试 - 加载nil值
+# 测试: LOADNIL 指令是否能正确加载nil值
+
+.code
+LOADNIL R0, 2    # R0, R1, R2 := nil
+LOADTRUE R3      # R3 = true (用于对比)
+RETURN1 R0       # 返回 R0 (应该是 nil)
+.end

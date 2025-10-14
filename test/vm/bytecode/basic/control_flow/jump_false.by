@@ -1,0 +1,13 @@
+# 测试false条件的跳转：if (false) return 200; else return 100;
+# 验证第一个JMP会被执行
+
+.code
+LOADFALSE R0     # R0 = false
+TEST     R0, 0   # 测试条件：如果R0为false且k=0，则不跳过下一条指令
+JMP      3       # 跳转到else分支（会被执行，因为false == 0）
+LOADI    R1, 200 # then分支：R1 = 200（不会执行）
+RETURN1  R1      # 返回200（不会执行）
+JMP      2       # 跳过else分支（不会执行）
+LOADI    R1, 100 # else分支：R1 = 100（会执行）
+RETURN1  R1      # 返回100（会执行）
+.end
