@@ -1,0 +1,17 @@
+# while 循环与加法测试
+# 测试 while 循环中的 ADD 指令和 MMBIN 元方法调用
+# while i < 5 do sum = sum + i; i = i + 1 end
+# 期望结果: 10 (0+1+2+3+4)
+
+.code
+LOADI R0, 0          # sum = 0
+LOADI R1, 0          # i = 0
+LTI R1, 5, 0         # if i < 5 then skip next JMP (jump to loop body)
+JMP 5                # if i >= 5, skip loop body, jump to RETURN1
+ADD R0, R0, R1       # sum = sum + i (loop body)
+MMBIN R0, R1, 6      # __add 元方法
+ADDI R1, R1, 1       # i = i + 1
+MMBINI R1, 1, 6, 0   # __add 元方法
+JMP -7               # jump back to condition check (LTI R1, 5, 0)
+RETURN1 R0           # return sum (should be 10)
+.end

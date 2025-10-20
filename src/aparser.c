@@ -21,7 +21,7 @@
 #include "aapi.h"
 #include "acode.h"
 #include "acodegen.h"
-#include "adebug_user.h"
+#include "adebug.h"
 #include "ado.h"
 #include "arange.h"
 #include "aarray.h"
@@ -30,170 +30,35 @@
 extern void start_token_collection(void);
 extern void finish_token_collection(void);
 
-#ifdef AQL_DEBUG_BUILD
-/* AST node collection for debug output */
-static AQL_ASTInfo *debug_ast_nodes = NULL;
-static int debug_ast_count = 0;
-static int debug_ast_capacity = 0;
-static int debug_collecting_ast = 0;
+/* 使用新的调试系统 - 通过adebug.h中的宏进行调试输出 */
 
-/* Bytecode instruction collection for debug output */
-static AQL_InstrInfo *debug_bytecode = NULL;
-static int debug_bytecode_count = 0;
-static int debug_bytecode_capacity = 0;
-static int debug_collecting_bytecode = 0;
-
-/* AST collection functions */
+/* 简化的调试函数 - 使用新的调试宏系统 */
 static void start_ast_collection(void) {
-    if (aql_debug_enabled && (aql_debug_flags & AQL_DEBUG_PARSE)) {
-        debug_collecting_ast = 1;
-        debug_ast_count = 0;
-        if (!debug_ast_nodes) {
-            debug_ast_capacity = 64;
-            debug_ast_nodes = malloc(debug_ast_capacity * sizeof(AQL_ASTInfo));
-        }
-    }
+    aql_info_vast("=== AST Collection Started ===\n");
 }
 
 static void add_debug_ast_node(const char *type, const char *value, int line, int children_count) {
-    if (!debug_collecting_ast) return;
-    
-    if (debug_ast_count >= debug_ast_capacity) {
-        debug_ast_capacity *= 2;
-        debug_ast_nodes = realloc(debug_ast_nodes, debug_ast_capacity * sizeof(AQL_ASTInfo));
-    }
-    
-    AQL_ASTInfo *node = &debug_ast_nodes[debug_ast_count++];
-    node->type = type;
-    node->value = value ? strdup(value) : NULL;
-    node->line = line;
-    node->children_count = children_count;
+    aql_info_vast("AST Node: type=%s, value=%s, line=%d, children=%d\n", 
+                  type ? type : "NULL", 
+                  value ? value : "NULL", 
+                  line, 
+                  children_count);
 }
 
 static void finish_ast_collection(void) {
-    if (!debug_collecting_ast) return;
-    
-    aqlD_print_ast_header();
-    for (int i = 0; i < debug_ast_count; i++) {
-        aqlD_print_ast_node(&debug_ast_nodes[i], 0);
-        if (debug_ast_nodes[i].value) {
-            free((void*)debug_ast_nodes[i].value);
-        }
-    }
-    aqlD_print_ast_footer(debug_ast_count);
-    
-    debug_collecting_ast = 0;
-    debug_ast_count = 0;
+    aql_info_vast("=== AST Collection Finished ===\n");
 }
 
-/* Bytecode collection functions */
 static void start_bytecode_collection(void) {
-    if (aql_debug_enabled && (aql_debug_flags & AQL_DEBUG_CODE)) {
-        debug_collecting_bytecode = 1;
-        debug_bytecode_count = 0;
-        if (!debug_bytecode) {
-            debug_bytecode_capacity = 64;
-            debug_bytecode = malloc(debug_bytecode_capacity * sizeof(AQL_InstrInfo));
-        }
-    }
-}
-
-static void collect_bytecode_from_proto(Proto *proto) {
-    if (!debug_collecting_bytecode || !proto) return;
-    
-    /* Collect instructions from the proto */
-    for (int pc = 0; pc < proto->sizecode; pc++) {
-        if (debug_bytecode_count >= debug_bytecode_capacity) {
-            debug_bytecode_capacity *= 2;
-            debug_bytecode = realloc(debug_bytecode, debug_bytecode_capacity * sizeof(AQL_InstrInfo));
-        }
-        
-        Instruction inst = proto->code[pc];
-        OpCode op = GET_OPCODE(inst);
-        
-        AQL_InstrInfo *instr = &debug_bytecode[debug_bytecode_count++];
-        instr->pc = pc;
-        instr->opname = aql_opnames[op];
-        instr->opcode = op;
-        instr->a = GETARG_A(inst);
-        instr->b = GETARG_B(inst);
-        instr->c = GETARG_C(inst);
-        instr->bx = GETARG_Bx(inst);
-        instr->sbx = GETARG_sBx(inst);
-        
-        /* Determine instruction format */
-        if (op <= OP_EXTRAARG) {
-            /* Most instructions use ABC format */
-            if (op == OP_LOADK || op == OP_LOADKX || op == OP_CLOSURE) {
-                instr->format = "ABx";
-            } else if (op == OP_LOADI || op == OP_LOADF) {
-                instr->format = "AsBx";
-            } else if (op == OP_EXTRAARG) {
-                instr->format = "Ax";
-            } else {
-                instr->format = "ABC";
-            }
-        } else {
-            instr->format = "ABC";  /* Default for other instructions */
-        }
-        
-        /* Generate description */
-        static char desc_buf[256];
-        switch (op) {
-            case OP_LOADI:
-                snprintf(desc_buf, sizeof(desc_buf), "R(%d) := %d", instr->a, instr->sbx);
-                break;
-            case OP_LOADK:
-                snprintf(desc_buf, sizeof(desc_buf), "R(%d) := K(%d)", instr->a, instr->bx);
-                break;
-            case OP_ADD:
-                snprintf(desc_buf, sizeof(desc_buf), "R(%d) := R(%d) + R(%d)", instr->a, instr->b, instr->c);
-                break;
-            case OP_SUB:
-                snprintf(desc_buf, sizeof(desc_buf), "R(%d) := R(%d) - R(%d)", instr->a, instr->b, instr->c);
-                break;
-            case OP_MUL:
-                snprintf(desc_buf, sizeof(desc_buf), "R(%d) := R(%d) * R(%d)", instr->a, instr->b, instr->c);
-                break;
-            case OP_DIV:
-                snprintf(desc_buf, sizeof(desc_buf), "R(%d) := R(%d) / R(%d)", instr->a, instr->b, instr->c);
-                break;
-            case OP_RETURN1:
-                snprintf(desc_buf, sizeof(desc_buf), "return R(%d)", instr->a);
-                break;
-            case OP_RETURN0:
-                snprintf(desc_buf, sizeof(desc_buf), "return");
-                break;
-            default:
-                snprintf(desc_buf, sizeof(desc_buf), "%s %d %d %d", instr->opname, instr->a, instr->b, instr->c);
-                break;
-        }
-        instr->description = strdup(desc_buf);
-    }
+    aql_info_vb("=== Bytecode Collection Started ===\n");
 }
 
 static void finish_bytecode_collection(Proto *proto) {
-    if (!debug_collecting_bytecode) return;
-    
-    /* Use the new enhanced bytecode output function */
     if (proto) {
-        aqlD_print_function_bytecode(proto, "main");
+        aql_info_vb("=== Bytecode Collection Finished ===\n");
+        aql_info_vb("Function: %s, Code size: %d\n", "main", proto->sizecode);
     }
-    
-    debug_collecting_bytecode = 0;
-    debug_bytecode_count = 0;
 }
-
-#else
-/* Release build - no debug collections */
-static void start_ast_collection(void) { /* no-op */ }
-static void finish_ast_collection(void) { /* no-op */ }
-static void add_debug_ast_node(const char *type, const char *value, int line, int children_count) { 
-    (void)type; (void)value; (void)line; (void)children_count; /* no-op */ 
-}
-static void start_bytecode_collection(void) { /* no-op */ }
-static void finish_bytecode_collection(Proto *proto) { (void)proto; /* no-op */ }
-#endif
 
 #include "afunc.h"
 #include "alex.h"
@@ -656,14 +521,14 @@ static int searchupvalue (FuncState *fs, TString *name) {
 static Upvaldesc *allocupvalue (FuncState *fs) {
   Proto *f = fs->f;
   int oldsize = f->sizeupvalues;
-  printf_debug("[DEBUG] allocupvalue: fs->nups=%d, oldsize=%d\n", fs->nups, oldsize);
+  aql_debug("[DEBUG] allocupvalue: fs->nups=%d, oldsize=%d\n", fs->nups, oldsize);
   checklimit(fs, fs->nups + 1, MAXUPVAL, "upvalues");
   aqlM_growvector(fs->ls->L, f->upvalues, fs->nups, f->sizeupvalues,
                   Upvaldesc, MAXUPVAL, "upvalues");
-  printf_debug("[DEBUG] allocupvalue: after growvector, sizeupvalues=%d\n", f->sizeupvalues);
+  aql_debug("[DEBUG] allocupvalue: after growvector, sizeupvalues=%d\n", f->sizeupvalues);
   while (oldsize < f->sizeupvalues)
     f->upvalues[oldsize++].name = NULL;
-  printf_debug("[DEBUG] allocupvalue: returning upvalue[%d]\n", fs->nups);
+  aql_debug("[DEBUG] allocupvalue: returning upvalue[%d]\n", fs->nups);
   return &f->upvalues[fs->nups++];
 }
 
@@ -725,7 +590,7 @@ static void markupval (FuncState *fs, int level) {
 ** 'var' as 'void' as a flag.
 */
 static void singlevaraux (FuncState *fs, TString *n, expdesc *var, int base) {
-  printf_debug("[DEBUG] singlevaraux: searching for '%s', fs=%p, base=%d, freereg=%d\n", 
+  aql_debug("[DEBUG] singlevaraux: searching for '%s', fs=%p, base=%d, freereg=%d\n", 
                n ? getstr(n) : "NULL", (void*)fs, base, fs ? fs->freereg : -1);
   if (fs == NULL)  /* no more levels? */
     init_exp(var, VVOID, 0);  /* default is global */
@@ -736,24 +601,24 @@ static void singlevaraux (FuncState *fs, TString *n, expdesc *var, int base) {
         markupval(fs, var->u.var.vidx);  /* local will be used as an upval */
     }
     else {  /* not found as local at current level; try upvalues */
-      printf_debug("[DEBUG] singlevaraux: '%s' not found locally, checking upvalues\n", getstr(n));
+      aql_debug("[DEBUG] singlevaraux: '%s' not found locally, checking upvalues\n", getstr(n));
       int idx = searchupvalue(fs, n);  /* try existing upvalues */
       if (idx < 0) {  /* not found? */
-        printf_debug("[DEBUG] singlevaraux: '%s' not in upvalues, trying upper levels\n", getstr(n));
+        aql_debug("[DEBUG] singlevaraux: '%s' not in upvalues, trying upper levels\n", getstr(n));
         singlevaraux(fs->prev, n, var, 0);  /* try upper levels */
         if (var->k == VLOCAL || var->k == VUPVAL) {  /* local or upvalue? */
-          printf_debug("[DEBUG] singlevaraux: '%s' found in upper level, creating upvalue\n", getstr(n));
+          aql_debug("[DEBUG] singlevaraux: '%s' found in upper level, creating upvalue\n", getstr(n));
           idx  = newupvalue(fs, n, var);  /* will be a new upvalue */
-          printf_debug("[DEBUG] singlevaraux: created upvalue[%d] for '%s'\n", idx, getstr(n));
+          aql_debug("[DEBUG] singlevaraux: created upvalue[%d] for '%s'\n", idx, getstr(n));
         } else {  /* it is a global or a constant */
-          printf_debug("[DEBUG] singlevaraux: '%s' is global/constant, no upvalue needed\n", getstr(n));
+          aql_debug("[DEBUG] singlevaraux: '%s' is global/constant, no upvalue needed\n", getstr(n));
           return;  /* don't need to do anything at this level */
         }
       } else {
-        printf_debug("[DEBUG] singlevaraux: '%s' found in existing upvalues[%d]\n", getstr(n), idx);
+        aql_debug("[DEBUG] singlevaraux: '%s' found in existing upvalues[%d]\n", getstr(n), idx);
       }
       init_exp(var, VUPVAL, idx);  /* new or old upvalue */
-      printf_debug("[DEBUG] singlevaraux: set '%s' as VUPVAL with idx=%d\n", getstr(n), idx);
+      aql_debug("[DEBUG] singlevaraux: set '%s' as VUPVAL with idx=%d\n", getstr(n), idx);
     }
   }
 }
@@ -1401,13 +1266,13 @@ static void retstat (LexState *ls) {
       nret++;
     }
     
-    printf_debug("[DEBUG] retstat: after expr, e.k=%d, hasmultret=%d\n", e.k, hasmultret(e.k));
+    aql_debug("[DEBUG] retstat: after expr, e.k=%d, hasmultret=%d\n", e.k, hasmultret(e.k));
     if (hasmultret(e.k)) {
-      printf_debug("[DEBUG] retstat: handling multret, e.k=%d, nret=%d\n", e.k, nret);
+      aql_debug("[DEBUG] retstat: handling multret, e.k=%d, nret=%d\n", e.k, nret);
       aqlK_setmultret(fs, &e);
       if (e.k == VCALL && nret == 1 && !fs->bl->insidetbc) {  /* tail call? */
         /* For single function call in return, treat as single return value */
-        printf_debug("[DEBUG] retstat: single function call, treating as nret=1\n");
+        aql_debug("[DEBUG] retstat: single function call, treating as nret=1\n");
         aqlK_exp2anyreg(fs, &e);  /* put result in a register */
         first = e.u.info;  /* use the register where result was placed */
         nret = 1;  /* single return value */
@@ -1417,11 +1282,11 @@ static void retstat (LexState *ls) {
       }
     }
     else {
-      printf_debug("[DEBUG] retstat: handling non-multret, e.k=%d, nret=%d\n", e.k, nret);
+      aql_debug("[DEBUG] retstat: handling non-multret, e.k=%d, nret=%d\n", e.k, nret);
       if (nret == 1) {  /* only one single value? */
         aqlK_exp2anyreg(fs, &e);  /* can use original slot */
         first = e.u.info;  /* get the register where expression was placed */
-        printf_debug("[DEBUG] retstat: single value, first=%d, e.u.info=%d\n", first, e.u.info);
+        aql_debug("[DEBUG] retstat: single value, first=%d, e.u.info=%d\n", first, e.u.info);
       }
       else {  /* multiple return values */
         /* FIXED: Put the last expression in the next register */
@@ -1431,7 +1296,7 @@ static void retstat (LexState *ls) {
       }
     }
   }
-  printf_debug("[DEBUG] retstat: calling aqlK_ret(first=%d, nret=%d)\n", first, nret);
+  aql_debug("[DEBUG] retstat: calling aqlK_ret(first=%d, nret=%d)\n", first, nret);
   aqlK_ret(fs, first, nret);
   testnext(ls, ';');  /* skip optional semicolon */
 }
@@ -1463,7 +1328,7 @@ static void funcargs (LexState *ls, expdesc *f) {
   }
   aql_assert(f->k == VNONRELOC);
   base = f->u.info;  /* base register for call */
-  printf_debug("[DEBUG] funcargs: base=%d, args.k=%d, hasmultret=%d, freereg=%d\n", 
+  aql_debug("[DEBUG] funcargs: base=%d, args.k=%d, hasmultret=%d, freereg=%d\n", 
                base, args.k, hasmultret(args.k), fs->freereg);
   if (hasmultret(args.k))
     nparams = AQL_MULTRET;  /* open call */
@@ -1471,10 +1336,10 @@ static void funcargs (LexState *ls, expdesc *f) {
     if (args.k != VVOID)
       aqlK_exp2nextreg(fs, &args);  /* close last argument */
     nparams = fs->freereg - (base + 1);
-    printf_debug("[DEBUG] funcargs: after calculation, nparams=%d (freereg=%d - (base=%d + 1))\n", 
+    aql_debug("[DEBUG] funcargs: after calculation, nparams=%d (freereg=%d - (base=%d + 1))\n", 
                  nparams, fs->freereg, base);
   }
-  printf_debug("[DEBUG] funcargs: generating CALL with base=%d, B=%d, C=2\n", base, nparams + 1);
+  aql_debug("[DEBUG] funcargs: generating CALL with base=%d, B=%d, C=2\n", base, nparams + 1);
   init_exp(f, VCALL, aqlK_codeABC(fs, OP_CALL, base, nparams + 1, 2));
   aqlK_fixline(fs, line);
   fs->freereg = base + 1;  /* call removes function and arguments and leaves
@@ -1654,7 +1519,7 @@ static void forbody (LexState *ls, int base, int line, int nvars, int isgen) {
   FuncState *fs = ls->fs;
   int prep, endfor;
   
-  printf_debug("[DEBUG] forbody: base=%d, nvars=%d, isgen=%d\n", base, nvars, isgen);
+  aql_debug("[DEBUG] forbody: base=%d, nvars=%d, isgen=%d\n", base, nvars, isgen);
   
   /* Generate FORPREP instruction */
   prep = aqlK_codeAsBx(fs, OP_FORPREP, base, 0);
@@ -1668,7 +1533,7 @@ static void forbody (LexState *ls, int base, int line, int nvars, int isgen) {
   /* Reserve one register for the loop variable */
   aqlK_reserveregs(fs, 1);
   
-  printf_debug("[DEBUG] forbody: after setup - freereg=%d\n", fs->freereg);
+  aql_debug("[DEBUG] forbody: after setup - freereg=%d\n", fs->freereg);
   
   /* Parse loop body */
   block(ls);
@@ -1689,7 +1554,7 @@ static void forbody (LexState *ls, int base, int line, int nvars, int isgen) {
   aqlK_patchtohere(fs, bl.breaklist);
   aqlK_patchlist(fs, bl.continuelist, endfor);
   
-  printf_debug("[DEBUG] forbody: completed for loop at base=%d\n", base);
+  aql_debug("[DEBUG] forbody: completed for loop at base=%d\n", base);
 }
 
 /*
@@ -1701,7 +1566,7 @@ static void forstat_numeric (LexState *ls, int line, TString *varname) {
   FuncState *fs = ls->fs;
   int base = fs->freereg;
   
-  printf_debug("[DEBUG] forstat_numeric: starting at base=%d\n", base);
+  aql_debug("[DEBUG] forstat_numeric: starting at base=%d\n", base);
   
   /* Create control variables exactly like Lua */
   new_localvar(ls, aqlStr_newlstr(ls->L, "(for state)", 11));  /* base+0: internal index */
@@ -1759,7 +1624,7 @@ static void forstat_numeric (LexState *ls, int line, TString *varname) {
 */
 static void forstat_range_to_numeric(LexState *ls, int line, TString *varname, 
                                      expdesc *start, expdesc *stop, expdesc *step) {
-  printf_debug("[DEBUG] forstat_range_to_numeric: converting range to numeric for loop\n");
+  aql_debug("[DEBUG] forstat_range_to_numeric: converting range to numeric for loop\n");
   
   FuncState *fs = ls->fs;
   int base = fs->freereg;
@@ -1794,7 +1659,7 @@ static void forstat_range_to_numeric(LexState *ls, int line, TString *varname,
   /* Reserve the registers we just used */
   fs->freereg = base + 3;
   
-  printf_debug("[DEBUG] forstat_range_to_numeric: expressions placed at R[%d], R[%d], R[%d]\n", 
+  aql_debug("[DEBUG] forstat_range_to_numeric: expressions placed at R[%d], R[%d], R[%d]\n", 
                base, base + 1, base + 2);
   
   /* Adjust control variables */
@@ -2391,8 +2256,8 @@ LClosure *aqlY_parser (aql_State *L, struct Zio *z, Mbuffer *buff,
   finish_token_collection();
   
   /* Check if we should exit early for token-only debug */
-  if ((aql_debug_flags & AQL_DEBUG_LEX) && !(aql_debug_flags & ~AQL_DEBUG_LEX)) {
-    printf("\n✅ Lexical analysis completed successfully\n");
+  if (aql_debug_is_enabled(AQL_FLAG_VL)) {
+    aql_info_vl("\n✅ Lexical analysis completed successfully\n");
     exit(0);  /* Exit after showing tokens only */
   }
   

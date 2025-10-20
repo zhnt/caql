@@ -5,8 +5,8 @@
 
 # Compiler and flags
 CC = gcc
-BASE_CFLAGS = -std=c11 -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -I./src
-DEBUG_CFLAGS = $(BASE_CFLAGS) -DAQL_DEBUG_BUILD -g -O0 -DDEBUG_DISABLED=0
+BASE_CFLAGS = -std=c11 -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -I./src
+DEBUG_CFLAGS = $(BASE_CFLAGS) -DAQL_DEBUG_BUILD -g -O0 -DDEBUG_DISABLED=0 -DDEBUG 
 RELEASE_CFLAGS = $(BASE_CFLAGS) -O2 -DNDEBUG -DDEBUG_DISABLED=1
 LDFLAGS = -lm
 
@@ -53,6 +53,7 @@ CORE_SOURCES = \
     $(SRC_DIR)/aperf.c \
     $(SRC_DIR)/atypeinfer.c \
     $(SRC_DIR)/avm_core.c \
+    $(SRC_DIR)/avm_debug.c \
     $(SRC_DIR)/astate.c \
     $(SRC_DIR)/afunc.c \
     $(SRC_DIR)/atable.c \
@@ -67,7 +68,6 @@ CORE_SOURCES = \
     $(SRC_DIR)/aparser.c \
     $(SRC_DIR)/acode.c \
     $(SRC_DIR)/aerror.c \
-    $(SRC_DIR)/arepl.c \
     $(SRC_DIR)/main.c
 
 # VM source files (for aqlm, excludes main.c, uses avm_core.c)
@@ -126,7 +126,7 @@ $(TARGET_DEBUG): $(DEBUG_OBJECTS)
 # Build VM version (aqlm - bytecode executor)
 $(TARGET_VM): $(SRC_DIR)/aqlm.c $(VM_SOURCES) | dirs
 	@echo "Building AQL VM (aqlm)..."
-	$(CC) $(BASE_CFLAGS) -DAQL_VM_BUILD -g -O0 $(SRC_DIR)/aqlm.c $(VM_SOURCES) -o $@ $(LDFLAGS)
+	$(CC) $(DEBUG_CFLAGS) $(SRC_DIR)/aqlm.c $(VM_SOURCES) -o $@ $(LDFLAGS)
 	@echo "✅ Successfully built AQL VM: $@"
 
 # Compile debug version

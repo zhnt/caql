@@ -18,10 +18,10 @@
 #include "aql.h"
 #include "aopcodes.h"
 #include "avm.h"
+
 #include "acontainer.h"
 #include "adatatype.h"
 #include "adebug.h"
-#include "adebug_user.h"
 #include "ado.h"
 #include "agc.h"
 #include "amem.h"
@@ -77,222 +77,39 @@ static void print_register_state(aql_State *L, StkId base, int max_registers) {
     }
 }
 
-/* 打印VM指令跟踪信息 */
-static void print_instruction_trace(aql_State *L, CallInfo *ci, Instruction i, const Instruction *pc, 
-                                   LClosure *cl, StkId base, const char *func_name, int is_before) {
-    if (!aql_debug_is_enabled(AQL_FLAG_VT)) return;
+
+/* 获取函数名 */
+static const char *get_function_name(LClosure *cl) {
+    if (!cl || !cl->p) return "unknown";
     
-    OpCode op = GET_OPCODE(i);
-    int pc_num = (int)(pc - cl->p->code - 1);
-    
-    // 显示函数名和PC
-    aql_info_vt("PC=%d [%s] <%s,op=%d> ", pc_num, func_name ? func_name : "main", aql_opnames[op], (int)op);
-    
-    // 根据指令格式显示参数
-    switch (getOpMode(op)) {
-        case iABC: {
-            int a = GETARG_A(i), b = GETARG_B(i), c = GETARG_C(i);
-            
-            // 显示 A 参数（通常是寄存器）
-            aql_info_vt("A=[R%d", a);
-            if (a < cl->p->maxstacksize && (base + a) >= L->stack.p && (base + a) < L->top.p) {
-                TValue *val = s2v(base + a);
-                if (ttisinteger(val)) aql_info_vt("=%lld", (long long)ivalue(val));
-                else if (ttisstring(val)) aql_info_vt("=\"%s\"", svalue(val));
-                else if (ttisnil(val)) aql_info_vt("=nil");
-                else if (ttisfunction(val)) aql_info_vt("=func");
-                else aql_info_vt("=type_%d", ttypetag(val));
-            } else {
-                aql_info_vt("=?");  // 未初始化或超出范围
+    // 检查是否是主函数（通过检查是否有父函数）
+    // 如果这是顶层函数，显示"main"
+    if (cl->p->source) {
+        const char *source = getstr(cl->p->source);
+        if (source && strlen(source) > 0) {
+            // 如果source包含文件名，我们认为是主函数
+            if (strstr(source, ".by") || strstr(source, ".lua")) {
+                return "main";
             }
-            aql_info_vt("]");
-            
-            // 显示 B 参数（可能是寄存器或立即数）
-            int b_is_reg = 0;
-            switch (op) {
-                case OP_MOVE: case OP_UNM: case OP_BNOT: case OP_NOT:
-                case OP_LEN: case OP_CONCAT: case OP_TBC: case OP_CLOSE:
-                case OP_ADD: case OP_SUB: case OP_MUL: case OP_MOD:
-                case OP_POW: case OP_DIV: case OP_IDIV: case OP_BAND:
-                case OP_BOR: case OP_BXOR: case OP_SHL: case OP_SHR:
-                case OP_EQ: case OP_LT: case OP_LE: case OP_TEST:
-                case OP_TESTSET: case OP_GETTABLE: case OP_SETTABLE: case OP_SELF:
-                case OP_MMBIN: case OP_RETURN:
-                    b_is_reg = 1;
-                    break;
-                case OP_CALL: case OP_TAILCALL:
-                    b_is_reg = 1;  // B 是参数数量，但我们仍显示为寄存器范围
-                    break;
-                default:
-                    b_is_reg = 0;
-                    break;
-            }
-            
-            if (b_is_reg) {
-                aql_info_vt(",B=[R%d", b);
-                if (b < cl->p->maxstacksize && (base + b) >= L->stack.p && (base + b) < L->top.p) {
-                    TValue *val = s2v(base + b);
-                    if (ttisinteger(val)) aql_info_vt("=%lld", (long long)ivalue(val));
-                    else if (ttisstring(val)) aql_info_vt("=\"%s\"", svalue(val));
-                    else if (ttisnil(val)) aql_info_vt("=nil");
-                    else if (ttisfunction(val)) aql_info_vt("=func");
-                    else aql_info_vt("=type_%d", ttypetag(val));
-                } else {
-                    aql_info_vt("=?");
-                }
-                aql_info_vt("]");
-            } else {
-                aql_info_vt(",B=%d", b);
-            }
-            
-            // 显示 C 参数（可能是寄存器、常量或立即数）
-            int c_is_reg = 0;
-            switch (op) {
-                case OP_ADD: case OP_SUB: case OP_MUL: case OP_MOD:
-                case OP_POW: case OP_DIV: case OP_IDIV: case OP_BAND:
-                case OP_BOR: case OP_BXOR: case OP_SHL: case OP_SHR:
-                case OP_EQ: case OP_LT: case OP_LE:
-                case OP_GETTABLE: case OP_SETTABLE: case OP_SELF:
-                case OP_MMBIN:
-                    // 这些指令的 C 参数可能是寄存器或常量 (RKC)
-                    if (!TESTARG_k(i)) {  // k=0 表示寄存器
-                        c_is_reg = 1;
-                    }
-                    break;
-                case OP_CALL: case OP_TAILCALL: case OP_RETURN:
-                    c_is_reg = 0;  // 这些指令的 C 是计数，不是寄存器
-                    break;
-                default:
-                    c_is_reg = 0;
-                    break;
-            }
-            
-            if (c_is_reg) {
-                aql_info_vt(",C=[R%d", c);
-                if (c < cl->p->maxstacksize && (base + c) >= L->stack.p && (base + c) < L->top.p) {
-                    TValue *val = s2v(base + c);
-                    if (ttisinteger(val)) aql_info_vt("=%lld", (long long)ivalue(val));
-                    else if (ttisstring(val)) aql_info_vt("=\"%s\"", svalue(val));
-                    else if (ttisnil(val)) aql_info_vt("=nil");
-                    else if (ttisfunction(val)) aql_info_vt("=func");
-                    else aql_info_vt("=type_%d", ttypetag(val));
-                } else {
-                    aql_info_vt("=?");
-                }
-                aql_info_vt("]");
-            } else if (op == OP_GETTABUP || op == OP_SETTABUP) {
-                // 对于 GETTABUP/SETTABUP，C 可能是常量
-                if (TESTARG_k(i)) {  // k=1 表示常量
-                    aql_info_vt(",C=[K%d", c);
-                    if (c < cl->p->sizek) {
-                        TValue *val = &cl->p->k[c];
-                        if (ttisinteger(val)) aql_info_vt("=%lld", (long long)ivalue(val));
-                        else if (ttisstring(val)) aql_info_vt("=\"%s\"", svalue(val));
-                        else if (ttisnil(val)) aql_info_vt("=nil");
-                        else aql_info_vt("=type_%d", ttypetag(val));
-                    } else {
-                        aql_info_vt("=?");
-                    }
-                    aql_info_vt("]");
-                } else {
-                    aql_info_vt(",C=[R%d", c);
-                    if (c < cl->p->maxstacksize && (base + c) >= L->stack.p && (base + c) < L->top.p) {
-                        TValue *val = s2v(base + c);
-                        if (ttisinteger(val)) aql_info_vt("=%lld", (long long)ivalue(val));
-                        else if (ttisstring(val)) aql_info_vt("=\"%s\"", svalue(val));
-                        else if (ttisnil(val)) aql_info_vt("=nil");
-                        else if (ttisfunction(val)) aql_info_vt("=func");
-                        else aql_info_vt("=type_%d", ttypetag(val));
-                    } else {
-                        aql_info_vt("=?");
-                    }
-                    aql_info_vt("]");
-                }
-            } else {
-                aql_info_vt(",C=%d", c);
-            }
-            
-            // 添加指令说明
-            aql_info_vt(" %s", is_before ? "BEFORE" : "AFTER");
-            switch (op) {
-                case OP_LEI:
-                    aql_info_vt(" # R%d <= %d?", a, (int)GETARG_sB(i));
-                    break;
-                case OP_CALL:
-                    aql_info_vt(" # call(args=%d,rets=%d)", b-1, c-1);
-                    break;
-                case OP_MOVE:
-                    aql_info_vt(" # R%d = R%d", a, b);
-                    break;
-                case OP_LOADI:
-                    aql_info_vt(" # R%d = %d", a, GETARG_sBx(i));
-                    break;
-                case OP_ADDI:
-                    aql_info_vt(" # R%d = R%d + %d", a, b, (int)GETARG_sC(i));
-                    break;
-                case OP_MUL:
-                    aql_info_vt(" # R%d = R%d * R%d", a, b, c);
-                    break;
-                case OP_GETTABUP:
-                    aql_info_vt(" # R%d = upval[%d][%s]", a, b, TESTARG_k(i) ? "K" : "R");
-                    break;
-                case OP_SETTABUP:
-                    aql_info_vt(" # upval[%d][%s] = R%d", b, TESTARG_k(i) ? "K" : "R", a);
-                    break;
-                case OP_RETURN1:
-                    aql_info_vt(" # return R%d", a);
-                    break;
-                default:
-                    break;
-            }
-            
-            break;
+            return source;
         }
-        case iABx: {
-            int a = GETARG_A(i), bx = GETARG_Bx(i);
-            aql_info_vt("A=[R%d", a);
-            if (a < cl->p->maxstacksize && (base + a) >= L->stack.p && (base + a) < L->top.p) {
-                TValue *val = s2v(base + a);
-                if (ttisinteger(val)) aql_info_vt("=%lld", (long long)ivalue(val));
-                else if (ttisstring(val)) aql_info_vt("=\"%s\"", svalue(val));
-                else if (ttisnil(val)) aql_info_vt("=nil");
-                else if (ttisfunction(val)) aql_info_vt("=func");
-                else aql_info_vt("=type_%d", ttypetag(val));
-            } else {
-                aql_info_vt("=?");
-            }
-            aql_info_vt("],Bx=%d %s", bx, is_before ? "BEFORE" : "AFTER");
-            break;
-        }
-        case iAsBx: {
-            int a = GETARG_A(i), sbx = GETARG_sBx(i);
-            aql_info_vt("A=[R%d", a);
-            if (a < cl->p->maxstacksize && (base + a) >= L->stack.p && (base + a) < L->top.p) {
-                TValue *val = s2v(base + a);
-                if (ttisinteger(val)) aql_info_vt("=%lld", (long long)ivalue(val));
-                else if (ttisstring(val)) aql_info_vt("=\"%s\"", svalue(val));
-                else if (ttisnil(val)) aql_info_vt("=nil");
-                else if (ttisfunction(val)) aql_info_vt("=func");
-                else aql_info_vt("=type_%d", ttypetag(val));
-            } else {
-                aql_info_vt("=?");
-            }
-            aql_info_vt("],sBx=%d %s", sbx, is_before ? "BEFORE" : "AFTER");
-            if (op == OP_LOADI) {
-                aql_info_vt(" # R%d = %d", a, sbx);
-            }
-            break;
-        }
-        case iAx: {
-            int ax = GETARG_Ax(i);
-            aql_info_vt("Ax=%d %s", ax, is_before ? "BEFORE" : "AFTER");
-            break;
-        }
-        default:
-            aql_info_vt("unknown_mode %s", is_before ? "BEFORE" : "AFTER");
-            break;
     }
-    aql_info_vt("\n");
+    
+    // 对于没有source信息的函数，我们使用一个简单的策略：
+    // 如果这是第一个函数（主函数），显示"main"
+    // 否则显示函数地址
+    static LClosure *first_func = NULL;
+    
+    if (first_func == NULL) {
+        first_func = cl;
+        return "main";
+    } else if (cl == first_func) {
+        return "main";
+    } else {
+        static char func_addr[32];
+        snprintf(func_addr, sizeof(func_addr), "func@%p", (void*)cl);
+        return func_addr;
+    }
 }
 
 /*
@@ -306,7 +123,7 @@ static void print_instruction_trace(aql_State *L, CallInfo *ci, Instruction i, c
 /*
 ** 缺少的 aql 兼容宏定义
 */
-#define cvt2num(o)      (ttisnumber(o) || (ttisstring(o) && aqlO_str2num(getstr(tsvalue(o)), (TValue*)(o))))
+#define cvt2num(o)      (ttisnumber(o) || ttisstring(o))
 #define cvt2str(o)      ttisnumber(o)
 #define tonumber(o,n)   (ttisfloat(o) ? (*(n) = fltvalue(o), 1) : aqlV_tonumber_(o,n))
 #define tointegerns(o,p) aqlV_tointegerns(o,p)
@@ -344,7 +161,7 @@ static void print_instruction_trace(aql_State *L, CallInfo *ci, Instruction i, c
 /* 缺少的常量定义 */
 #define aqlI_MAXSHORTLEN 40  /* 短字符串最大长度 */
 #define CIST_LEQ        (1<<1)  /* using __le instead of __lt */
-#define CLOSEKTOP       1  /* close upvalues at top level */
+#define CLOSEKTOP       (-1)  /* close upvalues at top level */
 #define NONVALIDVALUE   aqlO_nilobject_  /* 无效值 */
 
 /* 缺失的对象和函数映射 */
@@ -376,11 +193,15 @@ static const TValue aqlO_nilobject_ = {{NULL}, AQL_VNIL};
 ** Try to convert a value from string to a number value.
 */
 static int l_strton (const TValue *obj, TValue *result) {
+  aql_debug("L_STRTON: 开始字符串到数字转换");
   aql_assert(obj != result);
-  if (!cvt2num(obj))  /* is object not a string? */
+  if (!cvt2num(obj)) {  /* is object not a string? */
+    aql_debug("L_STRTON: 对象不是字符串或数字");
     return 0;
+  }
   else {
     TString *st = tsvalue(obj);
+    aql_debug("L_STRTON: 调用 aqlO_str2num");
     return (aqlO_str2num(getstr(st), result) == tsslen(st) + 1);
   }
 }
@@ -447,10 +268,34 @@ static int aqlV_tointegerns_mode (const TValue *obj, aql_Integer *p, F2Imod mode
 ** Convert a value to an integer (including string coercion).
 */
 int aqlV_tointeger (const TValue *obj, aql_Integer *p, F2Imod mode) {
-  TValue v;
-  if (l_strton(obj, &v))  /* does 'obj' point to a numerical string? */
-    obj = &v;  /* change it to point to its corresponding number */
-  return aqlV_tointegerns_mode(obj, p, mode);
+  aql_debug("AQLV_TOINTEGER: 开始转换到整数");
+  
+  // 如果已经是整数，直接返回
+  if (ttisinteger(obj)) {
+    aql_debug("AQLV_TOINTEGER: 已经是整数，值=%ld", (long)ivalue(obj));
+    *p = ivalue(obj);
+    return 1;
+  }
+  
+  // 如果是浮点数，转换为整数
+  if (ttisfloat(obj)) {
+    aql_debug("AQLV_TOINTEGER: 是浮点数，值=%f", fltvalue(obj));
+    return aqlV_flttointeger(fltvalue(obj), p, mode);
+  }
+  
+  // 如果是字符串，尝试字符串转换
+  if (ttisstring(obj)) {
+    aql_debug("AQLV_TOINTEGER: 是字符串，尝试转换");
+    TValue v;
+    if (l_strton(obj, &v)) {  /* does 'obj' point to a numerical string? */
+      aql_debug("AQLV_TOINTEGER: 字符串转换成功");
+      obj = &v;  /* change it to point to its corresponding number */
+      return aqlV_tointegerns_mode(obj, p, mode);
+    }
+  }
+  
+  aql_debug("AQLV_TOINTEGER: 转换失败");
+  return 0;  /* conversion failed */
 }
 
 /*
@@ -517,22 +362,23 @@ aql_Integer aqlV_shiftr (aql_Integer x, aql_Integer y) {
 ** For 循环辅助函数
 */
 static int forlimit (aql_State *L, aql_Integer init, const TValue *lim,
-                                   aql_Integer *ilimit, aql_Integer step) {
-  if (!aqlV_tointeger(lim, ilimit, (step < 0 ? F2Iceil : F2Ifloor))) {
-    /* not fit in an integer */
-    aql_Number n;
-    if (!tonumber(lim, &n)) /* not a number */
+                                   aql_Integer *p, aql_Integer step) {
+  if (!aqlV_tointeger(lim, p, (step < 0 ? F2Iceil : F2Ifloor))) {
+    /* not coercible to in integer */
+    aql_Number flim;  /* try to convert to float */
+    if (!aqlV_tonumber_(lim, &flim)) /* cannot convert to float? */
       aqlG_forerror(L, lim, "limit");
-    /* else 'ilimit' is a dummy to avoid interference with optimizer */
-    *ilimit = 0;  /* to avoid warnings */
-    if (aqli_numlt(0, n)) {  /* if true, float is larger than max integer */
-      return (step < 0 ? 0 : 1);
+    /* else 'flim' is a float out of integer bounds */
+    if (aqli_numlt(0, flim)) {  /* if it is positive, it is too large */
+      if (step < 0) return 1;  /* initial value must be less than it */
+      *p = AQL_MAXINTEGER;  /* truncate */
     }
-    else {  /* float is smaller than min integer */
-      return (step < 0 ? 1 : 0);
+    else {  /* it is less than min integer */
+      if (step > 0) return 1;  /* initial value must be greater than it */
+      *p = AQL_MININTEGER;  /* truncate */
     }
   }
-  return 1;  /* fit in an integer */
+  return (step > 0 ? init > *p : init < *p);  /* not to run? */
 }
 
 /*
@@ -551,47 +397,46 @@ static int forprep (aql_State *L, StkId ra) {
     if (step == 0)
       aqlG_runerror(L, "'for' step is zero");
     setivalue(s2v(ra + 3), init);  /* control variable */
-    if (forlimit(L, init, plimit, &limit, step)) {
-      /* loop using integer arithmetic */
-      if ((step > 0) ? (init > limit) : (init < limit))
-        return 1;  /* skip the loop */
-      else {  /* prepare loop counter */
-        aql_Unsigned count;
-        if (step > 0) {  /* ascending loop? */
-          count = l_castS2U(limit) - l_castS2U(init);
-          if (step != 1)
-            count /= step;
-        }
-        else {  /* step < 0; descending loop */
-          count = l_castS2U(init) - l_castS2U(limit);
-          /* 'step+1' avoids negating 'mininteger' */
-          count /= l_castS2U(-(step + 1)) + 1u;
-        }
-        /* store the counter in place of the limit (which won't be used) */
-        setivalue(plimit, l_castU2S(count));
+    if (forlimit(L, init, plimit, &limit, step))
+      return 1;  /* skip the loop */
+    else {  /* prepare loop counter */
+      aql_Unsigned count;
+      if (step > 0) {  /* ascending loop? */
+        count = l_castS2U(limit) - l_castS2U(init);
+        if (step != 1)  /* avoid division in the too common case */
+          count /= l_castS2U(step);
       }
+      else {  /* step < 0; descending loop */
+        count = l_castS2U(init) - l_castS2U(limit);
+        /* 'step+1' avoids negating 'mininteger' */
+        count /= l_castS2U(-(step + 1)) + 1u;
+      }
+      /* store the counter in place of the limit (which won't be
+         needed anymore) */
+      setivalue(plimit, l_castU2S(count));
     }
-    else  /* try making it a float loop */
-      setfltvalue(plimit, aql_integertonumber(ivalue(plimit)));
   }
-  if (ttisfloat(plimit)) {  /* float loop */
-    aql_Number init = l_tonumber(pinit);
-    aql_Number limit = fltvalue(plimit);
-    aql_Number step = l_tonumber(pstep);
+  else {  /* try making all values floats */
+    aql_Number init; aql_Number limit; aql_Number step;
+    if (!aqlV_tonumber_(plimit, &limit))
+      aqlG_forerror(L, plimit, "limit");
+    if (!aqlV_tonumber_(pstep, &step))
+      aqlG_forerror(L, pstep, "step");
+    if (!aqlV_tonumber_(pinit, &init))
+      aqlG_forerror(L, pinit, "initial value");
     if (step == 0)
       aqlG_runerror(L, "'for' step is zero");
     if (aqli_numlt(0, step) ? aqli_numlt(limit, init)
                             : aqli_numlt(init, limit))
       return 1;  /* skip the loop */
-    /* prepare loop counter */
-    setfltvalue(plimit, (limit - init) / step);
+    else {
+      /* make sure internal values are all floats */
+      setfltvalue(plimit, limit);
+      setfltvalue(pstep, step);
+      setfltvalue(s2v(ra), init);  /* internal index */
+      setfltvalue(s2v(ra + 3), init);  /* control variable */
+    }
   }
-  else
-    aqlG_forerror(L, plimit, "limit");
-  /* prepare loop variables */
-  setobjs2s(L, ra, ra + 3);  /* init value to control variable */
-  setobjs2s(L, ra + 3, ra + 2);  /* step */
-  setobjs2s(L, ra + 2, ra + 1);  /* limit */
   return 0;
 }
 
@@ -1064,10 +909,12 @@ static void pushclosure (aql_State *L, Proto *p, UpVal **encup, StkId base,
   int nup = p->sizeupvalues;
   Upvaldesc *uv = p->upvalues;
   int i;
+  aql_debug("[DEBUG] pushclosure: nup=%d, base=%p, ra=%p\n", nup, (void*)base, (void*)ra);
   LClosure *ncl = aqlF_newLclosure(L, nup);
   ncl->p = p;
   setclLvalue2s(L, ra, ncl);  /* anchor new closure in stack */
   for (i = 0; i < nup; i++) {  /* fill in its upvalues */
+    aql_debug("[DEBUG] pushclosure: upvalue[%d] instack=%d, idx=%d\n", i, uv[i].instack, uv[i].idx);
     if (uv[i].instack)  /* upvalue refers to local variable? */
       ncl->upvals[i] = aqlF_findupval(L, base + uv[i].idx);
     else  /* get upvalue from enclosing function */
@@ -1213,6 +1060,13 @@ void aqlV_finishset (aql_State *L, const TValue *t, TValue *key,
         else
           aqlH_finishset(L, h, key, val, slot);  /* set new value */
         invalidateTMcache(h);
+        aql_debug("aqlV_finishset: 准备调用aqlC_barrierback - h=%p, val=%p, val类型=%d", 
+                 (void*)h, (void*)val, ttype(val));
+        aql_debug("aqlV_finishset: iscollectable(val)=%d, isblack(obj2gco(h))=%d", 
+                 iscollectable(val), isblack(obj2gco(h)));
+        if (iscollectable(val)) {
+          aql_debug("aqlV_finishset: gcvalue(val)=%p", (void*)gcvalue(val));
+        }
         aqlC_barrierback(L, obj2gco(h), val);
         aql_debug("aqlV_finishset: 设置完成，返回");
         return;
@@ -1257,9 +1111,9 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
   const Instruction *pc;
   
   /* VM 执行开始调试信息 */
-    aql_debug("aqlV_execute2 开始执行");
-    aql_debug("L=%p, ci=%p", (void*)L, (void*)ci);
-    aql_debug("ci->func.p=%p, ci->top.p=%p, ci->u.l.savedpc=%p", 
+    aql_debug("aqlV_execute2 开始执行\n");
+    aql_debug("L=%p, ci=%p\n", (void*)L, (void*)ci);
+    aql_debug("ci->func.p=%p, ci->top.p=%p, ci->u.l.savedpc=%p\n", 
            (void*)ci->func.p, (void*)ci->top.p, (void*)ci->u.l.savedpc);
   
  newframe:  /* 重新进入点 */
@@ -1329,14 +1183,14 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
       OpCode op = GET_OPCODE(i);
       aql_info_vd("PC=%d: %s (op=%d)", (int)(pc - cl->p->code - 1), aql_opnames[op], (int)op);
       
-      /* 获取函数名（如果有的话） */
-      const char *func_name = NULL;
-      if (cl && cl->p && cl->p->source) {
-          func_name = getstr(cl->p->source);
+      /* 获取函数名（如果有的话） - 添加安全检查 */
+      const char *func_name = "main";  // 简化函数名获取，避免段错误
+      if (cl && cl->p) {
+          func_name = get_function_name(cl);
       }
       
-      /* 跟踪模式：显示指令执行前的状态 */
-      print_instruction_trace(L, ci, i, pc, cl, base, func_name, 1);  // BEFORE
+      /* 设置调试上下文 */
+      aql_vt_set_context(L, ci, i, pc, cl, base, func_name);
 
     vmdispatch (GET_OPCODE(i)) {
       
@@ -1357,10 +1211,10 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
       }
       
       vmcase(OP_LOADI) {
+        AQL_INFO_VT_LOADI_BEFORE();
         aql_Integer b = GETARG_sBx(i);
-          aql_debug("LOADI: ra=%p, A=%d, sBx=%lld", (void*)ra, GETARG_A(i), (long long)b);
         setivalue(s2v(ra), b);
-        aql_debug("LOADI完成: ra指向的值=%lld", (long long)ivalue(s2v(ra)));
+        AQL_INFO_VT_LOADI_AFTER();
         vmbreak;
       }
       
@@ -1409,6 +1263,7 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
       
       vmcase(OP_GETUPVAL) {
         int b = GETARG_B(i);
+        DEBUG_GETUPVAL(L, ci, i, pc, cl, base, func_name);
         aql_debug("GETUPVAL: A=%d, B=%d, cl=%p", GETARG_A(i), b, (void*)cl);
         aql_debug("GETUPVAL: cl->nupvalues=%d, cl->upvals=%p", cl->nupvalues, (void*)cl->upvals);
         
@@ -1435,6 +1290,7 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
       
       vmcase(OP_SETUPVAL) {
         int b = GETARG_B(i);
+        DEBUG_SETUPVAL(L, ci, i, pc, cl, base, func_name);
         aql_debug("SETUPVAL: A=%d, B=%d", GETARG_A(i), b);
         aql_debug("SETUPVAL: cl=%p, nupvalues=%d", (void*)cl, cl ? cl->nupvalues : -1);
         
@@ -1469,6 +1325,11 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
           vmbreak;
         }
         
+        aql_debug("GETTABUP: 准备访问cl->upvals[%d]->v.p", b);
+        aql_debug("GETTABUP: cl->upvals[%d]=%p", b, (void*)cl->upvals[b]);
+        if (cl->upvals[b]) {
+          aql_debug("GETTABUP: cl->upvals[%d]->v.p=%p", b, (void*)cl->upvals[b]->v.p);
+        }
         TValue *upval = cl->upvals[b]->v.p;
         aql_debug("GETTABUP: upval=%p, upval类型=%d", (void*)upval, upval ? ttype(upval) : -1);
         
@@ -1488,7 +1349,7 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
         if (!ttisstring(rc)) {
           aql_error("GETTABUP: key不是字符串类型 - key类型=%d", ttype(rc));
           setnilvalue(s2v(ra));
-          vmbreak;
+          vmbreak ;
         }
         
         TString *key = tsvalue(rc);  /* key must be a string */
@@ -1497,8 +1358,16 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
         aql_debug("GETTABUP: key长度=%lu", (unsigned long)tsslen(key));
         
         if (aqlV_fastget(L, upval, key, slot, aqlH_getshortstr)) {
+          aql_debug("GETTABUP: 快速查找成功，slot=%p, slot类型=%d", (void*)slot, ttype(slot));
+          if (iscollectable(slot)) {
+            aql_debug("GETTABUP: slot是可收集对象，gcvalue(slot)=%p", (void*)gcvalue(slot));
+          }
+          aql_debug("GETTABUP: 准备调用setobj2s - ra=%p, slot=%p", (void*)ra, (void*)slot);
+          aql_debug("GETTABUP: slot->tt_=%d, slot->value_=%p", slot->tt_, (void*)slot->value_.gc);
+          aql_debug("GETTABUP: 调用setobj2s前");
           setobj2s(L, ra, slot);
-          aql_debug("GETTABUP: 快速查找成功");
+          aql_debug("GETTABUP: setobj2s完成");
+          aql_debug("GETTABUP: ra->tt_=%d, ra->value_=%p", s2v(ra)->tt_, (void*)s2v(ra)->value_.gc);
         }
         else {
           aql_debug("GETTABUP: 使用完整查找");
@@ -1508,10 +1377,10 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
           aql_debug("GETTABUP: aqlV_finishget完成，结果类型=%d", ttype(s2v(ra)));
         }
         
-        /* 跟踪模式：显示指令执行后的状态 */
-        if (func_name) {
+        /* 跟踪模式：显示指令执行后的状态 - 暂时禁用避免段错误 */
+        /* if (func_name) {
           print_instruction_trace(L, ci, i, pc, cl, base, func_name, 0);  // AFTER
-        }
+        } */
         vmbreak;
       }
       
@@ -1575,8 +1444,8 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
       vmcase(OP_SETTABUP) {
         const TValue *slot;
         int a = GETARG_A(i);
-        aql_debug("SETTABUP: A=%d, B=%d, C=%d", a, GETARG_B(i), GETARG_C(i));
-        aql_debug("SETTABUP: cl=%p, nupvalues=%d", (void*)cl, cl ? cl->nupvalues : -1);
+        aql_debug("SETTABUP: A=%d, B=%d, C=%d\n", a, GETARG_B(i), GETARG_C(i));
+        aql_debug("SETTABUP: cl=%p, nupvalues=%d\n", (void*)cl, cl ? cl->nupvalues : -1);
         
         // 安全检查
         if (!cl || a >= cl->nupvalues || !cl->upvals[a]) {
@@ -1586,7 +1455,7 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
         }
         
         TValue *upval = cl->upvals[a]->v.p;
-        aql_debug("SETTABUP: upval=%p, upval类型=%d", (void*)upval, upval ? ttype(upval) : -1);
+        aql_debug("SETTABUP: upval=%p, upval类型=%d\n", (void*)upval, upval ? ttype(upval) : -1);
         
         // 检查upval是否为表
         if (!upval || !ttistable(upval)) {
@@ -1597,8 +1466,8 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
         
         TValue *rb = KB(i);
         TValue *rc = RKC(i);
-        aql_debug("SETTABUP: key=%p, key类型=%d", (void*)rb, ttype(rb));
-        aql_debug("SETTABUP: value=%p, value类型=%d", (void*)rc, ttype(rc));
+        aql_debug("SETTABUP: key=%p, key类型=%d\n", (void*)rb, ttype(rb));
+        aql_debug("SETTABUP: value=%p, value类型=%d\n", (void*)rc, ttype(rc));
         
         if (!ttisstring(rb)) {
           aql_error("SETTABUP: key不是字符串类型 - key类型=%d", ttype(rb));
@@ -1606,7 +1475,7 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
         }
         
         TString *key = tsvalue(rb);  /* key must be a string */
-        aql_debug("SETTABUP: 设置key='%s'", getstr(key));
+        aql_debug("SETTABUP: 设置key='%s'\n", getstr(key));
         aql_debug("SETTABUP: key类型=%d, AQL_VSHRSTR=%d", ttype(rb), AQL_VSHRSTR);
         aql_debug("SETTABUP: key长度=%lu", (unsigned long)tsslen(key));
         
@@ -1616,13 +1485,13 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
         }
         else {
           aql_debug("SETTABUP: 使用完整设置");
-          aql_debug("SETTABUP: 调用aqlV_finishset - table=%p, key='%s', value_type=%d", 
+          aql_debug("SETTABUP: 调用aqlV_finishset - table=%p, key='%s', value_type=%d\n", 
                    (void*)hvalue(upval), getstr(key), ttype(rc));
-          aql_debug("SETTABUP: 即将进入aqlV_finishset");
+          aql_debug("SETTABUP: 即将进入aqlV_finishset\n");
           Protect(aqlV_finishset(L, upval, rb, rc, slot));
           aql_debug("SETTABUP: aqlV_finishset完成");
         }
-        aql_debug("SETTABUP: 设置完成");
+        aql_debug("SETTABUP: 设置完成\n");
         vmbreak;
       }
       
@@ -1732,33 +1601,65 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
         StkId func = ra;
         int nargs = GETARG_B(i) - 1;
         int nresults = GETARG_C(i) - 1;
+        aql_debug("🔍 [CALL] 开始执行: func=%p, nargs=%d, nresults=%d\n", (void*)func, nargs, nresults);
+        
         if (nargs >= 0)
           L->top.p = func + nargs + 1;
         
         // 检查是否是有效的函数对象
         TValue *f = s2v(func);
+        aql_debug("🔍 [CALL] 检查函数对象: f=%p, type=%d\n", (void*)f, ttype(f));
+        
         if (!ttisLclosure(f) && !ttisCclosure(f)) {
           // 不是函数对象，跳过CALL并继续执行
-          aql_debug("⚠️  [VM] CALL: R%d不是函数对象，跳过调用\n", GETARG_A(i));
+          aql_debug("⚠️  [CALL] R%d不是函数对象，跳过调用\n", GETARG_A(i));
           /* 跟踪模式：显示指令执行后的状态（跳过情况） */
           if (func_name) {
-            print_instruction_trace(L, ci, i, pc, cl, base, func_name, 0);  // AFTER
+            /* print_instruction_trace(L, ci, i, pc, cl, base, func_name, 0);  // AFTER */
           }
           vmbreak;
         }
         
+        aql_debug("🔍 [CALL] 函数对象有效，准备调用 aqlD_precall\n");
+        
         CallInfo *new_ci = aqlD_precall(L, func, nresults);
+        aql_debug("🔍 [CALL] aqlD_precall 返回: new_ci=%p\n", (void*)new_ci);
+        
         if (new_ci) {  /* AQL function? */
+          aql_debug("🔍 [CALL] 准备调用 AQL 函数，跳转到 newframe\n");
+          /* 显示CALL分隔线和参数 */
+          aql_info_vt("------------------------------------------------\n");
+          aql_info_vt("args=%d, rets=%d\t\n", nargs, nresults);
+          if (nargs > 0) {
+            aql_info_vt("Args: ");
+            for (int j = 0; j < nargs; j++) {
+              TValue *arg = s2v(func + 1 + j);
+              if (ttisinteger(arg)) {
+                aql_info_vt("R%d=%lld ", j, (long long)ivalue(arg));
+              } else if (ttisnumber(arg)) {
+                aql_info_vt("R%d=%.2f ", j, fltvalue(arg));
+              } else if (ttisstring(arg)) {
+                aql_info_vt("R%d=\"%s\" ", j, getstr(tsvalue(arg)));
+              } else if (ttisLclosure(arg)) {
+                aql_info_vt("R%d=func@%p ", j, (void*)clvalue(arg));
+              } else {
+                aql_info_vt("R%d=type%d ", j, ttype(arg));
+              }
+            }
+            aql_info_vt("\n");
+          }
           ci = L->ci;
+          aql_debug("🔍 [CALL] 设置 ci=%p，跳转到 newframe\n", (void*)ci);
           goto newframe;  /* restart aqlV_execute over new aql function */
         } else {  /* C function */
+          aql_debug("🔍 [CALL] 调用 C 函数，已完成\n");
           updatetrap(ci);  /* C function already completed */
         }
         
-        /* 跟踪模式：显示指令执行后的状态 */
-        if (func_name) {
+        /* 跟踪模式：显示指令执行后的状态 - 暂时禁用避免段错误 */
+        /* if (func_name) {
           print_instruction_trace(L, ci, i, pc, cl, base, func_name, 0);  // AFTER
-        }
+        } */
         vmbreak;
       }
       
@@ -1782,7 +1683,7 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
         
         /* Close upvalues if needed (Lua compatibility) */
         if (TESTARG_k(i)) {
-          aqlF_close(L, base, CLOSEKTOP);  /* close upvalues from current call */
+          aqlF_close(L, base, CLOSEKTOP, 1);  /* close upvalues from current call */
           aql_debug("TAILCALL: 关闭upvalues (k=1)");
         }
         
@@ -1800,7 +1701,7 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
           StkId nfunc = nci->func.p;  /* called function */
           StkId ofunc = oci->func.p;  /* calling function */
           /* close all upvalues from previous call */
-          if (cl->p->sizep > 0) aqlF_close(L, oci->func.p + 1, CLOSEKTOP);
+          if (cl->p->sizep > 0) aqlF_close(L, oci->func.p + 1, CLOSEKTOP, 1);
           /* move new frame into old one */
           int aux;
           for (aux = 0; nfunc + aux < nci->top.p; aux++)
@@ -1818,21 +1719,29 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
       vmcase(OP_RETURN) {
         int n = GETARG_B(i) - 1;  /* number of results */
         int nparams1 = GETARG_C(i);
-        aql_debug("RETURN: n=%d, nparams1=%d, ra=%p", n, nparams1, (void*)ra);
+        aql_debug("🔍 [RETURN] 开始执行: n=%d, nparams1=%d, ra=%p\n", n, nparams1, (void*)ra);
         
         if (n < 0)  /* not fixed? */
           n = cast_int(L->top.p - ra);  /* get what is available */
         
-        aql_debug("RETURN: 返回%d个值，从R%d开始", n, GETARG_A(i));
+        aql_debug("🔍 [RETURN] 返回%d个值，从R%d开始\n", n, GETARG_A(i));
+        
+        savepc(L);
+        aql_debug("🔍 [RETURN] 检查k位 - i=0x%x, TESTARG_k(i)=%d\n", i, TESTARG_k(i));
+        if (TESTARG_k(i)) {  /* may there be open upvalues? */
+          aql_debug("🔍 [RETURN] 检测到k位，需要关闭upvalues\n");
+          if (L->top.p < ci->top.p)
+            L->top.p = ci->top.p;
+          aql_debug("🔍 [RETURN] 调用 aqlF_close 关闭upvalues\n");
+          aqlF_close(L, base, CLOSEKTOP, 1);
+          aql_debug("🔍 [RETURN] aqlF_close 完成\n");
+          updatetrap(ci);
+        } else {
+          aql_debug("🔍 [RETURN] 没有k位，不关闭upvalues\n");
+        }
         
         if (l_unlikely(L->hookmask)) {
-          savepc(L);
-          if (TESTARG_k(i)) {  /* may there be open upvalues? */
-            if (L->top.p < ci->top.p)
-              L->top.p = ci->top.p;
-            aqlF_close(L, base, CLOSEKTOP);
-            updatetrap(ci);
-          }
+          aql_debug("🔍 [RETURN] 使用 hook 模式处理返回值\n");
           if (nparams1)  /* vararg function? */
             ci->func.p -= ci->u.l.nextraargs + nparams1;
           L->top.p = ra + n;  /* set call for 'aqlD_poscall' */
@@ -1841,26 +1750,31 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
         }
         else {  /* do the 'poscall' here */
           int nres = ci->nresults;
-          aql_debug("RETURN: ci->nresults=%d", nres);
+          aql_debug("🔍 [RETURN] 直接处理返回值: ci->nresults=%d\n", nres);
+          aql_debug("🔍 [RETURN] 检查调用者 - L->ci=%p, ci=%p\n", (void*)L->ci, (void*)ci);
           L->ci = ci->previous;  /* back to caller */
+          aql_debug("🔍 [RETURN] 回到调用者，新的ci=%p\n", (void*)L->ci);
           
           if (nres == 0) {
+            aql_debug("🔍 [RETURN] 不需要返回值，设置 top=base-1\n");
             L->top.p = base - 1;  /* asked for no results */
           }
           else if (nres < 0) {
+            aql_debug("🔍 [RETURN] 要所有结果，复制%d个返回值\n", n);
             /* 要所有结果 - 复制所有n个返回值 */
             for (int i = 0; i < n; i++) {
               setobjs2s(L, base - 1 + i, ra + i);
-              aql_debug("RETURN: 复制返回值[%d]到base-%d", i, 1-i);
+              aql_debug("🔍 [RETURN] 复制返回值[%d]到base-%d\n", i, 1-i);
             }
             L->top.p = base - 1 + n;  /* top points after all results */
           }
           else {
+            aql_debug("🔍 [RETURN] 固定数量的结果: 复制最多%d个值\n", nres);
             /* 固定数量的结果 - 复制最多nres个值 */
             int copy_count = (n < nres) ? n : nres;
             for (int i = 0; i < copy_count; i++) {
               setobjs2s(L, base - 1 + i, ra + i);
-              aql_debug("RETURN: 复制返回值[%d]到base-%d", i, 1-i);
+              aql_debug("🔍 [RETURN] 复制返回值[%d]到base-%d\n", i, 1-i);
             }
             /* 如果需要更多结果，用nil填充 */
             for (int i = copy_count; i < nres; i++) {
@@ -1871,26 +1785,29 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
         }
         
         /* 检查是否需要回到调用者 */
-        aql_debug("RETURN: 检查调用者 - L->ci=%p, ci=%p", (void*)L->ci, (void*)ci);
+        aql_debug("🔍 [RETURN] 检查调用者 - L->ci=%p, ci=%p\n", (void*)L->ci, (void*)ci);
         if (L->ci != ci && L->ci != NULL) {
           /* 已经回到调用者，更新ci并重新初始化执行上下文 */
           CallInfo *new_ci = L->ci;
-          aql_debug("RETURN: 回到调用者，新的ci=%p", (void*)new_ci);
+          aql_debug("🔍 [RETURN] 回到调用者，新的ci=%p\n", (void*)new_ci);
           
           /* 验证新的CallInfo是否有效 */
           if (new_ci == NULL || new_ci->func.p == NULL) {
-            aql_debug("RETURN: 错误 - 无效的CallInfo，退出VM");
+            aql_debug("🔍 [RETURN] 错误 - 无效的CallInfo，退出VM\n");
             return;
           }
           
           ci = new_ci;  /* 更新ci为当前的CallInfo */
+          aql_debug("🔍 [RETURN] 更新ci=%p，跳转到 newframe\n", (void*)ci);
           goto newframe;  /* restart aqlV_execute over caller function */
         }
         else {
           /* 这是顶层函数的返回，退出VM */
-          aql_debug("RETURN: 顶层函数返回，退出VM");
+          aql_debug("🔍 [RETURN] 顶层函数返回，退出VM\n");
           return;
         }
+        
+        aql_debug("🔍 [RETURN] RETURN 指令执行完成\n");
       }
       
       vmcase(OP_RETURN0) {
@@ -1908,6 +1825,11 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
           for (nres = ci->nresults; l_unlikely(nres > 0); nres--)
             setnilvalue(s2v(L->top.p++));  /* all results are nil */
         }
+        /* 显示返回值 */
+        aql_info_vt("--- RETURN: rets=0 ---");
+        aql_info_vt("  Return: (no return value)");
+        aql_info_vt("\n");
+        
         /* 检查是否需要回到调用者 */
         aql_debug("RETURN0: 检查调用者 - L->ci=%p, ci=%p", (void*)L->ci, (void*)ci);
         if (L->ci != ci && L->ci != NULL) {
@@ -1964,6 +1886,22 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
               setnilvalue(s2v(L->top.p++));  /* complete missing results */
           }
         }
+        /* 显示返回值 */
+        aql_info_vt("--- RETURN: rets=1 ---");
+        aql_info_vt("  Return: ");
+        if (ttisinteger(s2v(ra))) {
+          aql_info_vt("R%d=%lld", GETARG_A(i), (long long)ivalue(s2v(ra)));
+        } else if (ttisnumber(s2v(ra))) {
+          aql_info_vt("R%d=%.2f", GETARG_A(i), fltvalue(s2v(ra)));
+        } else if (ttisstring(s2v(ra))) {
+          aql_info_vt("R%d=\"%s\"", GETARG_A(i), getstr(tsvalue(s2v(ra))));
+        } else if (ttisLclosure(s2v(ra))) {
+          aql_info_vt("R%d=func@%p", GETARG_A(i), (void*)clvalue(s2v(ra)));
+        } else {
+          aql_info_vt("R%d=type%d", GETARG_A(i), ttype(s2v(ra)));
+        }
+        aql_info_vt("\n");
+        
         /* 检查是否需要回到调用者 */
         aql_debug("RETURN1: 检查调用者 - L->ci=%p, ci=%p, ci->previous=%p", 
                  (void*)L->ci, (void*)ci, (void*)ci->previous);
@@ -1989,9 +1927,10 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
       }
       
       vmcase(OP_FORLOOP) {
+        AQL_INFO_VT_FORLOOP_BEFORE();
         if (ttisinteger(s2v(ra + 2))) {  /* integer loop? */
           aql_Unsigned count = l_castS2U(ivalue(s2v(ra + 1)));
-          if (count > 0) {  /* still some iterations? */
+          if (count > 0) {  /* still more iterations? */
             aql_Integer step = ivalue(s2v(ra + 2));
             aql_Integer idx = ivalue(s2v(ra));  /* internal index */
             chgivalue(s2v(ra + 1), count - 1);  /* update counter */
@@ -2003,14 +1942,17 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
         }
         else if (floatforloop(ra))  /* float loop */
           pc -= GETARG_Bx(i);  /* jump back */
-        updatetrap(ci);
+        AQL_INFO_VT_FORLOOP_AFTER();
+        updatetrap(ci);  /* allows a signal to break the loop */
         vmbreak;
       }
       
       vmcase(OP_FORPREP) {
-        savepc(L);  /* in case of errors */
+        AQL_INFO_VT_FORPREP_BEFORE();
+        savestate(L, ci);  /* in case of errors */
         if (forprep(L, ra))
           pc += GETARG_Bx(i) + 1;  /* skip the loop */
+        AQL_INFO_VT_FORPREP_AFTER();
         vmbreak;
       }
       
@@ -2100,14 +2042,18 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
       ** 算术和位运算指令
       */
       vmcase(OP_ADD) {
+        AQL_INFO_VT_ADD_BEFORE();
         TMS tm = TM_ADD;
         op_arith(L, l_addi, aqli_numadd);
+        AQL_INFO_VT_ADD_AFTER();
         vmbreak;
       }
       
       vmcase(OP_ADDI) {
+        AQL_INFO_VT_ADDI_BEFORE();
         TMS tm = TM_ADD;
         op_arithI(L, l_addi, aqli_numadd);
+        AQL_INFO_VT_ADDI_AFTER();
         vmbreak;
       }
       
@@ -2158,6 +2104,7 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
       
       vmcase(OP_MULK) {
         TMS tm = TM_MUL;
+        DEBUG_MULK(L, ci, i, pc, cl, base, func_name);
         op_arithK(L, l_muli, aqli_nummul);
         vmbreak;
       }
@@ -2656,3 +2603,4 @@ int aqlV_execute (aql_State *L, CallInfo *ci) {
   aqlV_execute2(L, ci);
   return 0;  // Always return success for compatibility
 }
+

@@ -11,7 +11,7 @@
 /* TEMPORARY FIX: Avoid stack reallocation due to memory corruption bug */
 /* Instead, limit recursion depth to prevent crashes */
 if (L->nCcalls >= 8) {  /* Conservative limit */
-    printf_debug("[DEBUG] aqlD_precall: recursion depth limit reached (%d), stopping\n", L->nCcalls);
+    aql_debug("[DEBUG] aqlD_precall: recursion depth limit reached (%d), stopping\n", L->nCcalls);
     aqlG_runerror(L, "recursion depth limit exceeded (max 8 levels)");
     return NULL;
 }

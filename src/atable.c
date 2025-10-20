@@ -817,8 +817,12 @@ const TValue *aqlH_getshortstr (Table *t, TString *key) {
   for (;;) {  /* check whether 'key' is somewhere in the chain */
     aql_debug("[DEBUG] aqlH_getshortstr: 检查节点n=%p, keyisshrstr(n)=%d\n", (void*)n, keyisshrstr(n));
     if (keyisshrstr(n) && eqshrstr(keystrval(n), key)) {
-      aql_debug("[DEBUG] aqlH_getshortstr: 找到匹配键，返回值\n");
-      return gval(n);  /* that's it */
+      aql_debug("[DEBUG] aqlH_getshortstr: 找到匹配键，准备返回值\n");
+      aql_debug("[DEBUG] aqlH_getshortstr: n=%p, gval(n)=%p\n", (void*)n, (void*)gval(n));
+      aql_debug("[DEBUG] aqlH_getshortstr: 调用gval(n)前\n");
+      const TValue *result = gval(n);
+      aql_debug("[DEBUG] aqlH_getshortstr: 调用gval(n)后，result=%p\n", (void*)result);
+      return result;  /* that's it */
     }
     else {
       int nx = gnext(n);

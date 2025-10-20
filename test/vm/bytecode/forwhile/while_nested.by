@@ -1,0 +1,21 @@
+# 嵌套 while 循环测试
+# 测试复杂的 while 循环嵌套和跳转指令
+# 外层循环：while i < 3, 内层循环：while j < 2
+# 期望结果: 3
+# 参考 luac -l 生成的字节码
+
+.code
+LOADI R0, 0          # i = 0
+LTI R0, 3, 0         # if i < 3 then skip next JMP (外层循环条件)
+JMP 9                # if i >= 3, jump to RETURN1 (exit outer loop)
+LOADI R1, 0          # j = 0 (内层循环初始化)
+LTI R1, 2, 0         # if j < 2 then skip next JMP (内层循环条件)
+JMP 3                # if j >= 2, jump to outer loop increment
+ADDI R1, R1, 1       # j = j + 1 (内层循环体)
+MMBINI R1, 1, 6, 0   # __add metamethod
+JMP -5               # jump back to inner condition check (LTI R1, 2, 0)
+ADDI R0, R0, 1       # i = i + 1 (外层循环体)
+MMBINI R0, 1, 6, 0   # __add metamethod
+JMP -11              # jump back to outer condition check (LTI R0, 3, 0)
+RETURN1 R0           # return i (should be 3)
+.end

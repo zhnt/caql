@@ -47,7 +47,7 @@ static void funcall_unified(LexState *ls, expdesc *v, int func_reg,
         args_start_reg = func_reg - nargs;
     }
     
-    printf_debug("[DEBUG] funcall_unified: func_reg=%d, args_start_reg=%d, nargs=%d\n", 
+    aql_debug("[DEBUG] funcall_unified: func_reg=%d, args_start_reg=%d, nargs=%d\n", 
                  func_reg, args_start_reg, nargs);
     
     /* 移动参数到正确位置 */

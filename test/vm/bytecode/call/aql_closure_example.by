@@ -1,0 +1,72 @@
+# aql_closure_example.by
+# 参照修复后的lua_closure_example.lua生成
+# 展示闭包的独立状态特性
+
+.main
+K0 STRING "makeCounter"
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
+.code
+# 创建makeCounter函数
+CLOSURE   R0, 0            # R0 = makeCounter函数
+SETTABUP  0, K0, R0        # _ENV["makeCounter"] = R0
+
+# 创建第一个计数器：counter1 = makeCounter(10)
+GETTABUP  R0, 0, K0        # R0 = _ENV["makeCounter"]
+LOADI     R1, 10           # R1 = 10
+CALL      R0, 2, 2         # makeCounter(10), 返回counter1到R0
+
+# 创建第二个计数器：counter2 = makeCounter(100)
+GETTABUP  R1, 0, K0        # R1 = _ENV["makeCounter"]
+LOADI     R2, 100          # R2 = 100
+CALL      R1, 2, 2         # makeCounter(100), 返回counter2到R1
+
+# 测试counter1() - 应该返回11
+MOVE      R2, R0           # R2 = counter1
+CALL      R2, 1, 2         # counter1(), 返回11到R2
+
+# 测试counter2() - 应该返回101
+MOVE      R3, R1           # R3 = counter2
+CALL      R3, 1, 2         # counter2(), 返回101到R3
+
+# 再次测试counter1() - 应该返回12
+MOVE      R4, R0           # R4 = counter1
+CALL      R4, 1, 2         # counter1(), 返回12到R4
+
+# 测试counter2() - 应该返回102
+MOVE      R3, R1           # R3 = counter2
+CALL      R3, 1, 2         # counter2(), 返回102到R3
+
+RETURN1   R3
+.end
+
+.function makeCounter 1
+# makeCounter函数没有upvalues，只有局部变量
+.code
+# R0 = start (起始值)
+# 实现 if start then count = start else count = 0 的逻辑
+LOADI     R1, 0            # R1 = 0 (默认值)
+TEST      R0, 0            # 测试start是否为真
+JMP       2                # 如果start为假，跳转到第6条指令
+MOVE      R1, R0           # 如果start为真，R1 = start
+JMP       1                # 跳转到第7条指令
+LOADI     R1, 0            # R1 = 0 (如果start为假)
+
+# 创建闭包
+CLOSURE   R2, 0            # R2 = counter函数
+RETURN    R2, 2, 1, 0     # 返回counter函数 (A=2, B=2, C=1, k=0，与Lua一致)
+RETURN    R3, 1, 0        # 默认返回（fallback，返回0个值）
+.end
+
+.function counter 0
+.upvalues 1
+.upvalue 0 "count" instack 1    # upvalue[0] = makeCounter的R1 (count)
+.code
+# 按照Lua的模式：GETUPVAL -> ADDI -> MMBINI -> SETUPVAL -> GETUPVAL -> RETURN1
+GETUPVAL  R0, 0            # R0 = upvalue[0] (count)
+ADDI      R0, R0, 1        # R0 = count + 1
+MMBINI    R0, 1, 6, 0      # __add 元方法
+SETUPVAL  R0, 0            # upvalue[0] = R0 (更新count)
+GETUPVAL  R0, 0            # R0 = upvalue[0] (获取更新后的值)
+RETURN1   R0               # 返回递增后的值
+.end

@@ -87,7 +87,7 @@ if (e.k == VCALL && nret == 1 && !insidetbc) {
     // 检查是否是函数返回语句的最后一个表达式
     if (is_tail_position(ls)) {
         SET_OPCODE(getinstruction(fs, &e), OP_TAILCALL);
-        printf_debug("[DEBUG] Converted CALL to TAILCALL at PC=%d\n", fs->pc - 1);
+        aql_debug("[DEBUG] Converted CALL to TAILCALL at PC=%d\n", fs->pc - 1);
     }
 }
 ```
@@ -99,7 +99,7 @@ case OP_TAILCALL: {
     StkId ra = RA(i);
     int b = GETARG_B(i);
     
-    printf_debug("[DEBUG] OP_TAILCALL: ra=%p, b=%d, optimizing tail call\n", 
+    aql_debug("[DEBUG] OP_TAILCALL: ra=%p, b=%d, optimizing tail call\n", 
                  (void*)ra, b);
     
     if (b != 0) L->top.p = ra + b;
@@ -126,7 +126,7 @@ AQL_API int aqlD_pretailcall_optimized(aql_State *L, CallInfo *ci, StkId func, i
         int fsize = p->maxstacksize;
         int nfixparams = p->numparams;
         
-        printf_debug("[DEBUG] TCO: reusing stack frame for tail call\n");
+        aql_debug("[DEBUG] TCO: reusing stack frame for tail call\n");
         
         // 1. 检查栈空间（考虑安全缓冲区）
         int needed_space = fsize + AQL_FUNCTION_STACK_SAFETY;
@@ -154,7 +154,7 @@ AQL_API int aqlD_pretailcall_optimized(aql_State *L, CallInfo *ci, StkId func, i
         ci->callstatus |= CIST_TAIL;  // 标记为尾调用
         L->top.p = func + narg1;
         
-        printf_debug("[DEBUG] TCO: tail call optimized, reusing CallInfo\n");
+        aql_debug("[DEBUG] TCO: tail call optimized, reusing CallInfo\n");
         return -1;  // 表示重新执行，不增加调用深度
     }
     

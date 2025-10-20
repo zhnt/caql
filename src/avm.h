@@ -298,7 +298,7 @@ AQL_API LClosure *aqlF_newLclosure (aql_State *L, int nelems);
 AQL_API void aqlF_initupvals (aql_State *L, LClosure *cl);
 AQL_API UpVal *aqlF_findupval (aql_State *L, StkId level);
 AQL_API void aqlF_newtbcupval (aql_State *L, StkId level);
-AQL_API void aqlF_close (aql_State *L, StkId level, int status);
+AQL_API StkId aqlF_close (aql_State *L, StkId level, int status, int yy);
 AQL_API void aqlF_unlinkupval (UpVal *uv);
 AQL_API void aqlF_freeproto (aql_State *L, Proto *f);
 AQL_API const char *aqlF_getlocalname (const Proto *func, int local_number,
@@ -329,5 +329,470 @@ AQL_API const char *aqlF_getlocalname (const Proto *func, int local_number,
 /* Table definitions moved to atable.h for better organization */
 
 /* }================================================================== */
+
+/* VM特定调试宏声明 */
+#ifdef AQL_DEBUG_BUILD
+/* 上下文设置函数 */
+void aql_vt_set_context(aql_State *L, CallInfo *ci, Instruction i, 
+                       const Instruction *pc, LClosure *cl, 
+                       StkId base, const char *func_name);
+
+/* 指令特定调试宏声明 */
+void aql_vt_loadi_before(void);
+void aql_vt_loadi_after(void);
+void aql_vt_add_before(void);
+void aql_vt_add_after(void);
+void aql_vt_mul_before(void);
+void aql_vt_mul_after(void);
+void aql_vt_sub_before(void);
+void aql_vt_sub_after(void);
+void aql_vt_div_before(void);
+void aql_vt_div_after(void);
+void aql_vt_call_before(void);
+void aql_vt_call_after(void);
+void aql_vt_jmp_before(void);
+void aql_vt_jmp_after(void);
+void aql_vt_closure_before(void);
+void aql_vt_closure_after(void);
+void aql_vt_return_before(void);
+void aql_vt_return_after(void);
+
+/* 通用调试函数声明 */
+void aql_vt_load_before(const char *op_name);
+void aql_vt_load_after(const char *op_name);
+void aql_vt_arith_before(const char *op_name);
+void aql_vt_arith_after(const char *op_name);
+void aql_vt_control_before(const char *op_name);
+void aql_vt_control_after(const char *op_name);
+void aql_vt_jump_before(const char *op_name);
+void aql_vt_jump_after(const char *op_name);
+void aql_vt_object_before(const char *op_name);
+void aql_vt_object_after(const char *op_name);
+void aql_vt_compare_before(const char *op_name);
+void aql_vt_compare_after(const char *op_name);
+void aql_vt_test_before(const char *op_name);
+void aql_vt_test_after(const char *op_name);
+void aql_vt_for_before(const char *op_name);
+void aql_vt_for_after(const char *op_name);
+void aql_vt_table_before(const char *op_name);
+void aql_vt_table_after(const char *op_name);
+void aql_vt_unary_before(const char *op_name);
+void aql_vt_unary_after(const char *op_name);
+void aql_vt_arithk_before(const char *op_name);
+void aql_vt_arithk_after(const char *op_name);
+void aql_vt_arithi_before(const char *op_name);
+void aql_vt_arithi_after(const char *op_name);
+
+/* 指令特定调试宏定义 */
+#define AQL_INFO_VT_LOADI_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_loadi_before(); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_LOADI_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_loadi_after(); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_ADD_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_add_before(); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_ADD_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_add_after(); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_MUL_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_mul_before(); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_MUL_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_mul_after(); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_SUB_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_sub_before(); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_SUB_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_sub_after(); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_DIV_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_div_before(); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_DIV_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_div_after(); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_CALL_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_call_before(); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_CALL_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_call_after(); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_JMP_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_jmp_before(); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_JMP_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_jmp_after(); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_CLOSURE_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_closure_before(); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_CLOSURE_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_closure_after(); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_RETURN_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_return_before(); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_RETURN_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_return_after(); \
+        } \
+    } while(0)
+
+/* 比较指令调试宏 */
+#define AQL_INFO_VT_EQ_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_compare_before("EQ"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_EQ_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_compare_after("EQ"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_LT_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_compare_before("LT"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_LT_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_compare_after("LT"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_LE_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_compare_before("LE"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_LE_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_compare_after("LE"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_LEI_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_compare_before("LEI"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_LEI_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_compare_after("LEI"); \
+        } \
+    } while(0)
+
+/* 测试指令调试宏 */
+#define AQL_INFO_VT_TEST_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_test_before("TEST"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_TEST_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_test_after("TEST"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_TESTSET_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_test_before("TESTSET"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_TESTSET_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_test_after("TESTSET"); \
+        } \
+    } while(0)
+
+/* For循环指令调试宏 */
+#define AQL_INFO_VT_FORLOOP_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_for_before("FORLOOP"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_FORLOOP_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_for_after("FORLOOP"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_FORPREP_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_for_before("FORPREP"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_FORPREP_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_for_after("FORPREP"); \
+        } \
+    } while(0)
+
+/* 表操作指令调试宏 */
+#define AQL_INFO_VT_GETTABLE_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_table_before("GETTABLE"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_GETTABLE_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_table_after("GETTABLE"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_SETTABLE_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_table_before("SETTABLE"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_SETTABLE_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_table_after("SETTABLE"); \
+        } \
+    } while(0)
+
+/* 一元操作指令调试宏 */
+#define AQL_INFO_VT_UNM_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_unary_before("UNM"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_UNM_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_unary_after("UNM"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_LEN_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_unary_before("LEN"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_LEN_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_unary_after("LEN"); \
+        } \
+    } while(0)
+
+/* 常量算术指令调试宏 */
+#define AQL_INFO_VT_ADDK_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_arithk_before("ADDK"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_ADDK_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_arithk_after("ADDK"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_SUBK_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_arithk_before("SUBK"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_SUBK_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_arithk_after("SUBK"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_MULK_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_arithk_before("MULK"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_MULK_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_arithk_after("MULK"); \
+        } \
+    } while(0)
+
+/* 立即数算术指令调试宏 */
+#define AQL_INFO_VT_ADDI_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_arithi_before("ADDI"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_ADDI_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_arithi_after("ADDI"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_SUBI_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_arithi_before("SUBI"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_SUBI_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_arithi_after("SUBI"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_MULI_BEFORE() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_arithi_before("MULI"); \
+        } \
+    } while(0)
+#define AQL_INFO_VT_MULI_AFTER() \
+    do { \
+        if (aql_debug_is_enabled(AQL_FLAG_VT)) { \
+            aql_vt_arithi_after("MULI"); \
+        } \
+    } while(0)
+
+#else
+/* 生产版本：所有指令特定调试宏为空 */
+#define AQL_INFO_VT_LOADI_BEFORE()    ((void)0)
+#define AQL_INFO_VT_LOADI_AFTER()     ((void)0)
+#define AQL_INFO_VT_ADD_BEFORE()      ((void)0)
+#define AQL_INFO_VT_ADD_AFTER()       ((void)0)
+#define AQL_INFO_VT_MUL_BEFORE()      ((void)0)
+#define AQL_INFO_VT_MUL_AFTER()       ((void)0)
+#define AQL_INFO_VT_SUB_BEFORE()      ((void)0)
+#define AQL_INFO_VT_SUB_AFTER()       ((void)0)
+#define AQL_INFO_VT_DIV_BEFORE()      ((void)0)
+#define AQL_INFO_VT_DIV_AFTER()       ((void)0)
+#define AQL_INFO_VT_CALL_BEFORE()     ((void)0)
+#define AQL_INFO_VT_CALL_AFTER()      ((void)0)
+#define AQL_INFO_VT_JMP_BEFORE()      ((void)0)
+#define AQL_INFO_VT_JMP_AFTER()       ((void)0)
+#define AQL_INFO_VT_CLOSURE_BEFORE()  ((void)0)
+#define AQL_INFO_VT_CLOSURE_AFTER()   ((void)0)
+#define AQL_INFO_VT_RETURN_BEFORE()   ((void)0)
+#define AQL_INFO_VT_RETURN_AFTER()    ((void)0)
+
+/* 比较指令调试宏 - 生产版本 */
+#define AQL_INFO_VT_EQ_BEFORE()       ((void)0)
+#define AQL_INFO_VT_EQ_AFTER()        ((void)0)
+#define AQL_INFO_VT_LT_BEFORE()       ((void)0)
+#define AQL_INFO_VT_LT_AFTER()        ((void)0)
+#define AQL_INFO_VT_LE_BEFORE()       ((void)0)
+#define AQL_INFO_VT_LE_AFTER()        ((void)0)
+#define AQL_INFO_VT_LEI_BEFORE()      ((void)0)
+#define AQL_INFO_VT_LEI_AFTER()       ((void)0)
+
+/* 测试指令调试宏 - 生产版本 */
+#define AQL_INFO_VT_TEST_BEFORE()     ((void)0)
+#define AQL_INFO_VT_TEST_AFTER()      ((void)0)
+#define AQL_INFO_VT_TESTSET_BEFORE()  ((void)0)
+#define AQL_INFO_VT_TESTSET_AFTER()   ((void)0)
+
+/* For循环指令调试宏 - 生产版本 */
+#define AQL_INFO_VT_FORLOOP_BEFORE()  ((void)0)
+#define AQL_INFO_VT_FORLOOP_AFTER()   ((void)0)
+#define AQL_INFO_VT_FORPREP_BEFORE()  ((void)0)
+#define AQL_INFO_VT_FORPREP_AFTER()   ((void)0)
+
+/* 表操作指令调试宏 - 生产版本 */
+#define AQL_INFO_VT_GETTABLE_BEFORE() ((void)0)
+#define AQL_INFO_VT_GETTABLE_AFTER()  ((void)0)
+#define AQL_INFO_VT_SETTABLE_BEFORE() ((void)0)
+#define AQL_INFO_VT_SETTABLE_AFTER()  ((void)0)
+
+/* 一元操作指令调试宏 - 生产版本 */
+#define AQL_INFO_VT_UNM_BEFORE()      ((void)0)
+#define AQL_INFO_VT_UNM_AFTER()       ((void)0)
+#define AQL_INFO_VT_LEN_BEFORE()      ((void)0)
+#define AQL_INFO_VT_LEN_AFTER()       ((void)0)
+
+/* 常量算术指令调试宏 - 生产版本 */
+#define AQL_INFO_VT_ADDK_BEFORE()     ((void)0)
+#define AQL_INFO_VT_ADDK_AFTER()      ((void)0)
+#define AQL_INFO_VT_SUBK_BEFORE()     ((void)0)
+#define AQL_INFO_VT_SUBK_AFTER()      ((void)0)
+#define AQL_INFO_VT_MULK_BEFORE()     ((void)0)
+#define AQL_INFO_VT_MULK_AFTER()      ((void)0)
+
+/* 立即数算术指令调试宏 - 生产版本 */
+#define AQL_INFO_VT_ADDI_BEFORE()     ((void)0)
+#define AQL_INFO_VT_ADDI_AFTER()      ((void)0)
+#define AQL_INFO_VT_SUBI_BEFORE()     ((void)0)
+#define AQL_INFO_VT_SUBI_AFTER()      ((void)0)
+#define AQL_INFO_VT_MULI_BEFORE()     ((void)0)
+#define AQL_INFO_VT_MULI_AFTER()      ((void)0)
+#endif
 
 #endif /* avm_h */ 

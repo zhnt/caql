@@ -1,0 +1,44 @@
+# 3层嵌套 while 循环测试
+# 测试复杂的3层嵌套循环和跳转指令
+# 外层循环：while i < 3, 中层循环：while j < i, 内层循环：while k < j
+# 累加 sum = sum + i*100 + j*10 + k
+# 期望结果: 210
+# 参考 luac -l 生成的字节码
+
+.constants
+K0 INTEGER 100
+K1 INTEGER 10
+.end
+
+.code
+LOADI R0, 0          # i = 0
+LOADI R1, 0          # sum = 0
+LTI R0, 3, 0         # if i < 3 then skip next JMP (外层循环条件)
+JMP 25               # if i >= 3, jump to RETURN1 (exit outer loop)
+LOADI R2, 0          # j = 0 (中层循环初始化)
+LT R2, R0, 0         # if j < i then skip next JMP (中层循环条件)
+JMP 19               # if j >= i, jump to outer loop increment
+LOADI R3, 0          # k = 0 (内层循环初始化)
+LT R3, R2, 0         # if k < j then skip next JMP (内层循环条件)
+JMP 13               # if k >= j, jump to middle loop increment
+MULK R4, R0, 0       # R4 = i * 100
+MMBINK R0, 0, 8, 0   # __mul metamethod
+ADD R4, R1, R4       # R4 = sum + i*100
+MMBIN R1, R4, 6      # __add metamethod
+MULK R5, R2, 1       # R5 = j * 10
+MMBINK R2, 1, 8, 0   # __mul metamethod
+ADD R4, R4, R5       # R4 = R4 + j*10
+MMBIN R4, R5, 6      # __add metamethod
+ADD R1, R4, R3       # sum = R4 + k
+MMBIN R4, R3, 6      # __add metamethod
+ADDI R3, R3, 1       # k = k + 1
+MMBINI R3, 1, 6, 0   # __add metamethod
+JMP -15              # jump back to inner condition check (LT R3, R2, 0)
+ADDI R2, R2, 1       # j = j + 1
+MMBINI R2, 1, 6, 0   # __add metamethod
+JMP -21              # jump back to middle condition check (LT R2, R0, 0)
+ADDI R0, R0, 1       # i = i + 1
+MMBINI R0, 1, 6, 0   # __add metamethod
+JMP -27              # jump back to outer condition check (LTI R0, 3, 0)
+RETURN1 R1           # return sum (should be 210)
+.end

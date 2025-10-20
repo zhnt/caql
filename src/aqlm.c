@@ -68,16 +68,16 @@ static int execute_single_function_bytecode(Instruction *code, int code_size, vo
 */
 static void *test_alloc(void *ud, void *ptr, size_t osize, size_t nsize) {
     (void)ud; (void)osize;  /* not used */
-    printf_debug("[DEBUG] test_alloc: ptr=%p, osize=%zu, nsize=%zu\n", ptr, osize, nsize);
+    aql_debug("[DEBUG] test_alloc: ptr=%p, osize=%zu, nsize=%zu\n", ptr, osize, nsize);
     
     if (nsize == 0) {
-        printf_debug("[DEBUG] test_alloc: freeing memory\n");
+        aql_debug("[DEBUG] test_alloc: freeing memory\n");
         free(ptr);
         return NULL;
     }
     
     void *result = realloc(ptr, nsize);
-    printf_debug("[DEBUG] test_alloc: realloc result=%p\n", result);
+    aql_debug("[DEBUG] test_alloc: realloc result=%p\n", result);
     return result;
 }
 
@@ -106,19 +106,19 @@ static void print_usage(const char *program_name) {
 */
 static int load_bytecode_text_file(const char *filename, Instruction **code, int *code_size,
                                   void **constants, int *const_size, int *stack_size) {
-    printf_debug("[DEBUG] load_bytecode_text_file 开始\n");
+    aql_debug("[DEBUG] load_bytecode_text_file 开始\n");
     
     FILE *f = fopen(filename, "r");
     if (!f) {
-        printf_debug("❌ 无法打开文件: %s\n", filename);
+        aql_debug("❌ 无法打开文件: %s\n", filename);
         return 0;
     }
     
-    printf_debug("[DEBUG] 文件%s打开成功\n", filename);
+    aql_debug("[DEBUG] 文件%s打开成功\n", filename);
     
     Instruction *instructions = malloc(1000 * sizeof(Instruction));
     if (!instructions) {
-        printf_debug("❌ 内存分配失败\n");
+        aql_debug("❌ 内存分配失败\n");
         fclose(f);
         return 0;
     }
@@ -126,7 +126,7 @@ static int load_bytecode_text_file(const char *filename, Instruction **code, int
     memset(instructions, 0, 1000 * sizeof(Instruction));
     int instruction_count = 0;
     
-    printf_debug("[DEBUG] 初始化变量完成\n");
+    aql_debug("[DEBUG] 初始化变量完成\n");
     
     char line[256];
     int in_code_section = 0;
@@ -136,12 +136,12 @@ static int load_bytecode_text_file(const char *filename, Instruction **code, int
     Constant constants_array[20];  // 支持最多20个常量
     int constants_count = 0;
     
-    printf_debug("[DEBUG] 开始读取文件行\n");
+    aql_debug("[DEBUG] 开始读取文件行\n");
     
     int line_num = 0;
     while (fgets(line, sizeof(line), f)) {
         line_num++;
-        printf_debug("[DEBUG] 读取第 %d 行: %s", line_num, line);
+        aql_debug("[DEBUG] 读取第 %d 行: %s", line_num, line);
         
         // 移除换行符
         char *newline = strchr(line, '\n');
@@ -150,10 +150,10 @@ static int load_bytecode_text_file(const char *filename, Instruction **code, int
         // 跳过空行和注释
         char *trimmed = line;
         while (*trimmed && isspace(*trimmed)) trimmed++;
-        printf_debug("[DEBUG] 处理trimmed行: '%s'\n", trimmed);
+        aql_debug("[DEBUG] 处理trimmed行: '%s'\n", trimmed);
         if (!*trimmed || *trimmed == '#') continue;
         
-        printf_debug("[DEBUG] 处理段标记\n");
+        aql_debug("[DEBUG] 处理段标记\n");
         // 处理段标记
         if (strcmp(trimmed, ".constants") == 0) {
             in_constants_section = 1;
@@ -190,20 +190,20 @@ static int load_bytecode_text_file(const char *filename, Instruction **code, int
                         const_value[strlen(const_value)-1] = '\0';
                         constants_array[constants_count].type = CONST_STRING;
                         strcpy(constants_array[constants_count].value.string, const_value + 1);
-                        printf_debug("[DEBUG] 解析字符串常量: %s = \"%s\"\n", const_name, constants_array[constants_count].value.string);
+                        aql_debug("[DEBUG] 解析字符串常量: %s = \"%s\"\n", const_name, constants_array[constants_count].value.string);
                         constants_count++;
                     }
                 } else if (strcmp(const_type, "INTEGER") == 0) {
                     // 解析整数常量
                     constants_array[constants_count].type = CONST_INTEGER;
                     constants_array[constants_count].value.integer = atoi(const_value);
-                    printf_debug("[DEBUG] 解析整数常量: %s = %d\n", const_name, constants_array[constants_count].value.integer);
+                    aql_debug("[DEBUG] 解析整数常量: %s = %d\n", const_name, constants_array[constants_count].value.integer);
                     constants_count++;
                 } else if (strcmp(const_type, "FLOAT") == 0 || strcmp(const_type, "NUMBER") == 0) {
                     // 解析浮点数常量
                     constants_array[constants_count].type = CONST_FLOAT;
                     constants_array[constants_count].value.number = atof(const_value);
-                    printf_debug("[DEBUG] 解析浮点数常量: %s = %f\n", const_name, constants_array[constants_count].value.number);
+                    aql_debug("[DEBUG] 解析浮点数常量: %s = %f\n", const_name, constants_array[constants_count].value.number);
                     constants_count++;
                 }
             }
@@ -215,9 +215,9 @@ static int load_bytecode_text_file(const char *filename, Instruction **code, int
 
         // 使用统一的指令解析函数
         char opcode[32], arg1[32], arg2[32], arg3[32], arg4[32];
-        printf_debug("[DEBUG] 准备解析指令行: %s\n", trimmed);
+        aql_debug("[DEBUG] 准备解析指令行: %s\n", trimmed);
         int args = sscanf(trimmed, "%s %s %s %s %s", opcode, arg1, arg2, arg3, arg4);
-        printf_debug("[DEBUG] sscanf 返回: %d, opcode=%s\n", args, opcode);
+        aql_debug("[DEBUG] sscanf 返回: %d, opcode=%s\n", args, opcode);
         if (args < 1) continue;
         
         // 使用统一的指令解析函数
@@ -240,29 +240,29 @@ static int load_bytecode_text_file(const char *filename, Instruction **code, int
         continue;
     }
     
-    printf_debug("[DEBUG] 文件读取循环结束，共处理 %d 行\n", line_num);
+    aql_debug("[DEBUG] 文件读取循环结束，共处理 %d 行\n", line_num);
     
     fclose(f);
     
-    printf_debug("[DEBUG] 文件关闭成功\n");
+    aql_debug("[DEBUG] 文件关闭成功\n");
     
     // 返回结果
-    printf_debug("[DEBUG] 设置返回结果，指令数: %d，常量数: %d\n", instruction_count, constants_count);
+    aql_debug("[DEBUG] 设置返回结果，指令数: %d，常量数: %d\n", instruction_count, constants_count);
     
     // 显示生成的指令
-    printf_debug("[DEBUG] 生成的指令:\n");
+    aql_debug("[DEBUG] 生成的指令:\n");
     for (int i = 0; i < instruction_count; i++) {
-        printf_debug("  [%d]: 0x%08lX\n", i, (unsigned long)instructions[i]);
+        aql_debug("  [%d]: 0x%08lX\n", i, (unsigned long)instructions[i]);
     }
     
-    printf_debug("[DEBUG] 即将设置输出参数\n");
+    aql_debug("[DEBUG] 即将设置输出参数\n");
     *code = instructions;
     *code_size = instruction_count;
     *constants = (constants_count > 0) ? (void*)constants_array : NULL;
     *const_size = constants_count;
     *stack_size = (*stack_size > 0) ? *stack_size : 10;  // 默认栈大小为10
     
-    printf_debug("[DEBUG] load_bytecode_text_file 即将返回\n");
+    aql_debug("[DEBUG] load_bytecode_text_file 即将返回\n");
     
     return 1;
 }
@@ -271,18 +271,18 @@ static int load_bytecode_text_file(const char *filename, Instruction **code, int
 ** 多函数字节码解析器 - 支持真正的函数调用
 */
 static int load_multi_function_bytecode(const char *filename, FunctionProto **functions, int *function_count) {
-    printf_debug("[DEBUG] load_multi_function_bytecode 开始\n");
+    aql_debug("[DEBUG] load_multi_function_bytecode 开始\n");
     
     FILE *f = fopen(filename, "r");
     if (!f) {
-        printf_debug("❌ 无法打开文件: %s\n", filename);
+        aql_debug("❌ 无法打开文件: %s\n", filename);
         return 0;
     }
     
     // 支持最多10个函数
     FunctionProto *func_array = malloc(10 * sizeof(FunctionProto));
     if (!func_array) {
-        printf_debug("❌ 函数数组内存分配失败\n");
+        aql_debug("❌ 函数数组内存分配失败\n");
         fclose(f);
         return 0;
     }
@@ -294,7 +294,7 @@ static int load_multi_function_bytecode(const char *filename, FunctionProto **fu
     // 为主函数分配空间
     func_array[0].code = malloc(1000 * sizeof(Instruction));
     if (!func_array[0].code) {
-        printf_debug("❌ 主函数代码内存分配失败\n");
+        aql_debug("❌ 主函数代码内存分配失败\n");
         free(func_array);
         fclose(f);
         return 0;
@@ -313,7 +313,7 @@ static int load_multi_function_bytecode(const char *filename, FunctionProto **fu
     Constant constants_array[20];
     int constants_count = 0;
     
-    printf_debug("[DEBUG] 开始读取文件行\n");
+    aql_debug("[DEBUG] 开始读取文件行\n");
     
     int line_num = 0;
     while (fgets(line, sizeof(line), f)) {
@@ -328,7 +328,7 @@ static int load_multi_function_bytecode(const char *filename, FunctionProto **fu
         while (*trimmed && isspace(*trimmed)) trimmed++;
         if (!*trimmed || *trimmed == '#') continue;
         
-        printf_debug("[DEBUG] 处理行: '%s'\n", trimmed);
+        aql_debug("[DEBUG] 处理行: '%s'\n", trimmed);
         
         // 处理段标记
         if (*trimmed == '.') {
@@ -338,7 +338,7 @@ static int load_multi_function_bytecode(const char *filename, FunctionProto **fu
                 in_constants_section = 0;
                 in_code_section = 0;
                 constants_count = 0;  // 重置常量计数
-                printf_debug("[DEBUG] 进入主函数定义\n");
+                aql_debug("[DEBUG] 进入主函数定义\n");
                 continue;
             } else if (strcmp(trimmed, ".constants") == 0) {
                 in_constants_section = 1;
@@ -355,13 +355,13 @@ static int load_multi_function_bytecode(const char *filename, FunctionProto **fu
                     if (func_array[current_func].constants) {
                         memcpy(func_array[current_func].constants, constants_array, constants_count * sizeof(Constant));
                         func_array[current_func].const_size = constants_count;
-                        printf_debug("[DEBUG] 函数 %d 保存了 %d 个常量\n", current_func, constants_count);
+                        aql_debug("[DEBUG] 函数 %d 保存了 %d 个常量\n", current_func, constants_count);
                     }
                 }
                 in_constants_section = 0;
                 in_code_section = 0;
                 constants_count = 0;  // 重置常量计数
-                printf_debug("[DEBUG] 结束函数 %d 定义\n", current_func);
+                aql_debug("[DEBUG] 结束函数 %d 定义\n", current_func);
                 continue;
             } else if (strncmp(trimmed, ".function", 9) == 0) {
                 // 保存当前函数的常量
@@ -380,7 +380,7 @@ static int load_multi_function_bytecode(const char *filename, FunctionProto **fu
                     
                     func_array[current_func].code = malloc(1000 * sizeof(Instruction));
                     if (!func_array[current_func].code) {
-                        printf_debug("❌ 函数 %d 代码内存分配失败\n", current_func);
+                        aql_debug("❌ 函数 %d 代码内存分配失败\n", current_func);
                         // 清理已分配的内存
                         for (int i = 0; i < current_func; i++) {
                             free(func_array[i].code);
@@ -401,7 +401,7 @@ static int load_multi_function_bytecode(const char *filename, FunctionProto **fu
                         func_array[current_func].num_params = params;
                     }
                     
-                    printf_debug("[DEBUG] 创建函数 %d: %s, 参数数量: %d\n", current_func, func_name, params);
+                    aql_debug("[DEBUG] 创建函数 %d: %s, 参数数量: %d\n", current_func, func_name, params);
                 }
                 
                 // 初始化upvalue信息
@@ -420,7 +420,7 @@ static int load_multi_function_bytecode(const char *filename, FunctionProto **fu
                     func_array[current_func].num_upvalues = num_upvalues;
                     if (num_upvalues > 0) {
                         func_array[current_func].upvalues = calloc(num_upvalues, sizeof(Upvaldesc));
-                        printf_debug("[DEBUG] 函数 %d 分配 %d 个upvalue槽位\n", current_func, num_upvalues);
+                        aql_debug("[DEBUG] 函数 %d 分配 %d 个upvalue槽位\n", current_func, num_upvalues);
                     }
                 }
                 continue;
@@ -436,7 +436,7 @@ static int load_multi_function_bytecode(const char *filename, FunctionProto **fu
                         uv->instack = (strcmp(type, "instack") == 0) ? 1 : 0;
                         uv->idx = stack_idx;
                         uv->kind = 0; // 默认类型
-                        printf_debug("[DEBUG] 函数 %d upvalue[%d]: %s=%s, idx=%d\n", 
+                        aql_debug("[DEBUG] 函数 %d upvalue[%d]: %s=%s, idx=%d\n", 
                                    current_func, index, name, type, stack_idx);
                     }
                 }
@@ -471,18 +471,18 @@ static int load_multi_function_bytecode(const char *filename, FunctionProto **fu
                         const_value[strlen(const_value)-1] = '\0';
                         constants_array[constants_count].type = CONST_STRING;
                         strcpy(constants_array[constants_count].value.string, const_value + 1);
-                        printf_debug("[DEBUG] 解析字符串常量: %s = \"%s\"\n", const_name, constants_array[constants_count].value.string);
+                        aql_debug("[DEBUG] 解析字符串常量: %s = \"%s\"\n", const_name, constants_array[constants_count].value.string);
                         constants_count++;
                     }
                 } else if (strcmp(const_type, "INTEGER") == 0) {
                     constants_array[constants_count].type = CONST_INTEGER;
                     constants_array[constants_count].value.integer = atoi(const_value);
-                    printf_debug("[DEBUG] 解析整数常量: %s = %d\n", const_name, constants_array[constants_count].value.integer);
+                    aql_debug("[DEBUG] 解析整数常量: %s = %d\n", const_name, constants_array[constants_count].value.integer);
                     constants_count++;
                 } else if (strcmp(const_type, "FLOAT") == 0 || strcmp(const_type, "NUMBER") == 0) {
                     constants_array[constants_count].type = CONST_FLOAT;
                     constants_array[constants_count].value.number = atof(const_value);
-                    printf_debug("[DEBUG] 解析浮点数常量: %s = %f\n", const_name, constants_array[constants_count].value.number);
+                    aql_debug("[DEBUG] 解析浮点数常量: %s = %f\n", const_name, constants_array[constants_count].value.number);
                     constants_count++;
                 }
             }
@@ -503,7 +503,7 @@ static int load_multi_function_bytecode(const char *filename, FunctionProto **fu
             func_array[current_func].code[func_array[current_func].code_size] = inst;
             func_array[current_func].code_size++;
             
-            printf_debug("[DEBUG] 函数 %d 解析指令: %s -> 0x%08lX\n", 
+            aql_debug("[DEBUG] 函数 %d 解析指令: %s -> 0x%08lX\n", 
                          current_func, opcode, (unsigned long)inst);
             
             if (func_array[current_func].code_size >= 1000) {
@@ -530,7 +530,7 @@ static int load_multi_function_bytecode(const char *filename, FunctionProto **fu
     *functions = func_array;
     *function_count = total_functions;
     
-    printf_debug("[DEBUG] 多函数解析完成，函数数量: %d\n", total_functions);
+    aql_debug("[DEBUG] 多函数解析完成，函数数量: %d\n", total_functions);
     
     return 1;
 }
@@ -544,9 +544,9 @@ static int execute_bytecode(const char *filename) {
     // 设置跟踪模式
     // 调试标志已在命令行解析时设置，无需额外设置
 
-    printf_debug("📝 [VM] AQL 状态创建成功，调试系统已初始化\n");
-    printf_debug("📝 [VM] 开始执行 execute_bytecode\n");
-    printf_debug("📝 [VM] 加载字节码文件: %s\n", filename);
+    aql_debug("📝 [VM] AQL 状态创建成功，调试系统已初始化\n");
+    aql_debug("📝 [VM] 开始执行 execute_bytecode\n");
+    aql_debug("📝 [VM] 加载字节码文件: %s\n", filename);
     
     // 检查文件是否包含多函数
     FILE *f = fopen(filename, "r");
@@ -568,7 +568,7 @@ static int execute_bytecode(const char *filename) {
     fclose(f);
     
     if (has_multiple_functions) {
-        printf_debug("📝 [VM] 检测到多函数文件，使用多函数解析器\n");
+        aql_debug("📝 [VM] 检测到多函数文件，使用多函数解析器\n");
         
         // 使用多函数解析器
         FunctionProto *functions;
@@ -579,24 +579,24 @@ static int execute_bytecode(const char *filename) {
             return 1;
         }
         
-        printf_debug("📝 [VM] 多函数解析成功，函数数量: %d\n", function_count);
+        aql_debug("📝 [VM] 多函数解析成功，函数数量: %d\n", function_count);
         
         // 执行多函数字节码
         return execute_multi_function_bytecode(functions, function_count);
         
     } else {
-        printf_debug("📝 [VM] 检测到单函数文件，使用单函数解析器\n");
+        aql_debug("📝 [VM] 检测到单函数文件，使用单函数解析器\n");
         
         // 使用原有的单函数解析器
         Instruction *code;
         void *constants;
         int code_size, const_size, stack_size = 10;
         
-        printf_debug("📝 [VM] 调用 load_bytecode_text_file\n");
+        aql_debug("📝 [VM] 调用 load_bytecode_text_file\n");
         
         int result = load_bytecode_text_file(filename, &code, &code_size, &constants, &const_size, &stack_size);
         
-        printf_debug("📝 [VM] load_bytecode_text_file 返回值: %d\n", result);
+        aql_debug("📝 [VM] load_bytecode_text_file 返回值: %d\n", result);
         
         if (!result) {
             printf("❌ 加载字节码失败\n");
@@ -612,7 +612,7 @@ static int execute_bytecode(const char *filename) {
 ** 执行多函数字节码 - 修正版：按Lua模型实现
 */
 static int execute_multi_function_bytecode(FunctionProto *functions, int function_count) {
-    printf_debug("📝 [VM] 开始执行多函数字节码，函数数量: %d\n", function_count);
+    aql_debug("📝 [VM] 开始执行多函数字节码，函数数量: %d\n", function_count);
     
     // 创建AQL状态
     aql_State *L = aql_newstate(test_alloc, NULL);
@@ -636,7 +636,7 @@ static int execute_multi_function_bytecode(FunctionProto *functions, int functio
     if (main_func->num_upvalues > 0) {
         main_proto->upvalues = aqlM_newvector(L, main_func->num_upvalues, Upvaldesc);
         memcpy(main_proto->upvalues, main_func->upvalues, main_func->num_upvalues * sizeof(Upvaldesc));
-        printf_debug("📝 [VM] 主函数upvalue设置完成: %d个upvalue\n", main_func->num_upvalues);
+        aql_debug("📝 [VM] 主函数upvalue设置完成: %d个upvalue\n", main_func->num_upvalues);
     } else {
         main_proto->upvalues = NULL;
     }
@@ -646,13 +646,13 @@ static int execute_multi_function_bytecode(FunctionProto *functions, int functio
         main_proto->code = aqlM_newvector(L, main_func->code_size, Instruction);
         memcpy(main_proto->code, main_func->code, main_func->code_size * sizeof(Instruction));
         
-        printf_debug("📝 [VM] 主函数指令复制完成: 复制了 %d 条指令\n", main_func->code_size);
+        aql_debug("📝 [VM] 主函数指令复制完成: 复制了 %d 条指令\n", main_func->code_size);
         for (int i = 0; i < main_func->code_size; i++) {
-            printf_debug("📝 [VM] 主函数指令[%d]: 0x%08lX\n", i, (unsigned long)main_proto->code[i]);
+            aql_debug("📝 [VM] 主函数指令[%d]: 0x%08lX\n", i, (unsigned long)main_proto->code[i]);
         }
     }
     
-    printf_debug("📝 [VM] 主函数设置完成: code_size=%d, stack_size=%d\n", 
+    aql_debug("📝 [VM] 主函数设置完成: code_size=%d, stack_size=%d\n", 
                  main_func->code_size, main_func->stack_size);
     
     // 处理主函数常量表
@@ -667,15 +667,15 @@ static int execute_multi_function_bytecode(FunctionProto *functions, int functio
             switch (c->type) {
                 case CONST_STRING:
                     setsvalue2n(L, tv, aqlStr_newlstr(L, c->value.string, strlen(c->value.string)));
-                    printf_debug("📝 [VM] 主函数常量[%d]: STRING \"%s\"\n", i, c->value.string);
+                    aql_debug("📝 [VM] 主函数常量[%d]: STRING \"%s\"\n", i, c->value.string);
                     break;
                 case CONST_INTEGER:
                     setivalue(tv, c->value.integer);
-                    printf_debug("📝 [VM] 主函数常量[%d]: INTEGER %d\n", i, c->value.integer);
+                    aql_debug("📝 [VM] 主函数常量[%d]: INTEGER %d\n", i, c->value.integer);
                     break;
                 case CONST_FLOAT:
                     setfltvalue(tv, c->value.number);
-                    printf_debug("📝 [VM] 主函数常量[%d]: FLOAT %f\n", i, c->value.number);
+                    aql_debug("📝 [VM] 主函数常量[%d]: FLOAT %f\n", i, c->value.number);
                     break;
             }
         }
@@ -715,7 +715,7 @@ static int execute_multi_function_bytecode(FunctionProto *functions, int functio
             deps[i].child_count = max_closure_index + 1;
             deps[i].child_indices = calloc(deps[i].child_count, sizeof(int));
             
-            printf_debug("📝 [VM] 函数[%d]需要%d个子函数\n", i, deps[i].child_count);
+            aql_debug("📝 [VM] 函数[%d]需要%d个子函数\n", i, deps[i].child_count);
             
             // 根据函数结构确定子函数映射
             if (i == 0) {
@@ -755,7 +755,7 @@ static int execute_multi_function_bytecode(FunctionProto *functions, int functio
         if (func->num_upvalues > 0) {
             all_protos[i]->upvalues = aqlM_newvector(L, func->num_upvalues, Upvaldesc);
             memcpy(all_protos[i]->upvalues, func->upvalues, func->num_upvalues * sizeof(Upvaldesc));
-            printf_debug("📝 [VM] 函数[%d]upvalue设置完成: %d个upvalue\n", i, func->num_upvalues);
+            aql_debug("📝 [VM] 函数[%d]upvalue设置完成: %d个upvalue\n", i, func->num_upvalues);
         } else {
             all_protos[i]->upvalues = NULL;
         }
@@ -765,7 +765,7 @@ static int execute_multi_function_bytecode(FunctionProto *functions, int functio
             all_protos[i]->code = aqlM_newvector(L, func->code_size, Instruction);
             memcpy(all_protos[i]->code, func->code, func->code_size * sizeof(Instruction));
             
-            printf_debug("📝 [VM] 函数[%d]指令复制完成: %d条指令\n", i, func->code_size);
+            aql_debug("📝 [VM] 函数[%d]指令复制完成: %d条指令\n", i, func->code_size);
         }
         
         // 复制常量表
@@ -798,16 +798,16 @@ static int execute_multi_function_bytecode(FunctionProto *functions, int functio
             all_protos[i]->p = aqlM_newvector(L, deps[i].child_count, Proto*);
             all_protos[i]->sizep = deps[i].child_count;
             
-            printf_debug("📝 [VM] 为函数[%d]创建%d个子函数槽位\n", i, deps[i].child_count);
+            aql_debug("📝 [VM] 为函数[%d]创建%d个子函数槽位\n", i, deps[i].child_count);
             
             for (int j = 0; j < deps[i].child_count; j++) {
                 int target_func_index = deps[i].child_indices[j];
                 if (target_func_index < function_count) {
                     all_protos[i]->p[j] = all_protos[target_func_index];
-                    printf_debug("📝 [VM] 函数[%d].p[%d] -> 函数[%d]\n", 
+                    aql_debug("📝 [VM] 函数[%d].p[%d] -> 函数[%d]\n", 
                                  i, j, target_func_index);
                 } else {
-                    printf_debug("⚠️  [VM] 警告: 函数[%d]的子函数[%d]索引%d超出范围\n", 
+                    aql_debug("⚠️  [VM] 警告: 函数[%d]的子函数[%d]索引%d超出范围\n", 
                                  i, j, target_func_index);
                 }
             }
@@ -829,7 +829,7 @@ static int execute_multi_function_bytecode(FunctionProto *functions, int functio
     
     // 初始化upvalues (关键步骤！)
     if (main_proto->sizeupvalues > 0) {
-        printf_debug("📝 [VM] 初始化主函数的%d个upvalue\n", main_proto->sizeupvalues);
+        aql_debug("📝 [VM] 初始化主函数的%d个upvalue\n", main_proto->sizeupvalues);
         aqlF_initupvals(L, cl);
         
         // 对于全局环境(_ENV)，需要特殊处理
@@ -838,25 +838,25 @@ static int execute_multi_function_bytecode(FunctionProto *functions, int functio
             // 创建全局环境表并设置为第一个upvalue
             Table *global_env = aqlH_new(L);
             sethvalue(L, cl->upvals[0]->v.p, global_env);
-            printf_debug("📝 [VM] 设置全局环境表到upvalue[0]: %p\n", (void*)global_env);
+            aql_debug("📝 [VM] 设置全局环境表到upvalue[0]: %p\n", (void*)global_env);
         }
     }
     
     setclLvalue2s(L, L->top.p, cl);
     L->top.p++;
     
-    printf_debug("📝 [VM] 主函数闭包创建完成，准备调用\n");
+    aql_debug("📝 [VM] 主函数闭包创建完成，准备调用\n");
     
     // 调用主函数 - 这里会触发VM执行，包括CLOSURE和CALL指令
     aqlD_call(L, L->top.p - 1, AQL_MULTRET);
     
-    printf_debug("📝 [VM] 主函数执行完成\n");
+    aql_debug("📝 [VM] 主函数执行完成\n");
     
     // 获取返回值
     if (L->top.p > L->stack.p) {
         StkId result_slot = L->top.p - 1;
         TValue *result = s2v(result_slot);
-        printf_debug("📝 [VM] 结果类型: %d, 栈顶: %p, 栈底: %p\n", ttype(result), (void*)L->top.p, (void*)L->stack.p);
+        aql_debug("📝 [VM] 结果类型: %d, 栈顶: %p, 栈底: %p\n", ttype(result), (void*)L->top.p, (void*)L->stack.p);
         if (ttisinteger(result)) {
             printf("%lld\n", ivalue(result));
         } else if (ttisfloat(result)) {
@@ -868,7 +868,7 @@ static int execute_multi_function_bytecode(FunctionProto *functions, int functio
         } else if (ttistable(result)) {
             printf("table\n");
         } else if (ttisclosure(result)) {
-            printf("function\n");
+            printf("function@%p\n", (void*)clvalue(result));
         } else {
             printf("(unknown result type: %d)\n", ttype(result));
         }
@@ -916,7 +916,7 @@ static int execute_single_function_bytecode(Instruction *code, int code_size, vo
     
     // 显示字节码指令
     if (aql_debug_is_enabled(AQL_FLAG_VB)) {
-        printf_debug("🔍 字节码指令:\n");
+        aql_debug("🔍 字节码指令:\n");
         for (int i = 0; i < code_size; i++) {
             Instruction inst = code[i];
             OpCode op = GET_OPCODE(inst);
@@ -926,17 +926,17 @@ static int execute_single_function_bytecode(Instruction *code, int code_size, vo
             
             // 直接使用 aql_opnames 数组而不是函数
             const char *opname = (op < NUM_OPCODES) ? aql_opnames[op] : "UNKNOWN";
-            printf_debug("  [%d] %s A=%d B=%d C=%d\n", i, opname, a, b, c);
+            aql_debug("  [%d] %s A=%d B=%d C=%d\n", i, opname, a, b, c);
         }
-        printf_debug("\n");
+        aql_debug("\n");
     }
     
-    printf_debug("📝 [VM] 即将创建 AQL 状态\n");
+    aql_debug("📝 [VM] 即将创建 AQL 状态\n");
     
     // 创建 AQL 状态
     aql_State *L = aql_newstate(test_alloc, NULL);
     if (!L) {
-        printf_debug("❌ 无法创建 AQL 状态\n");
+        aql_debug("❌ 无法创建 AQL 状态\n");
         return 1;
     }
     
@@ -945,10 +945,10 @@ static int execute_single_function_bytecode(Instruction *code, int code_size, vo
     /* 暂时不注册硬编码函数，改用.by文件中的软编码方案 */
     
     // 创建函数原型
-    printf_debug("📝 [VM] 创建函数原型\n");
+    aql_debug("📝 [VM] 创建函数原型\n");
     
     Proto *p = aqlF_newproto(L);
-    printf_debug("📝 [VM] 函数原型创建成功\n");
+    aql_debug("📝 [VM] 函数原型创建成功\n");
     
     p->code = code;
     p->sizecode = code_size;
@@ -956,70 +956,70 @@ static int execute_single_function_bytecode(Instruction *code, int code_size, vo
     p->numparams = 0;
     p->is_vararg = 0;
     
-    printf_debug("📝 [VM] 函数原型基本属性设置完成\n");
+    aql_debug("📝 [VM] 函数原型基本属性设置完成\n");
     
     // 设置常量表
     if (const_size > 0) {
-        printf_debug("📝 [VM] 设置常量表，常量数量: %d\n", const_size);
+        aql_debug("📝 [VM] 设置常量表，常量数量: %d\n", const_size);
         
         p->k = aqlM_newvector(L, const_size, TValue);
         p->sizek = const_size;
         
-        printf_debug("📝 [VM] 常量表内存分配成功\n");
+        aql_debug("📝 [VM] 常量表内存分配成功\n");
         
         // 初始化混合类型常量
         Constant *constants_array = (Constant*)constants;
         for (int i = 0; i < const_size; i++) {
             switch (constants_array[i].type) {
                 case CONST_STRING: {
-                    printf_debug("📝 [VM] 初始化字符串常量 %d: \"%s\"\n", i, constants_array[i].value.string);
+                    aql_debug("📝 [VM] 初始化字符串常量 %d: \"%s\"\n", i, constants_array[i].value.string);
                     TString *str = aqlStr_newlstr(L, constants_array[i].value.string, strlen(constants_array[i].value.string));
                     setsvalue2n(L, &p->k[i], str);
                     break;
                 }
                 case CONST_INTEGER:
-                    printf_debug("📝 [VM] 初始化整数常量 %d: %d\n", i, constants_array[i].value.integer);
+                    aql_debug("📝 [VM] 初始化整数常量 %d: %d\n", i, constants_array[i].value.integer);
                     setivalue(&p->k[i], constants_array[i].value.integer);
                     break;
                 case CONST_FLOAT:
-                    printf_debug("📝 [VM] 初始化浮点数常量 %d: %f\n", i, constants_array[i].value.number);
+                    aql_debug("📝 [VM] 初始化浮点数常量 %d: %f\n", i, constants_array[i].value.number);
                     setfltvalue(&p->k[i], constants_array[i].value.number);
                     break;
             }
         }
         
-        printf_debug("📝 [VM] 所有常量初始化完成\n");
+        aql_debug("📝 [VM] 所有常量初始化完成\n");
     } else {
-        printf_debug("📝 [VM] 无常量，跳过常量表设置\n");
+        aql_debug("📝 [VM] 无常量，跳过常量表设置\n");
         p->k = NULL;
         p->sizek = 0;
     }
     
     // 创建闭包
-    printf_debug("📝 [VM] 创建闭包\n");
+    aql_debug("📝 [VM] 创建闭包\n");
     
     LClosure *cl = aqlF_newLclosure(L, 0);
     
-    printf_debug("📝 [VM] 闭包创建成功，cl=%p\n", (void*)cl);
+    aql_debug("📝 [VM] 闭包创建成功，cl=%p\n", (void*)cl);
     
     cl->p = p;
     
-    printf_debug("📝 [VM] 闭包与函数原型关联完成\n");
+    aql_debug("📝 [VM] 闭包与函数原型关联完成\n");
     
     // 设置函数到栈顶
-    printf_debug("📝 [VM] 设置函数到栈顶\n");
+    aql_debug("📝 [VM] 设置函数到栈顶\n");
     
     setclLvalue2s(L, L->top.p, cl);
     L->top.p++;
     
-    printf_debug("📝 [VM] 函数已设置到栈顶\n");
+    aql_debug("📝 [VM] 函数已设置到栈顶\n");
     
     // 创建调用信息
-    printf_debug("📝 [VM] 创建调用信息\n");
+    aql_debug("📝 [VM] 创建调用信息\n");
     
     struct CallInfo *ci = &L->base_ci;
     
-    printf_debug("📝 [VM] CallInfo 获取成功，ci=%p\n", (void*)ci);
+    aql_debug("📝 [VM] CallInfo 获取成功，ci=%p\n", (void*)ci);
     
     ci->func.p = L->top.p - 1;
     ci->top.p = L->top.p + stack_size;
@@ -1027,44 +1027,44 @@ static int execute_single_function_bytecode(Instruction *code, int code_size, vo
     ci->callstatus = 0;
     ci->nresults = 1;  /* 期望1个返回值 */
     
-    printf_debug("📝 [VM] 调用信息设置完成\n");
-    printf_debug("🚀 [VM] 开始执行字节码...\n");
+    aql_debug("📝 [VM] 调用信息设置完成\n");
+    aql_debug("🚀 [VM] 开始执行字节码...\n");
     
     // 执行字节码
-    printf_debug("📝 [VM] 即将调用 aqlV_execute2(L=%p, ci=%p)\n", (void*)L, (void*)ci);
+    aql_debug("📝 [VM] 即将调用 aqlV_execute2(L=%p, ci=%p)\n", (void*)L, (void*)ci);
     
     aqlV_execute2(L, ci);
     
-    printf_debug("📝 [VM] 字节码执行完成\n");
+    aql_debug("📝 [VM] 字节码执行完成\n");
     
     // 获取返回值
-    printf_debug("📝 [VM] 检查返回值\n");
+    aql_debug("📝 [VM] 检查返回值\n");
     
     // 检查栈上是否有返回值
     if (L->top.p > L->stack.p) {
-        printf_debug("📝 [VM] 发现栈中有数据，检查多个可能的返回值位置\n");
+        aql_debug("📝 [VM] 发现栈中有数据，检查多个可能的返回值位置\n");
         
         // 检查栈底的几个位置
         for (int offset = 0; offset < 3 && (L->stack.p + offset) < L->top.p; offset++) {
             TValue *candidate = s2v(L->stack.p + offset);
-            printf_debug("📝 [VM] 检查位置[%d] %p: 类型=%d\n", 
+            aql_debug("📝 [VM] 检查位置[%d] %p: 类型=%d\n", 
                         offset, (void*)(L->stack.p + offset), ttype(candidate));
             
             if (ttisinteger(candidate)) {
                 printf("%lld\n", ivalue(candidate));  // 输出到标准输出
-                printf_debug("📝 [VM] 在位置[%d]找到整数返回值: %lld\n", offset, ivalue(candidate));
+                aql_debug("📝 [VM] 在位置[%d]找到整数返回值: %lld\n", offset, ivalue(candidate));
                 goto found_return_value;
             } else if (ttisfloat(candidate)) {
                 printf("%.6g\n", fltvalue(candidate));  // 输出到标准输出
-                printf_debug("📝 [VM] 在位置[%d]找到浮点返回值: %.6g\n", offset, fltvalue(candidate));
+                aql_debug("📝 [VM] 在位置[%d]找到浮点返回值: %.6g\n", offset, fltvalue(candidate));
                 goto found_return_value;
             } else if (ttisstring(candidate)) {
                 printf("%s\n", svalue(candidate));  // 输出到标准输出
-                printf_debug("📝 [VM] 在位置[%d]找到字符串返回值: %s\n", offset, svalue(candidate));
+                aql_debug("📝 [VM] 在位置[%d]找到字符串返回值: %s\n", offset, svalue(candidate));
                 goto found_return_value;
             } else if (ttisboolean(candidate)) {
                 printf("%s\n", bvalue(candidate) ? "true" : "false");  // 输出到标准输出
-                printf_debug("📝 [VM] 在位置[%d]找到布尔返回值: %s\n", offset, bvalue(candidate) ? "true" : "false");
+                aql_debug("📝 [VM] 在位置[%d]找到布尔返回值: %s\n", offset, bvalue(candidate) ? "true" : "false");
                 goto found_return_value;
             } else if (ttiscontainer(candidate)) {
                 // 处理容器类型
@@ -1078,32 +1078,32 @@ static int execute_single_function_bytecode(Instruction *code, int code_size, vo
                     default: container_name = "container"; break;
                 }
                 printf("%s\n", container_name);  // 输出到标准输出
-                printf_debug("📝 [VM] 在位置[%d]找到容器返回值: %s (length=%zu)\n", 
+                aql_debug("📝 [VM] 在位置[%d]找到容器返回值: %s (length=%zu)\n", 
                            offset, container_name, container->length);
                 goto found_return_value;
             } else if (ttistable(candidate)) {
                 // 处理表类型
                 printf("table\n");  // 输出到标准输出
-                printf_debug("📝 [VM] 在位置[%d]找到表返回值\n", offset);
+                aql_debug("📝 [VM] 在位置[%d]找到表返回值\n", offset);
                 goto found_return_value;
             }
         }
         
         // 如果前面几个位置都不是有效返回值，则显示nil
         printf("nil\n");  // 输出到标准输出
-        printf_debug("📝 [VM] 未找到有效返回值，显示nil\n");
+        aql_debug("📝 [VM] 未找到有效返回值，显示nil\n");
         
         found_return_value:;
     } else {
         printf("(no return value)\n");  // 输出到标准输出
-        printf_debug("📝 [VM] 栈中无数据\n");
+        aql_debug("📝 [VM] 栈中无数据\n");
     } 
     
-    printf_debug("📝 [VM] 关闭 AQL 状态\n");
+    aql_debug("📝 [VM] 关闭 AQL 状态\n");
     
     aql_close(L);
     
-    printf_debug("✅ [VM] 执行完成\n");
+    aql_debug("✅ [VM] 执行完成\n");
     
     return 0;
 }
@@ -1130,12 +1130,12 @@ int main(int argc, char *argv[]) {
         } else if (strcmp(argv[i], "-q") == 0 || strcmp(argv[i], "--quiet") == 0) {
             aql_debug_disable_all();  // 静默模式
         } else if (argv[i][0] == '-') {
-            printf_debug("❌ 未知选项: %s\n", argv[i]);
+            aql_debug("❌ 未知选项: %s\n", argv[i]);
             print_usage(argv[0]);
             return 1;
         } else {
             if (filename) {
-                printf_debug("❌ 只能指定一个字节码文件\n");
+                aql_debug("❌ 只能指定一个字节码文件\n");
                 print_usage(argv[0]);
                 return 1;
             }
@@ -1149,15 +1149,15 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     
-    printf_debug("[DEBUG] 文件名: %s\n", filename);
+    aql_debug("[DEBUG] 文件名: %s\n", filename);
     
     // 检查文件扩展名
     const char *ext = strrchr(filename, '.');
     if (!ext || strcmp(ext, ".by") != 0) {
-        printf_debug("⚠️  警告: 文件扩展名不是 .by\n");
+        aql_debug("⚠️  警告: 文件扩展名不是 .by\n");
     }
     
-    printf_debug("[DEBUG] 调用 execute_bytecode\n");
+    aql_debug("[DEBUG] 调用 execute_bytecode\n");
     
     return execute_bytecode(filename);
 }

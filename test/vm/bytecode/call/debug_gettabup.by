@@ -1,0 +1,22 @@
+# debug_gettabup.by
+# 调试GETTABUP指令的问题
+
+.main
+K0 STRING "test"
+K1 STRING "value"
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
+.code
+# 设置一个简单的全局变量
+LOADI     R0, 42           # R0 = 42
+SETTABUP  0, K0, R0        # _ENV["test"] = 42
+
+# 尝试获取这个变量
+GETTABUP  R1, 0, K0        # R1 = _ENV["test"]
+RETURN1   R1               # 返回结果
+.end
+
+.function helper 0
+.code
+RETURN0
+.end

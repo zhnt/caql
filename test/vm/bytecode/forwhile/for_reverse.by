@@ -1,0 +1,17 @@
+# for 循环反向测试
+# 测试 FORPREP 和 FORLOOP 指令，步长为 -1 (反向)
+# for i = 5, 1, -1 do sum = sum + i end
+# 期望结果: 15 (5+4+3+2+1)
+
+.code
+LOADI R0, 0          # sum = 0
+LOADI R1, 5          # 内部索引 = 5
+LOADI R2, 1          # 限制值 = 1
+LOADI R3, -1         # 步长 = -1
+FORPREP R1, 2        # 准备 for 循环，跳转到 PC+2=6
+ADD R0, R0, R4       # sum = sum + i (R4 是控制变量)
+MMBIN R0, R4, 6      # __add metamethod
+FORLOOP R1, 3        # for 循环，跳转到 PC-3=5
+RETURN1 R0           # 返回 sum
+.end
+

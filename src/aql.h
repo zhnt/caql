@@ -12,21 +12,6 @@
 
 #include "aconf.h"
 
-/*
-** Debug output control
-** Disable old DEBUG printf statements by default
-*/
-#ifndef DEBUG_DISABLED
-#define DEBUG_DISABLED 1
-#endif
-
-/* Macro to control old printf DEBUG statements */
-#if DEBUG_DISABLED
-#define printf_debug(...) ((void)0)
-#else
-/* 使用新的调试系统 */
-#define printf_debug(...) aql_debug(__VA_ARGS__)
-#endif
 
 #define AQL_VERSION_MAJOR	"1"
 #define AQL_VERSION_MINOR	"0"

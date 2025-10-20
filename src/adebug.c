@@ -21,6 +21,10 @@ int aql_debug_is_enabled(AQL_NewDebugFlags flag) {
     return (aql_debug_flags & flag) != 0;
 }
 
+void aql_debug_set_flags(int flags) {
+    aql_debug_flags = flags;
+}
+
 /* 基础输出函数实现 */
 void aql_output_error(const char *format, ...) {
     va_list args;
@@ -57,7 +61,6 @@ void aql_output_if_enabled(AQL_NewDebugFlags flag, const char *format, ...) {
     va_list args;
     va_start(args, format);
     vprintf(format, args);
-    printf("\n");
     va_end(args);
 }
 

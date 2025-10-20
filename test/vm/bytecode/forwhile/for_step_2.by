@@ -1,0 +1,18 @@
+# for 循环步长测试
+# 测试 FORPREP 和 FORLOOP 指令，步长为 2
+# for i = 1, 10, 2 do sum = sum + i end
+# 期望结果: 25 (1+3+5+7+9)
+
+.code
+LOADI R0, 0          # sum = 0
+LOADI R1, 1          # 内部索引 = 1
+LOADI R2, 10         # 限制值 = 10
+LOADI R3, 2          # 步长 = 2
+FORPREP R1, 2        # 准备 for 循环，跳转到 PC+2=6
+ADD R0, R0, R4       # sum = sum + i (R4 是控制变量)
+MMBIN R0, R4, 6      # __add metamethod
+FORLOOP R1, 3        # for 循环，跳转到 PC-3=5
+RETURN1 R0           # 返回 sum
+.end
+
+

@@ -77,13 +77,16 @@ typedef struct CallInfo {
 */
 struct aql_State {
   CommonHeader;
+  aql_byte status;
+  aql_byte allowhook;
+  unsigned short nci;  /* number of items in 'ci' list */
   StkIdRel top;  /* first free slot in the stack */
   struct global_State *l_G;
   struct CallInfo *ci;  /* call info for current function */
-  StkIdRel stack_last;  /* last free slot in the stack */
+  StkIdRel stack_last;  /* end of stack (last element + 1) */
   StkIdRel stack;  /* stack base */
   UpVal *openupval;  /* list of open upvalues in this stack */
-  StkId func;  /* current function (CallInfo funcOff) */
+  StkIdRel tbclist;  /* list of to-be-closed variables */
   GCObject *gclist;
   struct aql_State *twups;  /* list of threads with open upvalues */
   struct aql_longjmp *errorJmp;  /* current error recover point */
@@ -95,9 +98,6 @@ struct aql_State {
   int basehookcount;
   int hookcount;
   volatile l_signalT hookmask;
-  aql_byte status;
-  aql_byte allowhook;
-  unsigned short nci;  /* number of items in 'ci' list */
   struct JIT_State *jit_state;  /* JIT compiler state */
 };
 
@@ -197,14 +197,15 @@ typedef struct global_State {
   aql_mem lastatomic;  /* see function 'genstep' in file 'lgc.c' */
   stringtable strt;  /* hash table for strings */
   TValue l_registry;
-  TValue l_globals;  /* global variables dict */
   TValue nilvalue;  /* a nil value */
   unsigned int seed;  /* randomized seed for hashes */
   aql_byte currentwhite;
   aql_byte gcstate;  /* state of garbage collector */
   aql_byte gckind;  /* kind of GC running */
-  aql_byte genminormul, genmajormul;  /* control for GC generational mode */
-  aql_byte gcrunning;  /* true if GC is running */
+  aql_byte gcstopem;  /* stops emergency collections */
+  aql_byte genminormul;  /* control for minor generational collections */
+  aql_byte genmajormul;  /* control for major generational collections */
+  aql_byte gcstp;  /* control whether GC is running */
   aql_byte gcemergency;  /* true if this is an emergency collection */
   aql_byte gcpause;  /* size of pause between successive GCs */
   aql_byte gcstepmul;  /* GC "speed" */
@@ -220,11 +221,13 @@ typedef struct global_State {
   GCObject *tobefnz;  /* list of userdata to be GC */
   GCObject *fixedgc;  /* list of objects not to be collected */
   /* fields for generational collector */
-  GCObject *survival;  /* list of survival objects */
-  GCObject *old1;  /* list of old1 objects */
-  GCObject *reallyold;  /* list of really old objects */
-  GCObject *firstold1;  /* first OLD1 object in the list (after survival) */
-  GCObject *finoold;  /* list of survival/old objects with finalizers */
+  GCObject *survival;  /* start of objects that survived one GC cycle */
+  GCObject *old1;  /* start of old1 objects */
+  GCObject *reallyold;  /* objects more than one cycle old ("really old") */
+  GCObject *firstold1;  /* first OLD1 object in the list (if any) */
+  GCObject *finobjsur;  /* list of survival objects with finalizers */
+  GCObject *finobjold1;  /* list of old1 objects with finalizers */
+  GCObject *finobjrold;  /* list of really old objects with finalizers */
   struct aql_State *twups;  /* list of threads with open upvalues */
   aql_CFunction panic;  /* to be called in unprotected errors */
   struct aql_State *mainthread;
@@ -234,6 +237,8 @@ typedef struct global_State {
   TString *strcache[STRCACHE_N][STRCACHE_M];  /* cache for strings in API */
   aql_WarnFunction warnf;  /* warning function */
   void *ud_warn;         /* auxiliary data to 'warnf' */
+  TValue l_globals;  /* global variables dict */
+  GCObject *finoold;  /* list of survival/old objects with finalizers */
 } global_State; /* forward declaration, actual definition in aobject.h */
 
 /*

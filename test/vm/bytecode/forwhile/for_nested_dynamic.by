@@ -1,0 +1,61 @@
+# 动态嵌套 for 循环测试
+# for i = 1, 5 do
+#     for j = 1, 5 do
+#         for k = 1, j do  # 内层循环的 limit 是 j 的值
+#             sum = sum + 100*i + 10*j + k
+#         end
+#     end
+# end
+# return sum
+# 期望结果: 25425
+
+.constants
+K0 INTEGER 100
+K1 INTEGER 10
+
+.code
+LOADI R0, 0          # sum = 0
+
+# 外层循环 i = 1, 5
+LOADI R1, 1          # 内部索引 = 1
+LOADI R2, 5          # 限制值 = 5
+LOADI R3, 1          # 步长 = 1
+FORPREP R1, 20       # 准备外层循环，跳转到 PC+20=28
+
+# 中层循环 j = 1, 5
+LOADI R5, 1          # 内部索引 = 1
+LOADI R6, 5          # 限制值 = 5
+LOADI R7, 1          # 步长 = 1
+FORPREP R5, 15       # 准备中层循环，跳转到 PC+15=27
+
+# 内层循环 k = 1, j (动态边界)
+LOADI R9, 1          # 内部索引 = 1
+MOVE R10, R8         # R10 = j (j 是控制变量 R8)
+LOADI R11, 1         # 步长 = 1
+FORPREP R9, 10       # 准备内层循环，跳转到 PC+10=26
+
+# 循环体：sum = sum + 100*i + 10*j + k
+MULK R13, R4, 0      # R13 = 100 * i (i 是控制变量 R4)
+MMBINK R4, 0, 8, 1   # __mul 100 flip
+ADD R13, R0, R13     # R13 = sum + 100*i
+MMBIN R0, R13, 6     # __add
+
+MULK R14, R8, 1      # R14 = 10 * j (j 是控制变量 R8)
+MMBINK R8, 1, 8, 1   # __mul 10 flip
+ADD R13, R13, R14    # R13 = R13 + 10*j
+MMBIN R13, R14, 6    # __add
+
+ADD R0, R13, R12     # sum = R13 + k (k 是控制变量 R12)
+MMBIN R13, R12, 6    # __add
+
+# 内层循环结束
+FORLOOP R9, 11       # 内层循环，跳转到 PC-11=15
+
+# 中层循环结束
+FORLOOP R5, 16       # 中层循环，跳转到 PC-16=11
+
+# 外层循环结束
+FORLOOP R1, 21       # 外层循环，跳转到 PC-21=7
+
+RETURN1 R0           # 返回 sum
+.end

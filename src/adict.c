@@ -13,6 +13,7 @@
 #include "astate.h"
 #include <string.h>
 #include <stdio.h>
+#include "adebug.h"
 
 /* Temporary implementation of aql_index2addr - should be moved to aql.c later */
 static const TValue *aql_index2addr(aql_State *L, int idx) {
@@ -145,7 +146,7 @@ AQL_API void aqlD_free(aql_State *L, Dict *dict) {
 */
 static DictEntry *findentry(const Dict *dict, const TValue *key) {
   if (dict->capacity == 0) {
-    printf_debug("[DEBUG] findentry: dict capacity is 0\n");
+    aql_debug("[DEBUG] findentry: dict capacity is 0\n");
     return NULL;
   }
   
@@ -155,7 +156,7 @@ static DictEntry *findentry(const Dict *dict, const TValue *key) {
   
   if (ttisstring(key)) {
     TString *keystr = tsvalue(key);
-    printf_debug("[DEBUG] findentry: searching for key '%s', hash=%u, index=%zu\n", 
+    aql_debug("[DEBUG] findentry: searching for key '%s', hash=%u, index=%zu\n", 
                 getstr(keystr), hash, index);
   }
   
@@ -163,20 +164,20 @@ static DictEntry *findentry(const Dict *dict, const TValue *key) {
     DictEntry *entry = &dict->entries[index];
     
     if (aqlD_entry_empty(entry)) {
-      printf_debug("[DEBUG] findentry: found empty entry at index %zu, key_type=%d\n", 
+      aql_debug("[DEBUG] findentry: found empty entry at index %zu, key_type=%d\n", 
                   index, ttype(&entry->key));
       return NULL;  /* Key not found */
     }
     
-    printf_debug("[DEBUG] findentry: checking entry at index %zu, hash=%llu, distance=%d\n", 
+    aql_debug("[DEBUG] findentry: checking entry at index %zu, hash=%llu, distance=%d\n", 
                 index, (unsigned long long)entry->hash, entry->distance);
     if (ttisstring(&entry->key)) {
       TString *entrystr = tsvalue(&entry->key);
-      printf_debug("[DEBUG] findentry: entry key is string '%s'\n", getstr(entrystr));
+      aql_debug("[DEBUG] findentry: entry key is string '%s'\n", getstr(entrystr));
     }
     
     if (entry->hash == hash && aqlD_keyequal(&entry->key, key)) {
-      printf_debug("[DEBUG] findentry: found matching entry!\n");
+      aql_debug("[DEBUG] findentry: found matching entry!\n");
       return entry;  /* Found */
     }
     
@@ -195,21 +196,21 @@ static DictEntry *findentry(const Dict *dict, const TValue *key) {
 */
 AQL_API const TValue *aqlD_get(const Dict *dict, const TValue *key) {
   if (dict == NULL || key == NULL) {
-    printf_debug("[DEBUG] aqlD_get: dict=%p, key=%p\n", (void*)dict, (void*)key);
+    aql_debug("[DEBUG] aqlD_get: dict=%p, key=%p\n", (void*)dict, (void*)key);
     return NULL;
   }
   
   if (ttisstring(key)) {
     TString *keystr = tsvalue(key);
-    printf_debug("[DEBUG] aqlD_get: looking for key '%s', dict size=%zu, dict=%p\n", 
+    aql_debug("[DEBUG] aqlD_get: looking for key '%s', dict size=%zu, dict=%p\n", 
                 getstr(keystr), dict->size, (void*)dict);
   }
   
   DictEntry *entry = findentry(dict, key);
   if (entry) {
-    printf_debug("[DEBUG] aqlD_get: found entry, value type=%d\n", ttype(&entry->value));
+    aql_debug("[DEBUG] aqlD_get: found entry, value type=%d\n", ttype(&entry->value));
   } else {
-    printf_debug("[DEBUG] aqlD_get: entry not found\n");
+    aql_debug("[DEBUG] aqlD_get: entry not found\n");
   }
   return entry ? &entry->value : NULL;
 }
@@ -259,17 +260,17 @@ static int dict_resize(aql_State *L, Dict *dict, size_t new_capacity) {
 */
 AQL_API int aqlD_set(aql_State *L, Dict *dict, const TValue *key, const TValue *value) {
   if (dict == NULL || key == NULL || value == NULL) {
-    printf_debug("[DEBUG] aqlD_set: dict=%p, key=%p, value=%p\n", (void*)dict, (void*)key, (void*)value);
+    aql_debug("[DEBUG] aqlD_set: dict=%p, key=%p, value=%p\n", (void*)dict, (void*)key, (void*)value);
     return 0;
   }
   
   if (ttisstring(key)) {
     TString *keystr = tsvalue(key);
-    printf_debug("[DEBUG] aqlD_set: setting key '%s', dict size=%zu, dict=%p\n", 
+    aql_debug("[DEBUG] aqlD_set: setting key '%s', dict size=%zu, dict=%p\n", 
                 getstr(keystr), dict->size, (void*)dict);
   }
   if (ttisinteger(value)) {
-    printf_debug("[DEBUG] aqlD_set: value is integer %lld\n", (long long)ivalue(value));
+    aql_debug("[DEBUG] aqlD_set: value is integer %lld\n", (long long)ivalue(value));
   }
   
   /* Check load factor and resize if necessary */
@@ -285,7 +286,7 @@ AQL_API int aqlD_set(aql_State *L, Dict *dict, const TValue *key, const TValue *
   
   if (ttisstring(key)) {
     TString *keystr = tsvalue(key);
-    printf_debug("[DEBUG] aqlD_set: computed hash=%llu for key '%s'\n", 
+    aql_debug("[DEBUG] aqlD_set: computed hash=%llu for key '%s'\n", 
                 (unsigned long long)hash, getstr(keystr));
   }
   
@@ -293,12 +294,12 @@ AQL_API int aqlD_set(aql_State *L, Dict *dict, const TValue *key, const TValue *
   DictEntry to_insert;
   to_insert.hash = hash;
   to_insert.distance = distance;
-  printf_debug("[DEBUG] aqlD_set: before setobj, hash=%llu\n", (unsigned long long)to_insert.hash);
+  aql_debug("[DEBUG] aqlD_set: before setobj, hash=%llu\n", (unsigned long long)to_insert.hash);
   setobj(L, &to_insert.key, key);
   setobj(L, &to_insert.value, value);
-  printf_debug("[DEBUG] aqlD_set: after setobj, hash=%llu\n", (unsigned long long)to_insert.hash);
+  aql_debug("[DEBUG] aqlD_set: after setobj, hash=%llu\n", (unsigned long long)to_insert.hash);
   
-  printf_debug("[DEBUG] aqlD_set: created entry with hash=%llu\n", (unsigned long long)to_insert.hash);
+  aql_debug("[DEBUG] aqlD_set: created entry with hash=%llu\n", (unsigned long long)to_insert.hash);
   
   while (1) {
     DictEntry *entry = &dict->entries[index];
@@ -306,7 +307,7 @@ AQL_API int aqlD_set(aql_State *L, Dict *dict, const TValue *key, const TValue *
     if (aqlD_entry_empty(entry)) {
       /* Empty slot, insert here */
       *entry = to_insert;
-      printf_debug("[DEBUG] aqlD_set: stored entry at index %zu with hash=%llu\n", 
+      aql_debug("[DEBUG] aqlD_set: stored entry at index %zu with hash=%llu\n", 
                   index, (unsigned long long)entry->hash);
       dict->size++;
       dict->length = dict->size;  /* Keep length in sync */

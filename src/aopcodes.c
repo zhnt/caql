@@ -10,6 +10,56 @@
 #include "aopcodes.h"
 
 /*
+** 获取指令格式描述
+*/
+static const char* get_instruction_format(OpCode op) {
+    switch (op) {
+        case OP_LOADI:
+        case OP_LOADF:
+            return "LOADI R<A>, <sBx>";
+        case OP_LOADK:
+            return "LOADK R<A>, K<Bx>";
+        case OP_LOADKX:
+            return "LOADKX R<A>";
+        case OP_MOVE:
+            return "MOVE R<A>, R<B>";
+        case OP_ADD:
+        case OP_SUB:
+        case OP_MUL:
+        case OP_DIV:
+            return "ADD R<A>, R<B>, R<C>";
+        case OP_ADDI:
+            return "ADDI R<A>, R<B>, <sC>";
+        case OP_MULK:
+            return "MULK R<A>, R<B>, K<C>";
+        case OP_LT:
+        case OP_LE:
+        case OP_EQ:
+            return "LT R<A>, R<B>, R<C>";
+        case OP_LTI:
+        case OP_LEI:
+        case OP_EQI:
+            return "LTI R<A>, <sB>, <k>";
+        case OP_JMP:
+            return "JMP <sJ>";
+        case OP_CALL:
+            return "CALL R<A>, <B>, <C>";
+        case OP_RETURN:
+        case OP_RETURN1:
+        case OP_RETURN0:
+            return "RETURN R<A>, <B>, <C>";
+        case OP_MMBIN:
+            return "MMBIN R<A>, R<B>, <C>";
+        case OP_MMBINI:
+            return "MMBINI R<A>, <sB>, <C>, <k>";
+        case OP_MMBINK:
+            return "MMBINK R<A>, K<B>, <C>";
+        default:
+            return "Unknown instruction format";
+    }
+}
+
+/*
 ** 通用指令解析函数 - 根据操作码名称和参数解析指令
 ** 返回值：1=成功，0=失败
 */
@@ -142,6 +192,26 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
             }
             break;
             
+        // MULK系列指令 - A B C 格式 (与常量相乘)
+        case OP_MULK:
+            if (args >= 4) {
+                b = (arg2[0] == 'R') ? atoi(arg2 + 1) : atoi(arg2);
+                c = atoi(arg3);  // 常量索引
+                *result = CREATE_ABC(op, a, b, c);
+                return 1;
+            }
+            break;
+            
+        // FORPREP 和 FORLOOP 指令 - A Bx 格式 (iABx)
+        case OP_FORPREP:
+        case OP_FORLOOP:
+            if (args >= 3) {
+                int bx = atoi(arg2);  // 跳转偏移量
+                *result = CREATE_ABx(op, a, bx);
+                return 1;
+            }
+            break;
+            
         // AQL 容器指令特殊处理
         case OP_NEWOBJECT:
             if (args >= 4) {
@@ -208,7 +278,13 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
             if (args >= 3) {
                 b = atoi(arg2);  // 返回值数量+1 (Lua风格)
                 c = (args >= 4) ? atoi(arg3) : 0;  // k标志 (可选)
-                *result = CREATE_ABC(op, a, b, c);
+                if (args >= 4 && c != 0) {
+                    // 如果有k位，使用CREATE_ABCk
+                    *result = CREATE_ABCk(op, a, b, 0, c);
+                } else {
+                    // 没有k位，使用CREATE_ABC
+                    *result = CREATE_ABC(op, a, b, c);
+                }
                 return 1;
             }
             break;
@@ -303,7 +379,7 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
                         *result = CREATE_ABx(op, a, bx);
                         return 1;
                     }
-                    break;
+      break;
                     
                 case iAsBx:
                     if (args >= 3) {
@@ -311,7 +387,7 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
                         *result = CREATE_AsBx(op, a, sbx);
                         return 1;
                     }
-                    break;
+      break;
                     
                 case iAx:
                     if (args >= 2) {
@@ -319,10 +395,21 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
                         *result = CREATE_Ax(op, ax);
                         return 1;
                     }
-                    break;
-            }
-            break;
+      break;
+    }
+      break;
     }
     
+    // 如果没有找到对应的指令处理，输出错误信息
+    printf("Error: Unsupported instruction '%s' or invalid arguments\n", opcode);
+    printf("  Instruction: %s\n", opcode);
+    printf("  Arguments: ");
+    if (arg1) printf("'%s' ", arg1);
+    if (arg2) printf("'%s' ", arg2);
+    if (arg3) printf("'%s' ", arg3);
+    if (arg4) printf("'%s' ", arg4);
+    printf("\n");
+    printf("  Expected format: %s\n", get_instruction_format(op));
+    
     return 0; // 解析失败
-}
+} 

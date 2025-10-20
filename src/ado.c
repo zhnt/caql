@@ -18,7 +18,7 @@
 #include "aql.h"
 
 #include "aapi.h"
-#include "adebug_internal.h"
+#include "adebug.h"
 #include "ado.h"
 #include "afunc.h"
 #include "agc.h"
@@ -161,38 +161,38 @@ static void relstack(aql_State *L) {
   CallInfo *ci;
   UpVal *up;
   
-  printf_debug("[DEBUG] relstack: converting pointers to offsets (Lua-style)\n");
+  aql_debug("[DEBUG] relstack: converting pointers to offsets (Lua-style)\n");
   
   /* Convert main stack pointers to offsets - Lua style */
   L->top.offset = savestack(L, L->top.p);
   L->stack_last.offset = savestack(L, L->stack_last.p);
-  printf_debug("[DEBUG] relstack: L->top offset = %ld\n", (long)L->top.offset);
+  aql_debug("[DEBUG] relstack: L->top offset = %ld\n", (long)L->top.offset);
   
   /* Convert CallInfo pointers to offsets - Lua style with safety checks */
   int ci_count = 0;
   for (ci = L->ci; ci != NULL && ci_count < AQL_MAX_CALLINFO_REALLOC; ci = ci->previous, ci_count++) {
     /* Safety check: ensure CallInfo is valid */
     if ((char*)ci < (char*)0x1000 || (char*)ci > (char*)0x7fffffffffff) {
-      printf_debug("[ERROR] relstack: invalid CallInfo pointer %p at index %d\n", (void*)ci, ci_count);
+      aql_debug("[ERROR] relstack: invalid CallInfo pointer %p at index %d\n", (void*)ci, ci_count);
       break;
     }
     
     ci->top.offset = savestack(L, ci->top.p);
     ci->func.offset = savestack(L, ci->func.p);
-    printf_debug("[DEBUG] relstack: ci=%p, top_offset=%ld, func_offset=%ld (count=%d)\n", 
+    aql_debug("[DEBUG] relstack: ci=%p, top_offset=%ld, func_offset=%ld (count=%d)\n", 
                  (void*)ci, (long)ci->top.offset, (long)ci->func.offset, ci_count);
   }
-  printf_debug("[DEBUG] relstack: processed %d CallInfo entries\n", ci_count);
+  aql_debug("[DEBUG] relstack: processed %d CallInfo entries\n", ci_count);
   
   /* Convert upvalue pointers to offsets - Lua style */
   for (up = L->openupval; up != NULL; up = up->u.open.next) {
     if (up->v.p >= s2v(L->stack.p) && up->v.p < s2v(L->stack_last.p)) {
       up->v.offset = savestack(L, (StkId)((char*)up->v.p - offsetof(StackValue, val)));
-      printf_debug("[DEBUG] relstack: upvalue offset = %ld\n", (long)up->v.offset);
+      aql_debug("[DEBUG] relstack: upvalue offset = %ld\n", (long)up->v.offset);
     }
   }
   
-  printf_debug("[DEBUG] relstack: conversion completed\n");
+  aql_debug("[DEBUG] relstack: conversion completed\n");
 }
 
 /*
@@ -202,59 +202,59 @@ static void correctstack(aql_State *L, int newsize) {
   CallInfo *ci;
   UpVal *up;
   
-  printf_debug("[DEBUG] correctstack: converting offsets back to pointers (Lua-style)\n");
+  aql_debug("[DEBUG] correctstack: converting offsets back to pointers (Lua-style)\n");
   
   /* Convert main stack offsets back to pointers - Lua style */
   L->top.p = restorestack(L, L->top.offset);
   L->stack_last.p = restorestack(L, L->stack_last.offset);
-  printf_debug("[DEBUG] correctstack: restored L->top = %p\n", (void*)L->top.p);
+  aql_debug("[DEBUG] correctstack: restored L->top = %p\n", (void*)L->top.p);
   
   /* Convert CallInfo offsets back to pointers - Lua style with safety checks */
   int ci_count = 0;
   for (ci = L->ci; ci != NULL && ci_count < AQL_MAX_CALLINFO_REALLOC; ci = ci->previous, ci_count++) {
     /* Safety check: ensure CallInfo is valid */
     if ((char*)ci < (char*)0x1000 || (char*)ci > (char*)0x7fffffffffff) {
-      printf_debug("[ERROR] correctstack: invalid CallInfo pointer %p at index %d\n", (void*)ci, ci_count);
+      aql_debug("[ERROR] correctstack: invalid CallInfo pointer %p at index %d\n", (void*)ci, ci_count);
       break;
     }
     
     /* Restore stack pointers */
     ci->top.p = restorestack(L, ci->top.offset);
     ci->func.p = restorestack(L, ci->func.offset);
-    printf_debug("[DEBUG] correctstack: restored ci=%p, top=%p, func=%p (count=%d)\n", 
+    aql_debug("[DEBUG] correctstack: restored ci=%p, top=%p, func=%p (count=%d)\n", 
                  (void*)ci, (void*)ci->top.p, (void*)ci->func.p, ci_count);
     
     /* Safety check: ensure restored pointers are reasonable */
     if (ci->top.p < L->stack.p || ci->top.p > L->stack.p + newsize + EXTRA_STACK) {
-      printf_debug("[ERROR] correctstack: restored ci->top %p out of bounds\n", (void*)ci->top.p);
+      aql_debug("[ERROR] correctstack: restored ci->top %p out of bounds\n", (void*)ci->top.p);
     }
     if (ci->func.p < L->stack.p || ci->func.p > L->stack.p + newsize + EXTRA_STACK) {
-      printf_debug("[ERROR] correctstack: restored ci->func %p out of bounds\n", (void*)ci->func.p);
+      aql_debug("[ERROR] correctstack: restored ci->func %p out of bounds\n", (void*)ci->func.p);
     }
   }
-  printf_debug("[DEBUG] correctstack: processed %d CallInfo entries\n", ci_count);
+  aql_debug("[DEBUG] correctstack: processed %d CallInfo entries\n", ci_count);
   
   /* Convert upvalue offsets back to pointers - Lua style with safety */
   int up_count = 0;
   for (up = L->openupval; up != NULL && up_count < AQL_MAX_UPVALUE_REALLOC; up = up->u.open.next, up_count++) {
     /* Safety check: ensure upvalue is valid */
     if ((char*)up < (char*)0x1000 || (char*)up > (char*)0x7fffffffffff) {
-      printf_debug("[ERROR] correctstack: invalid upvalue pointer %p at index %d\n", (void*)up, up_count);
+      aql_debug("[ERROR] correctstack: invalid upvalue pointer %p at index %d\n", (void*)up, up_count);
       break;
     }
     
     if (up->v.offset >= 0 && up->v.offset < (ptrdiff_t)(newsize * sizeof(StackValue))) {
       StkId restored = restorestack(L, up->v.offset);
       up->v.p = s2v(restored);
-      printf_debug("[DEBUG] correctstack: restored upvalue = %p (from offset %ld, count=%d)\n", 
+      aql_debug("[DEBUG] correctstack: restored upvalue = %p (from offset %ld, count=%d)\n", 
                    (void*)up->v.p, (long)up->v.offset, up_count);
     } else {
-      printf_debug("[DEBUG] correctstack: skipping upvalue with invalid offset %ld\n", (long)up->v.offset);
+      aql_debug("[DEBUG] correctstack: skipping upvalue with invalid offset %ld\n", (long)up->v.offset);
     }
   }
-  printf_debug("[DEBUG] correctstack: processed %d upvalue entries\n", up_count);
+  aql_debug("[DEBUG] correctstack: processed %d upvalue entries\n", up_count);
   
-  printf_debug("[DEBUG] correctstack: conversion completed\n");
+  aql_debug("[DEBUG] correctstack: conversion completed\n");
 }
 
 /*
@@ -266,7 +266,7 @@ int aqlD_reallocstack_impl(aql_State *L, int newsize, int raiseerror) {
   StackValue *newstack;
   global_State *g = G(L);
   
-  printf_debug("[DEBUG] reallocstack: starting Lua-style stack reallocation (oldsize=%d, newsize=%d)\n", 
+  aql_debug("[DEBUG] reallocstack: starting Lua-style stack reallocation (oldsize=%d, newsize=%d)\n", 
                oldsize, newsize);
   
   aql_assert(newsize <= AQL_MAXSTACK || newsize == ERRORSTACKSIZE);
@@ -278,18 +278,18 @@ int aqlD_reallocstack_impl(aql_State *L, int newsize, int raiseerror) {
   /* Step 2: Disable emergency GC during reallocation (like Lua) */
   aql_byte old_gcemergency = g->gcemergency;
   g->gcemergency = 1;  /* Stop emergency collection */
-  printf_debug("[DEBUG] reallocstack: disabled emergency GC\n");
+  aql_debug("[DEBUG] reallocstack: disabled emergency GC\n");
   
   /* Step 3: Reallocate stack memory */
   newstack = aqlM_reallocvector(L, L->stack.p, oldsize + EXTRA_STACK, newsize + EXTRA_STACK, StackValue);
   
   /* Step 4: Restore GC state */
   g->gcemergency = old_gcemergency;
-  printf_debug("[DEBUG] reallocstack: restored emergency GC\n");
+  aql_debug("[DEBUG] reallocstack: restored emergency GC\n");
   
   /* Step 5: Handle reallocation failure */
   if (newstack == NULL) {
-    printf_debug("[ERROR] reallocstack: reallocation failed\n");
+    aql_debug("[ERROR] reallocstack: reallocation failed\n");
     correctstack(L, stacksize(L));  /* restore pointers from offsets */
     if (raiseerror) {
       aqlG_runerror(L, "stack overflow");
@@ -306,8 +306,8 @@ int aqlD_reallocstack_impl(aql_State *L, int newsize, int raiseerror) {
   for (; lim < newsize + EXTRA_STACK; lim++)
     setnilvalue(s2v(newstack + lim)); /* erase new segment */
   
-  printf_debug("[DEBUG] reallocstack: Lua-style stack reallocation completed successfully\n");
-  printf_debug("[DEBUG] reallocstack: new stack range: %p to %p (size=%d)\n", 
+  aql_debug("[DEBUG] reallocstack: Lua-style stack reallocation completed successfully\n");
+  aql_debug("[DEBUG] reallocstack: new stack range: %p to %p (size=%d)\n", 
                (void*)L->stack.p, (void*)L->stack_last.p, newsize);
   return 1;  /* success */
 }
@@ -337,7 +337,7 @@ static int aql_calculate_smart_stack_size(aql_State *L, int current_size, int ne
     new_size = needed + 1000;  /* Add safety buffer */
   }
   
-  printf_debug("[DEBUG] Smart growth: depth=%d, old_size=%d, new_size=%d, needed=%d\n", 
+  aql_debug("[DEBUG] Smart growth: depth=%d, old_size=%d, new_size=%d, needed=%d\n", 
                current_depth, current_size, new_size, needed);
   
   return new_size;
@@ -412,7 +412,7 @@ AQL_API void aqlD_inctop(aql_State *L) {
 ** Move results from function call to proper place
 */
 static void moveresults(aql_State *L, StkId res, int nres, int wanted) {
-  printf_debug("[DEBUG] moveresults: res=%p, nres=%d, wanted=%d, L->top=%p\n", 
+  aql_debug("[DEBUG] moveresults: res=%p, nres=%d, wanted=%d, L->top=%p\n", 
                (void*)res, nres, wanted, (void*)L->top.p);
   
   switch (wanted) {
@@ -421,15 +421,15 @@ static void moveresults(aql_State *L, StkId res, int nres, int wanted) {
       return;
     case 1:  /* one value needed */
       if (nres == 0) {  /* no results? */
-        printf_debug("[DEBUG] moveresults: no results, setting nil\n");
+        aql_debug("[DEBUG] moveresults: no results, setting nil\n");
         setnilvalue(s2v(res));  /* adjust with nil */
       } else {  /* at least one result */
         StkId src = L->top.p - nres;
-        printf_debug("[DEBUG] moveresults: moving result from %p to %p\n", (void*)src, (void*)res);
+        aql_debug("[DEBUG] moveresults: moving result from %p to %p\n", (void*)src, (void*)res);
         
         /* Safety check: ensure src is within stack bounds */
         if (src < L->stack.p || src >= L->stack_last.p) {
-          printf_debug("[ERROR] moveresults: src %p out of bounds (stack=%p, stack_last=%p)\n", 
+          aql_debug("[ERROR] moveresults: src %p out of bounds (stack=%p, stack_last=%p)\n", 
                        (void*)src, (void*)L->stack.p, (void*)L->stack_last.p);
           aqlG_runerror(L, "moveresults: source pointer out of bounds");
           return;
@@ -437,29 +437,29 @@ static void moveresults(aql_State *L, StkId res, int nres, int wanted) {
         
         /* Safety check: ensure res is within stack bounds */
         if (res < L->stack.p || res >= L->stack_last.p) {
-          printf_debug("[ERROR] moveresults: res %p out of bounds (stack=%p, stack_last=%p)\n", 
+          aql_debug("[ERROR] moveresults: res %p out of bounds (stack=%p, stack_last=%p)\n", 
                        (void*)res, (void*)L->stack.p, (void*)L->stack_last.p);
           aqlG_runerror(L, "moveresults: result pointer out of bounds");
           return;
         }
         
-        printf_debug("[DEBUG] moveresults: source value type=%d\n", rawtt(s2v(src)));
+        aql_debug("[DEBUG] moveresults: source value type=%d\n", rawtt(s2v(src)));
         
         /* Additional safety check: verify src and res pointers are valid */
         if ((char*)src < (char*)L->stack.p || (char*)src >= (char*)L->stack_last.p) {
-          printf_debug("[ERROR] moveresults: src pointer %p invalid after bounds check\n", (void*)src);
+          aql_debug("[ERROR] moveresults: src pointer %p invalid after bounds check\n", (void*)src);
           aqlG_runerror(L, "moveresults: invalid source pointer");
           return;
         }
         if ((char*)res < (char*)L->stack.p || (char*)res >= (char*)L->stack_last.p) {
-          printf_debug("[ERROR] moveresults: res pointer %p invalid after bounds check\n", (void*)res);
+          aql_debug("[ERROR] moveresults: res pointer %p invalid after bounds check\n", (void*)res);
           aqlG_runerror(L, "moveresults: invalid result pointer");
           return;
         }
         
-        printf_debug("[DEBUG] moveresults: about to call setobj2s(res=%p, src=%p)\n", (void*)res, (void*)src);
+        aql_debug("[DEBUG] moveresults: about to call setobj2s(res=%p, src=%p)\n", (void*)res, (void*)src);
         setobj2s(L, res, s2v(src));  /* move it to proper place */
-        printf_debug("[DEBUG] moveresults: setobj2s completed successfully\n");
+        aql_debug("[DEBUG] moveresults: setobj2s completed successfully\n");
       }
       L->top.p = res + 1;
       return;
@@ -469,12 +469,12 @@ static void moveresults(aql_State *L, StkId res, int nres, int wanted) {
     default:
       if (wanted <= nres) {
         /* move wanted results */
-        printf_debug("[DEBUG] moveresults: moving %d results from L->top-nres=%p to res=%p\n", 
+        aql_debug("[DEBUG] moveresults: moving %d results from L->top-nres=%p to res=%p\n", 
                      wanted, (void*)(L->top.p - nres), (void*)res);
         for (int i = 0; i < wanted; i++) {
           StkId src = L->top.p - nres + i;
           StkId dst = res + i;
-          printf_debug("[DEBUG] moveresults: [%d] moving from %p (type=%d, val=%d) to %p\n", 
+          aql_debug("[DEBUG] moveresults: [%d] moving from %p (type=%d, val=%d) to %p\n", 
                        i, (void*)src, rawtt(s2v(src)), 
                        (ttisinteger(s2v(src)) ? ivalue(s2v(src)) : -999), (void*)dst);
           setobj2s(L, dst, s2v(src));
@@ -498,7 +498,7 @@ static void moveresults(aql_State *L, StkId res, int nres, int wanted) {
 AQL_API int aqlD_poscall(aql_State *L, CallInfo *ci, int nres) {
   int wanted = ci->nresults;
   
-  printf_debug("[DEBUG] aqlD_poscall: ci=%p, nres=%d, wanted=%d\n", (void*)ci, nres, wanted);
+  aql_debug("[DEBUG] aqlD_poscall: ci=%p, nres=%d, wanted=%d\n", (void*)ci, nres, wanted);
   
   /* Move results to proper place */
   moveresults(L, ci->func.p, nres, wanted);
@@ -506,18 +506,18 @@ AQL_API int aqlD_poscall(aql_State *L, CallInfo *ci, int nres) {
   /* CRITICAL: Close upvalues before returning (like Lua) */
   /* This preserves captured variables by copying them from stack to upvalue storage */
   StkId func_base = ci->func.p + 1;  /* base of function being returned from */
-  printf_debug("[DEBUG] aqlD_poscall: closing upvalues at level %p\n", (void*)func_base);
+  aql_debug("[DEBUG] aqlD_poscall: closing upvalues at level %p\n", (void*)func_base);
   aqlF_closeupval(L, func_base);
   
   /* Check if this is the base call (main function) */
   if (ci->previous == NULL) {
-    printf_debug("[DEBUG] aqlD_poscall: base call, returning 1 (exit VM)\n");
+    aql_debug("[DEBUG] aqlD_poscall: base call, returning 1 (exit VM)\n");
     return 1;  /* Exit VM execution */
   }
   
   /* Restore previous CallInfo */
   L->ci = ci->previous;
-  printf_debug("[DEBUG] aqlD_poscall: restored previous CallInfo, returning 0 (continue)\n");
+  aql_debug("[DEBUG] aqlD_poscall: restored previous CallInfo, returning 0 (continue)\n");
   
   /* Continue execution in caller */
   return 0;
@@ -528,7 +528,7 @@ AQL_API int aqlD_poscall(aql_State *L, CallInfo *ci, int nres) {
 */
 AQL_API int aqlD_pretailcall(aql_State *L, CallInfo *ci, StkId func, int narg1, int delta) {
   /* Tail call optimization implementation (based on Lua's luaD_pretailcall) */
-  printf_debug("[DEBUG] aqlD_pretailcall: func=%p, narg1=%d, delta=%d\n", 
+  aql_debug("[DEBUG] aqlD_pretailcall: func=%p, narg1=%d, delta=%d\n", 
                (void*)func, narg1, delta);
   
   /* Check if it's a Lua function */
@@ -538,14 +538,14 @@ AQL_API int aqlD_pretailcall(aql_State *L, CallInfo *ci, StkId func, int narg1, 
     int fsize = p->maxstacksize;  /* frame size */
     int nfixparams = p->numparams;
     
-    printf_debug("[DEBUG] pretailcall: Lua function, fsize=%d, nfixparams=%d, narg1=%d\n", 
+    aql_debug("[DEBUG] pretailcall: Lua function, fsize=%d, nfixparams=%d, narg1=%d\n", 
                  fsize, nfixparams, narg1);
     
     /* Move down function and arguments (like Lua) */
     ci->func.p -= delta;  /* restore 'func' (if vararg) */
     for (int i = 0; i < narg1; i++) {  /* move down function and arguments */
       setobj2s(L, ci->func.p + i, s2v(func + i));
-      printf_debug("[DEBUG] pretailcall: moved func+arg %d from %p to %p\n", 
+      aql_debug("[DEBUG] pretailcall: moved func+arg %d from %p to %p\n", 
                    i, (void*)(func + i), (void*)(ci->func.p + i));
     }
     func = ci->func.p;  /* moved-down function */
@@ -553,7 +553,7 @@ AQL_API int aqlD_pretailcall(aql_State *L, CallInfo *ci, StkId func, int narg1, 
     /* Complete missing arguments with nil (like Lua) */
     for (; narg1 <= nfixparams; narg1++) {
       setnilvalue(s2v(func + narg1));
-      printf_debug("[DEBUG] pretailcall: set nil for missing arg %d\n", narg1);
+      aql_debug("[DEBUG] pretailcall: set nil for missing arg %d\n", narg1);
     }
     
     /* Update call info for new function with safety buffer */
@@ -563,13 +563,13 @@ AQL_API int aqlD_pretailcall(aql_State *L, CallInfo *ci, StkId func, int narg1, 
     ci->callstatus |= CIST_TAIL;  /* Mark as tail call - CRITICAL for TCO */
     L->top.p = func + narg1;  /* set top */
     
-    printf_debug("[DEBUG] pretailcall: tail call optimized, reusing CallInfo (no stack growth)\n");
-    printf_debug("[DEBUG] pretailcall: ci->callstatus=0x%x, CIST_TAIL=%d\n", 
+    aql_debug("[DEBUG] pretailcall: tail call optimized, reusing CallInfo (no stack growth)\n");
+    aql_debug("[DEBUG] pretailcall: ci->callstatus=0x%x, CIST_TAIL=%d\n", 
                  ci->callstatus, (ci->callstatus & CIST_TAIL) ? 1 : 0);
     return -1;  /* Lua function, continue execution without new CallInfo */
   } else {
     /* C function - not optimized for now */
-    printf_debug("[DEBUG] pretailcall: C function, no optimization\n");
+    aql_debug("[DEBUG] pretailcall: C function, no optimization\n");
     return 0;
   }
 }
@@ -608,22 +608,22 @@ AQL_API CallInfo *aqlD_precall(aql_State *L, StkId func, int nResults) {
     Proto *p = cl->p;
     int n = cast_int(L->top.p - func) - 1;  /* number of arguments */
     
-    printf_debug("[DEBUG] aqlD_precall: AQL function, proto=%p, code=%p, nargs=%d, numparams=%d\n", 
+    aql_debug("[DEBUG] aqlD_precall: AQL function, proto=%p, code=%p, nargs=%d, numparams=%d\n", 
                  (void*)p, (void*)p->code, n, p->numparams);
-    printf_debug("[DEBUG] aqlD_precall: p->maxstacksize=%d, func=%p, L->top=%p, L->stack_last=%p\n",
+    aql_debug("[DEBUG] aqlD_precall: p->maxstacksize=%d, func=%p, L->top=%p, L->stack_last=%p\n",
                  p->maxstacksize, (void*)func, (void*)L->top.p, (void*)L->stack_last.p);
     
     /* Check stack overflow and handle with dynamic stack growth */
     if (L->top.p + p->maxstacksize > L->stack_last.p) {
-      printf_debug("[DEBUG] aqlD_precall: stack overflow detected at depth %d\n", L->nCcalls);
+      aql_debug("[DEBUG] aqlD_precall: stack overflow detected at depth %d\n", L->nCcalls);
       
       /* Calculate needed stack space */
       int needed = cast_int((L->top.p + p->maxstacksize) - L->stack_last.p) + EXTRA_STACK;
-      printf_debug("[DEBUG] aqlD_precall: attempting stack growth, needed=%d\n", needed);
+      aql_debug("[DEBUG] aqlD_precall: attempting stack growth, needed=%d\n", needed);
       
       /* Attempt stack reallocation (fixed upvalue bug enables this) */
       if (!aqlD_growstack(L, needed, 0)) {
-        printf_debug("[DEBUG] aqlD_precall: failed to grow stack, aborting\n");
+        aql_debug("[DEBUG] aqlD_precall: failed to grow stack, aborting\n");
         aqlG_runerror(L, "stack overflow - unable to allocate memory");
         return NULL;
       }
@@ -632,8 +632,8 @@ AQL_API CallInfo *aqlD_precall(aql_State *L, StkId func, int nResults) {
       func = restorestack(L, func_offset);
       f = s2v(func);  /* Update f pointer as well */
       
-      printf_debug("[DEBUG] aqlD_precall: stack grown successfully to %d elements\n", stacksize(L));
-      printf_debug("[DEBUG] aqlD_precall: restored func pointer to %p after reallocation\n", (void*)func);
+      aql_debug("[DEBUG] aqlD_precall: stack grown successfully to %d elements\n", stacksize(L));
+      aql_debug("[DEBUG] aqlD_precall: restored func pointer to %p after reallocation\n", (void*)func);
     }
     
     /* Adjust arguments to match parameters */
@@ -644,7 +644,7 @@ AQL_API CallInfo *aqlD_precall(aql_State *L, StkId func, int nResults) {
     /* CRITICAL: Copy arguments to the correct positions for the function */
     /* Arguments are currently at func+1, func+2, ... func+n */
     /* They need to stay there because base will be set to func+1 */
-    printf_debug("[DEBUG] aqlD_precall: arguments already in correct position at func+1 to func+%d\n", n);
+    aql_debug("[DEBUG] aqlD_precall: arguments already in correct position at func+1 to func+%d\n", n);
     
     /* Create new CallInfo for the function */
     CallInfo *ci = aqlE_extendCI(L);
@@ -654,26 +654,26 @@ AQL_API CallInfo *aqlD_precall(aql_State *L, StkId func, int nResults) {
     /* Set stack top with safety buffer for compiler register allocation issues */
     int safe_stacksize = p->maxstacksize + AQL_FUNCTION_STACK_SAFETY;  /* Add safety buffer for complex functions */
     ci->top.p = func + 1 + safe_stacksize;
-    printf_debug("[DEBUG] aqlD_precall: setting ci->top with maxstacksize=%d + safety=%d = %d\n",
+    aql_debug("[DEBUG] aqlD_precall: setting ci->top with maxstacksize=%d + safety=%d = %d\n",
                  p->maxstacksize, AQL_FUNCTION_STACK_SAFETY, safe_stacksize);
-    printf_debug("[DEBUG] aqlD_precall: ci->top=%p, func=%p, func+1=%p\n",
+    aql_debug("[DEBUG] aqlD_precall: ci->top=%p, func=%p, func+1=%p\n",
                  (void*)ci->top.p, (void*)func, (void*)(func + 1));
     
     /* Ensure we have enough stack space for the safety buffer */
     if (ci->top.p > L->stack_last.p) {
-      printf_debug("[DEBUG] aqlD_precall: need more stack space for safety buffer\n");
+      aql_debug("[DEBUG] aqlD_precall: need more stack space for safety buffer\n");
       int additional_needed = cast_int(ci->top.p - L->stack_last.p) + EXTRA_STACK;
       if (aqlD_growstack(L, additional_needed, 0)) {
         /* Restore func pointer after potential stack reallocation */
         func = restorestack(L, func_offset);
         ci->func.p = func;
         ci->top.p = func + 1 + safe_stacksize;
-        printf_debug("[DEBUG] aqlD_precall: stack grown for safety buffer, new ci->top=%p\n", 
+        aql_debug("[DEBUG] aqlD_precall: stack grown for safety buffer, new ci->top=%p\n", 
                      (void*)ci->top.p);
       } else {
         /* Fallback: use original maxstacksize */
         ci->top.p = func + 1 + p->maxstacksize;
-        printf_debug("[DEBUG] aqlD_precall: using original maxstacksize, ci->top=%p\n", 
+        aql_debug("[DEBUG] aqlD_precall: using original maxstacksize, ci->top=%p\n", 
                      (void*)ci->top.p);
       }
     }
@@ -687,7 +687,7 @@ AQL_API CallInfo *aqlD_precall(aql_State *L, StkId func, int nResults) {
     /* Adjust L->ci to point to new CallInfo */
     L->ci = ci;
     
-    printf_debug("[DEBUG] aqlD_precall: AQL function CallInfo set up, func=%p, base will be %p\n", 
+    aql_debug("[DEBUG] aqlD_precall: AQL function CallInfo set up, func=%p, base will be %p\n", 
                  (void*)func, (void*)(func + 1));
     return ci;  /* Return new CallInfo for AQL function */
   } else if (ttisCclosure(f)) {
@@ -800,27 +800,27 @@ struct ExecuteS {  /* data for protected execution */
 };
 
 static void f_execute(aql_State *L, void *ud) {
-  printf_debug("[DEBUG] f_execute: entering\n");
+  aql_debug("[DEBUG] f_execute: entering\n");
   
   struct ExecuteS *e = cast(struct ExecuteS *, ud);
   
   if (!L) {
-    printf_debug("[ERROR] f_execute: L is NULL\n");
+    aql_debug("[ERROR] f_execute: L is NULL\n");
     aqlD_throw(L, AQL_ERRRUN);
   }
   
   if (!L->ci) {
-    printf_debug("[ERROR] f_execute: L->ci is NULL\n");
+    aql_debug("[ERROR] f_execute: L->ci is NULL\n");
     aqlD_throw(L, AQL_ERRRUN);
   }
   
   if (!L->ci->func.p) {
-    printf_debug("[ERROR] f_execute: L->ci->func is NULL\n");
+    aql_debug("[ERROR] f_execute: L->ci->func is NULL\n");
     aqlD_throw(L, AQL_ERRRUN);
   }
   
   if (L->top.p <= L->ci->func.p) {
-    printf_debug("[ERROR] f_execute: L->top <= L->ci->func\n");
+    aql_debug("[ERROR] f_execute: L->top <= L->ci->func\n");
     aqlD_throw(L, AQL_ERRRUN);
   }
   
@@ -839,43 +839,43 @@ static void f_execute(aql_State *L, void *ud) {
   LClosure *cl = clLvalue(func_val);
   
   /* Initialize _ENV upvalue with global dictionary (like Lua does) */
-  printf_debug("[DEBUG] f_execute: cl->nupvalues=%d\n", cl->nupvalues);
-  printf_debug("[DEBUG] f_execute: TEMPORARILY SKIPPING _ENV initialization to isolate crash\n");
+  aql_debug("[DEBUG] f_execute: cl->nupvalues=%d\n", cl->nupvalues);
+  aql_debug("[DEBUG] f_execute: TEMPORARILY SKIPPING _ENV initialization to isolate crash\n");
   
   /* Set up the call frame */
-  printf_debug("[DEBUG] f_execute: setting up call frame\n");
+  aql_debug("[DEBUG] f_execute: setting up call frame\n");
   ci->func.p = L->top.p - 1;  /* Function is at top - 1 */
   ci->u.l.savedpc = cl->p->code;  /* Start at beginning of code */
-  printf_debug("[DEBUG] f_execute: call frame set up, func=%p, savedpc=%p\n", (void*)ci->func.p, (void*)ci->u.l.savedpc);
+  aql_debug("[DEBUG] f_execute: call frame set up, func=%p, savedpc=%p\n", (void*)ci->func.p, (void*)ci->u.l.savedpc);
   
   /* Adjust stack for function call with safety buffer */
-  printf_debug("[DEBUG] f_execute: adjusting stack for function call\n");
+  aql_debug("[DEBUG] f_execute: adjusting stack for function call\n");
   
   /* Set ci->top with safety buffer for main function */
   int main_safe_stacksize = cl->p->maxstacksize + AQL_FUNCTION_STACK_SAFETY;
   ci->top.p = ci->func.p + 1 + main_safe_stacksize;
-  printf_debug("[DEBUG] f_execute: main function maxstacksize=%d + safety=%d = %d\n",
+  aql_debug("[DEBUG] f_execute: main function maxstacksize=%d + safety=%d = %d\n",
                cl->p->maxstacksize, AQL_FUNCTION_STACK_SAFETY, main_safe_stacksize);
-  printf_debug("[DEBUG] f_execute: set ci->top=%p for main function\n", (void*)ci->top.p);
+  aql_debug("[DEBUG] f_execute: set ci->top=%p for main function\n", (void*)ci->top.p);
   
   /* Ensure we have enough stack space */
   if (ci->top.p > L->stack_last.p) {
-    printf_debug("[DEBUG] f_execute: need to grow stack for main function\n");
+    aql_debug("[DEBUG] f_execute: need to grow stack for main function\n");
     int needed = cast_int(ci->top.p - L->stack_last.p) + EXTRA_STACK;
     if (aqlD_growstack(L, needed, 1)) {
       /* Recalculate pointers after stack growth */
       ci->func.p = L->top.p - 1;
       ci->top.p = ci->func.p + 1 + main_safe_stacksize;
-      printf_debug("[DEBUG] f_execute: stack grown, new ci->top=%p\n", (void*)ci->top.p);
+      aql_debug("[DEBUG] f_execute: stack grown, new ci->top=%p\n", (void*)ci->top.p);
     }
   }
   
   L->top.p = ci->func.p + 1 + e->nargs;  /* func + args */
   
   /* Call the virtual machine */
-  printf_debug("[DEBUG] f_execute: calling aqlV_execute\n");
+  aql_debug("[DEBUG] f_execute: calling aqlV_execute\n");
   int status = aqlV_execute(L, ci);
-  printf_debug("[DEBUG] f_execute: aqlV_execute returned status=%d\n", status);
+  aql_debug("[DEBUG] f_execute: aqlV_execute returned status=%d\n", status);
   if (status != 1) {  /* execution failed? */
     aqlD_throw(L, AQL_ERRRUN);
   }

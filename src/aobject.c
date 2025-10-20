@@ -18,6 +18,7 @@
 #include "aconf.h"
 #include "aobject.h"
 #include "astate.h"
+#include "adebug.h"
 
 /* Temporary math function implementations */
 static aql_Number aql_numpow(aql_State *L, aql_Number v1, aql_Number v2) {
@@ -318,9 +319,11 @@ static const char *l_str2int (const char *s, aql_Integer *result) {
 ** Main string to number conversion function
 */
 size_t aqlO_str2num (const char *s, TValue *o) {
+  aql_debug("AQLO_STR2NUM: 开始转换字符串 '%s'", s ? s : "(null)");
   aql_Integer i; aql_Number n;
   const char *e;
   if ((e = l_str2int(s, &i)) != NULL) {  /* try as an integer */
+    aql_debug("AQLO_STR2NUM: 整数转换成功，值=%ld", (long)i);
     setivalue(o, i);
   }
   else if ((e = l_str2d(s, &n)) != NULL) {  /* else try as a float */

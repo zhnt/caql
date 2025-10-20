@@ -1,0 +1,15 @@
+# while 循环简单测试
+# 测试 while 循环的基本指令序列：JMP, LTI, 条件跳转
+# 简单的 while 循环：while i < 5 do i = i + 1 end
+# 期望结果: 5
+# 参考 luac -l 生成的字节码
+
+.code
+LOADI R0, 0          # i = 0
+LTI R0, 5, 0         # if i < 5 then skip next JMP (continue loop)
+JMP 3                # if i >= 5, jump to RETURN1 (exit loop)
+ADDI R0, R0, 1       # i = i + 1 (loop body)
+MMBINI R0, 1, 6, 0   # 如果ADDI失败，用元方法：R0 = R0 + 1, TM_ADD=6
+JMP -5               # jump back to condition check (LTI instruction)
+RETURN1 R0           # return i (should be 5)
+.end

@@ -12,7 +12,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#include "adebug_internal.h"
+#include "adebug.h"
 #include "ado.h"
 #include "afunc.h"
 #include "agc.h"
@@ -51,7 +51,7 @@ void aqlF_initupvals (aql_State *L, LClosure *cl) {
     uv->v.p = &uv->u.value;  /* make it closed */
     setnilvalue(uv->v.p);
     cl->upvals[i] = uv;
-    /* TODO: implement proper GC barrier for UpVal */
+    /* TODO: implement proper GC barrier for UpVal when agc is ready */
     /* aqlC_objbarrier(L, cl, uv); */
     (void)L; /* avoid warning */
   }
@@ -87,25 +87,25 @@ static UpVal *newupval (aql_State *L, StkId level, UpVal **prev) {
 UpVal *aqlF_findupval (aql_State *L, StkId level) {
   UpVal **pp = &L->openupval;
   UpVal *p;
-  printf_debug("[DEBUG] aqlF_findupval: looking for level=%p, value_type=%d\n", 
+  aql_debug("[DEBUG] aqlF_findupval: looking for level=%p, value_type=%d\n", 
                (void*)level, ttype(s2v(level)));
   if (ttisinteger(s2v(level))) {
-    printf_debug("[DEBUG] aqlF_findupval: level points to integer %lld\n", 
+    aql_debug("[DEBUG] aqlF_findupval: level points to integer %lld\n", 
                  (long long)ivalue(s2v(level)));
   }
   aql_assert(isintwups(L) || L->openupval == NULL);
   while ((p = *pp) != NULL && uplevel(p) >= level) {  /* search for it */
     aql_assert(!isdead(G(L), p));
     if (uplevel(p) == level) {  /* corresponding upvalue? */
-      printf_debug("[DEBUG] aqlF_findupval: found existing upvalue %p\n", (void*)p);
+      aql_debug("[DEBUG] aqlF_findupval: found existing upvalue %p\n", (void*)p);
       return p;  /* return it */
     }
     pp = &p->u.open.next;
   }
   /* not found: create a new upvalue after 'pp' */
-  printf_debug("[DEBUG] aqlF_findupval: creating new upvalue for level=%p\n", (void*)level);
+  aql_debug("[DEBUG] aqlF_findupval: creating new upvalue for level=%p\n", (void*)level);
   UpVal *new_uv = newupval(L, level, pp);
-  printf_debug("[DEBUG] aqlF_findupval: created upvalue %p pointing to %p\n", 
+  aql_debug("[DEBUG] aqlF_findupval: created upvalue %p pointing to %p\n", 
                (void*)new_uv, (void*)level);
   return new_uv;
 }
@@ -157,16 +157,7 @@ static void checkclosemth (aql_State *L, StkId level) {
 ** won't be used again.
 */
 static void prepcallclosemth (aql_State *L, StkId level, int status, int yy) {
-  /* TODO: implement close method support */
-  /* TValue *uv = s2v(level); */
-  /* TValue *errobj; */
-  /* if (status == CLOSEKTOP)
-    errobj = &G(L)->nilvalue;
-  else {
-    errobj = s2v(level + 1);
-    aqlD_seterrorobj(L, status, level + 1);
-  }
-  callclosemethod(L, uv, errobj, yy); */
+  /* TODO: implement close method support when needed */
   (void)L; (void)level; (void)status; (void)yy; /* avoid warnings */
 }
 
@@ -184,17 +175,7 @@ static void prepcallclosemth (aql_State *L, StkId level, int status, int yy) {
 ** Insert a variable in the list of to-be-closed variables.
 */
 void aqlF_newtbcupval (aql_State *L, StkId level) {
-  /* TODO: implement to-be-closed variables support */
-  /* aql_assert(level > L->tbclist.p);
-  if (l_isfalse(s2v(level)))
-    return;
-  checkclosemth(L, level);
-  while (cast_uint(level - L->tbclist.p) > MAXDELTA) {
-    L->tbclist.p += MAXDELTA;
-    L->tbclist.p->tbclist.delta = 0;
-  }
-  level->tbclist.delta = cast(unsigned short, level - L->tbclist.p);
-  L->tbclist.p = level; */
+  /* TODO: implement to-be-closed variables support when needed */
   (void)L; (void)level; /* avoid warnings */
 }
 
@@ -213,29 +194,30 @@ void aqlF_unlinkupval (UpVal *uv) {
 void aqlF_closeupval (aql_State *L, StkId level) {
   UpVal *uv;
   StkId upl;  /* stack index pointed by 'uv' */
-  printf_debug("[DEBUG] aqlF_closeupval: closing upvalues >= level %p\n", (void*)level);
+  aql_debug("[DEBUG] aqlF_closeupval: closing upvalues >= level %p\n", (void*)level);
   int closed_count = 0;
   while ((uv = L->openupval) != NULL && (upl = uplevel(uv)) >= level) {
     TValue *slot = &uv->u.value;  /* new position for value */
-    printf_debug("[DEBUG] aqlF_closeupval: closing upvalue %p, stack_pos=%p, value_type=%d\n", 
+    aql_debug("[DEBUG] aqlF_closeupval: closing upvalue %p, stack_pos=%p, value_type=%d\n", 
                  (void*)uv, (void*)upl, ttype(uv->v.p));
     if (ttisinteger(uv->v.p)) {
-      printf_debug("[DEBUG] aqlF_closeupval: copying integer %lld from stack to upvalue\n", 
+      aql_debug("[DEBUG] aqlF_closeupval: copying integer %lld from stack to upvalue\n", 
                    (long long)ivalue(uv->v.p));
     }
     aql_assert(uplevel(uv) < L->top.p);
     aqlF_unlinkupval(uv);  /* remove upvalue from 'openupval' list */
     setobj(L, slot, uv->v.p);  /* move value to upvalue slot */
     uv->v.p = slot;  /* now current value lives here */
-    printf_debug("[DEBUG] aqlF_closeupval: upvalue %p now points to internal storage, value_type=%d\n", 
+    aql_debug("[DEBUG] aqlF_closeupval: upvalue %p now points to internal storage, value_type=%d\n", 
                  (void*)uv, ttype(slot));
     if (!iswhite(uv)) {  /* neither white nor dead? */
       nw2black(uv);  /* closed upvalues cannot be gray */
-      aqlC_barrier_(L, obj2gco(uv), obj2gco(slot));
+      /* TODO: implement GC barrier when agc is ready */
+      /* aqlC_barrier(L, uv, slot); */
     }
     closed_count++;
   }
-  printf_debug("[DEBUG] aqlF_closeupval: closed %d upvalues\n", closed_count);
+  aql_debug("[DEBUG] aqlF_closeupval: closed %d upvalues\n", closed_count);
 }
 
 
@@ -243,13 +225,7 @@ void aqlF_closeupval (aql_State *L, StkId level) {
 ** Remove first element from the tbclist plus its dummy nodes.
 */
 static void poptbclist (aql_State *L) {
-  /* TODO: implement to-be-closed variables support */
-  /* StkId tbc = L->tbclist.p;
-  aql_assert(tbc->tbclist.delta > 0);
-  tbc -= tbc->tbclist.delta;
-  while (tbc > L->stack && tbc->tbclist.delta == 0)
-    tbc -= MAXDELTA;
-  L->tbclist.p = tbc; */
+  /* TODO: implement to-be-closed variables support when needed */
   (void)L; /* avoid warnings */
 }
 
@@ -259,19 +235,18 @@ static void poptbclist (aql_State *L) {
 ** level. Return restored 'level'.
 */
 StkId aqlF_close (aql_State *L, StkId level, int status, int yy) {
-  /* TODO: implement to-be-closed variables support */
-  ptrdiff_t levelrel = ((char *)(level) - (char *)L->stack.p);  /* Expanded savestack macro */
+  ptrdiff_t levelrel = savestack(L, level);
   aqlF_closeupval(L, level);  /* first, close the upvalues */
-  /* TODO: implement to-be-closed variables support
-  while (L->tbclist >= level) {
-    StkId tbc = L->tbclist;
+  /* TODO: implement to-be-closed variables support when needed
+  while (L->tbclist.p >= level) {
+    StkId tbc = L->tbclist.p;
     poptbclist(L);
     prepcallclosemth(L, tbc, status, yy);
-    level = ((StkId)((char *)L->stack.p + (levelrel)));
+    level = restorestack(L, levelrel);
   }
   */
-  (void)status; (void)yy; (void)levelrel; /* avoid warnings */
-  return level;
+  (void)status; (void)yy; /* avoid warnings */
+  return restorestack(L, levelrel);
 }
 
 

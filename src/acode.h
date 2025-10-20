@@ -32,6 +32,7 @@ typedef enum BinOpr BinOpr;
 */
 AQL_API int aqlK_code(FuncState *fs, Instruction i);
 AQL_API int aqlK_codeABC(FuncState *fs, OpCode o, int a, int b, int c);
+AQL_API int aqlK_codeABCk(FuncState *fs, OpCode o, int a, int b, int c, int k);
 AQL_API int aqlK_codeABx(FuncState *fs, OpCode o, int a, unsigned int bx);
 AQL_API int aqlK_codeAsBx(FuncState *fs, OpCode o, int a, int bx);
 AQL_API int aqlK_codeAx(FuncState *fs, OpCode o, unsigned int ax);
@@ -40,6 +41,7 @@ AQL_API void aqlK_fixline(FuncState *fs, int line);
 AQL_API void aqlK_nil(FuncState *fs, int from, int n);
 AQL_API int aqlK_jump(FuncState *fs);
 AQL_API int aqlK_ret(FuncState *fs, int first, int nret);
+AQL_API int aqlK_retk(FuncState *fs, int first, int nret, int k);
 AQL_API void aqlK_patchlist(FuncState *fs, int list, int target);
 AQL_API void aqlK_patchtohere(FuncState *fs, int list);
 AQL_API void aqlK_concat(FuncState *fs, int *l1, int l2);
