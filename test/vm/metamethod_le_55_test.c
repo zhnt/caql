@@ -24,16 +24,25 @@ static int table_rank(const TValue *o) {
   return (int)ivalue(rank);
 }
 
-static int lt_by_rank(aql_State *L) {
-  const TValue *lhs = s2v(L->top.p - 2);
-  const TValue *rhs = s2v(L->top.p - 1);
-  setbvalue(s2v(L->top.p), table_rank(lhs) < table_rank(rhs));
+static int lt_call_count = 0;
+
+static int lt_must_not_be_called(aql_State *L) {
+  lt_call_count++;
+  setbtvalue(s2v(L->top.p));
   L->top.p++;
   return 1;
 }
 
 static int le_always_false(aql_State *L) {
   setbfvalue(s2v(L->top.p));
+  L->top.p++;
+  return 1;
+}
+
+static int le_by_rank(aql_State *L) {
+  const TValue *lhs = s2v(L->top.p - 2);
+  const TValue *rhs = s2v(L->top.p - 1);
+  setbvalue(s2v(L->top.p), table_rank(lhs) <= table_rank(rhs));
   L->top.p++;
   return 1;
 }
@@ -77,25 +86,34 @@ int main(void) {
   }
 
   Table *lt_only_mt = aqlH_new(L);
-  set_tm(L, lt_only_mt, TM_LT, lt_by_rank);
+  set_tm(L, lt_only_mt, TM_LT, lt_must_not_be_called);
   sethvalue(L, &lhs, new_ranked_table(L, lt_only_mt, 1));
   sethvalue(L, &rhs, new_ranked_table(L, lt_only_mt, 2));
-  ok &= assert_int("__le fallback accepts lower lhs",
-                   aqlV_lessequal(L, &lhs, &rhs), 1);
-  ok &= assert_int("__le fallback rejects higher lhs",
-                   aqlV_lessequal(L, &rhs, &lhs), 0);
+  ok &= assert_int("Lua 5.5 <= does not fall back to __lt",
+                   aqlV_lessequal(L, &lhs, &rhs), 0);
+  ok &= assert_int("__lt was not called for <=",
+                   lt_call_count, 0);
 
   Table *le_preferred_mt = aqlH_new(L);
-  set_tm(L, le_preferred_mt, TM_LT, lt_by_rank);
+  set_tm(L, le_preferred_mt, TM_LT, lt_must_not_be_called);
   set_tm(L, le_preferred_mt, TM_LE, le_always_false);
   sethvalue(L, &lhs, new_ranked_table(L, le_preferred_mt, 1));
   sethvalue(L, &rhs, new_ranked_table(L, le_preferred_mt, 2));
-  ok &= assert_int("__le is preferred over __lt fallback",
+  ok &= assert_int("__le is used directly",
                    aqlV_lessequal(L, &lhs, &rhs), 0);
+
+  Table *le_rank_mt = aqlH_new(L);
+  set_tm(L, le_rank_mt, TM_LE, le_by_rank);
+  sethvalue(L, &lhs, new_ranked_table(L, le_rank_mt, 1));
+  sethvalue(L, &rhs, new_ranked_table(L, le_rank_mt, 2));
+  ok &= assert_int("__le accepts lower lhs",
+                   aqlV_lessequal(L, &lhs, &rhs), 1);
+  ok &= assert_int("__le rejects higher lhs",
+                   aqlV_lessequal(L, &rhs, &lhs), 0);
 
   aql_close(L);
   if (ok) {
-    puts("metamethod_le_fallback_test passed");
+    puts("metamethod_le_55_test passed");
     return 0;
   }
   return 1;

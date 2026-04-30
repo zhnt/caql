@@ -91,7 +91,7 @@ PROBLEM_SOURCES = \
 HEADERS = $(wildcard $(SRC_DIR)/*.h)
 
 # Default target
-.PHONY: all both debug release aqlm clean dirs test test_metamethod_le_fallback test_phase1 test_phase2 test_phase3 test_phase4
+.PHONY: all both debug release aqlm clean dirs test test_metamethod_le_55 test_phase1 test_phase2 test_phase3 test_phase4
 
 all: both
 
@@ -158,14 +158,14 @@ test: debug
 	@echo "Running AQL debug test..."
 	./$(TARGET_DEBUG) --test
 
-METAMETHOD_LE_FALLBACK_TEST = $(BIN_DIR)/test/metamethod_le_fallback_test
+METAMETHOD_LE_55_TEST = $(BIN_DIR)/test/metamethod_le_55_test
 
-test_metamethod_le_fallback: $(METAMETHOD_LE_FALLBACK_TEST)
-	@echo "Running metamethod <= fallback test..."
-	@./$(METAMETHOD_LE_FALLBACK_TEST)
+test_metamethod_le_55: $(METAMETHOD_LE_55_TEST)
+	@echo "Running Lua 5.5 metamethod <= test..."
+	@./$(METAMETHOD_LE_55_TEST)
 
-$(METAMETHOD_LE_FALLBACK_TEST): $(TEST_DIR)/vm/metamethod_le_fallback_test.c $(VM_SOURCES) | dirs
-	@echo "Building metamethod <= fallback test..."
+$(METAMETHOD_LE_55_TEST): $(TEST_DIR)/vm/metamethod_le_55_test.c $(VM_SOURCES) | dirs
+	@echo "Building Lua 5.5 metamethod <= test..."
 	@mkdir -p $(BIN_DIR)/test
 	$(CC) $(DEBUG_CFLAGS) $< $(VM_SOURCES) -o $@ $(LDFLAGS)
 

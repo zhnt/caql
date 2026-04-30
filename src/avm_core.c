@@ -626,22 +626,6 @@ static int lessequalothers (aql_State *L, const TValue *l, const TValue *r) {
   aql_assert(!ttisnumber(l) || !ttisnumber(r));
   if (ttisstring(l) && ttisstring(r))  /* both are strings? */
     return l_strcmp(tsvalue(l), tsvalue(r)) <= 0;
-  if (L == NULL)
-    return aqlG_ordererror(L, l, r);
-  const TValue *tm = aqlT_gettmbyobj(L, l, TM_LE);
-  if (notm(tm)) {
-    tm = aqlT_gettmbyobj(L, r, TM_LE);
-  }
-  if (notm(tm)) {
-    const TValue *lt_tm = aqlT_gettmbyobj(L, l, TM_LT);
-    if (notm(lt_tm)) {
-      lt_tm = aqlT_gettmbyobj(L, r, TM_LT);
-    }
-    if (notm(lt_tm)) {
-      return aqlG_ordererror(L, l, r);
-    }
-    return !aqlT_callorderTM(L, r, l, TM_LT);
-  }
   else
     return aqlT_callorderTM(L, l, r, TM_LE);
 }
