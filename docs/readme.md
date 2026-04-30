@@ -69,7 +69,7 @@ agent DataScientist {
 ## 🔗 相关文档
 
 - [AQL 需求文档](../req.md) - 项目需求规范
-- [Lua 核心数据结构文档](../lua548/doc/lua_core_data_structures.md) - Lua 参考实现
+- [Lua 5.5 对齐原则](lua55-alignment.md) - VM 基线与 AQL 扩展边界
 - [栈帧设计文档](stackframe-design.md) - VM 栈帧设计
 
 ---
