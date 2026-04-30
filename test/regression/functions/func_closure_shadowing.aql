@@ -1,0 +1,14 @@
+function make_reader(x) {
+    let reader = function() {
+        return x
+    }
+    if 1 {
+        let x = 99
+        print(x)
+    }
+    print(reader())
+    return reader
+}
+
+let reader = make_reader(7)
+print(reader())

@@ -182,8 +182,39 @@ static const TValue aqlO_nilobject_ = {{NULL}, AQL_VNIL};
   checkliveness(L,io); } while(0)
 #define aqlC_barrier    aqlC_barrier_
 #define aql_threadyield(L) ((void)0)  /* 空操作 */
-#define aqlT_getvarargs(L,ci,ra,n) ((void)0)  /* 空操作 */
 #define aqlT_adjustvarargs(L,nfixparams,ci,p) ((void)0)  /* 空操作 */
+
+static void aqlT_getvarargs (aql_State *L, CallInfo *ci, StkId ra, int n) {
+  LClosure *cl = clLvalue(s2v(ci->func.p));
+  Proto *p = cl->p;
+  int nextra = ci->u.l.nextraargs;
+  StkId vararg = ci->func.p + 1 + p->numparams;
+
+  if (n == 1) {
+    AQL_ContainerBase *args = acontainer_new(L, CONTAINER_ARRAY,
+                                             AQL_DATA_TYPE_ANY, nextra);
+    if (args == NULL) {
+      aqlG_runerror(L, "cannot allocate varargs array");
+      return;
+    }
+    for (int i = 0; i < nextra; i++)
+      acontainer_array_set(L, args, (size_t)i, s2v(vararg + i));
+    setcontainervalue(L, s2v(ra), args);
+    return;
+  }
+
+  if (n < 0)
+    n = nextra;
+  for (int i = 0; i < n; i++) {
+    if (i < nextra) {
+      setobjs2s(L, ra + i, vararg + i);
+    }
+    else {
+      setnilvalue(s2v(ra + i));
+    }
+  }
+  L->top.p = ra + n;
+}
 
 /*
 ** aql 兼容的类型转换函数
@@ -675,6 +706,29 @@ int aqlV_equalobj (aql_State *L, const TValue *t1, const TValue *t2) {
 
 #define isemptystr(o)  (ttisshrstring(o) && tsvalue(o)->shrlen == 0)
 
+static int value_to_string_value(aql_State *L, const TValue *src, TValue *dst) {
+  if (ttisstring(src)) {
+    setobj(L, dst, src);
+  } else if (ttisinteger(src)) {
+    char buffer[32];
+    snprintf(buffer, sizeof(buffer), "%lld", (long long)ivalue(src));
+    setsvalue(L, dst, aqlStr_new(L, buffer));
+  } else if (ttisfloat(src)) {
+    char buffer[32];
+    snprintf(buffer, sizeof(buffer), "%.14g", fltvalue(src));
+    setsvalue(L, dst, aqlStr_new(L, buffer));
+  } else if (ttisboolean(src)) {
+    setsvalue(L, dst, aqlStr_new(L, bvalue(src) ? "true" : "false"));
+  } else if (ttisnil(src)) {
+    setsvalue(L, dst, aqlStr_new(L, "nil"));
+  } else {
+    char buffer[32];
+    snprintf(buffer, sizeof(buffer), "(type %d)", ttype(src));
+    setsvalue(L, dst, aqlStr_new(L, buffer));
+  }
+  return ttisstring(dst);
+}
+
 /* copy strings in stack from top - n up to top - 1 to buffer */
 static void copy2buff (aql_State *L, StkId top, int n, char *buff) {
   size_t tl = 0;  /* size already copied */
@@ -738,6 +792,11 @@ void aqlV_concat (aql_State *L, int total) {
 */
 void aqlV_objlen (aql_State *L, StkId ra, const TValue *rb) {
   const TValue *tm;
+  if (ttiscontainer(rb)) {
+    AQL_ContainerBase *container = containervalue(rb);
+    setivalue(s2v(ra), l_castU2S(container->length));
+    return;
+  }
   switch (ttypetag(rb)) {
     case AQL_VTABLE: {
       Table *h = hvalue(rb);
@@ -2215,8 +2274,13 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
         TMS tm = TM_ADD;
         TValue *v1 = vRB(i);
         TValue *v2 = vRC(i);
-        if (ttisstring(v1) && ttisstring(v2)) {
-          TString *result = aqlStr_concat(L, tsvalue(v1), tsvalue(v2));
+        if (ttisstring(v1) || ttisstring(v2)) {
+          TValue s1;
+          TValue s2;
+          value_to_string_value(L, v1, &s1);
+          value_to_string_value(L, v2, &s2);
+          TString *result = aqlStr_concat(L, tsvalue(&s1), tsvalue(&s2));
+          pc++;  /* fast path succeeded; skip following MMBIN */
           if (result != NULL) {
             setsvalue(L, s2v(ra), result);
           } else {

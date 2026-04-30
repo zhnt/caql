@@ -666,6 +666,44 @@ static void mark_global_indexed(FuncState *fs, LexState *ls, expdesc *var,
   var->k = VINDEXUP;
 }
 
+static int adjust_multiassign_call (LexState *ls, expdesc *e, int nvars) {
+  FuncState *fs = ls->fs;
+  int callpc;
+  Instruction *pc;
+  int base;
+
+  if (e->k == VCALL) {
+    callpc = e->u.info;
+  }
+  else if ((e->k == VRELOC || e->k == VLOCAL || e->k == VNONRELOC) &&
+           fs->pc > 0) {
+    callpc = fs->pc - 1;
+  }
+  else {
+    aqlX_syntaxerror(ls, "multi-variable assignment requires function call with multiple returns");
+    return 0;  /* unreachable */
+  }
+
+  pc = &fs->f->code[callpc];
+  if (GET_OPCODE(*pc) != OP_CALL)
+    aqlX_syntaxerror(ls, "multi-variable assignment requires function call with multiple returns");
+
+  SETARG_C(*pc, nvars + 1);  /* C = expected_returns + 1 */
+  base = GETARG_A(*pc);
+  if (base + nvars > fs->freereg)
+    aqlK_checkstack(fs, base + nvars - fs->freereg);
+  fs->freereg = base + nvars;
+  init_exp(e, VNONRELOC, base);
+  return base;
+}
+
+static void store_global_register (FuncState *fs, LexState *ls,
+                                   TString *varname, int reg) {
+  expdesc var;
+  mark_global_indexed(fs, ls, &var, varname);
+  aqlK_codeABCk(fs, OP_SETTABUP, var.u.ind.t, var.u.ind.idx, reg, 0);
+}
+
 static void enterblock (FuncState *fs, BlockCnt *bl, aql_byte isloop) {
   Dyndata *dyd = fs->ls->dyd;
   
@@ -1337,9 +1375,16 @@ static void funcargs (LexState *ls, expdesc *f) {
       if (ls->t.token == TK_RPAREN)  /* arg list is empty? */
         args.k = VVOID;
       else {
-        nargs = explist(ls, &args);
-        if (hasmultret(args.k))
-          aqlK_setoneret(fs, &args);
+        int target = base + 1;
+        do {
+          expr(ls, &args);
+          if (hasmultret(args.k))
+            aqlK_setoneret(fs, &args);
+          aqlK_exp2reg(fs, &args, target);
+          nargs++;
+          target++;
+          fs->freereg = target;
+        } while (testnext(ls, ','));
       }
       checknext(ls, TK_RPAREN);
       break;
@@ -1353,20 +1398,6 @@ static void funcargs (LexState *ls, expdesc *f) {
   if (hasmultret(args.k))
     nparams = AQL_MULTRET;  /* open call */
   else {
-    if (args.k != VVOID) {
-      aqlK_exp2nextreg(fs, &args);  /* close last argument */
-      /*
-      ** Some expressions (notably comparisons) can use scratch registers
-      ** above the contiguous argument area. Move the finalized last
-      ** argument back into the expected slot right after the function.
-      */
-      int target_last = base + nargs;
-      if (args.u.info != target_last) {
-        aqlK_codeABC(fs, OP_MOVE, target_last, args.u.info, 0);
-        args.u.info = target_last;
-      }
-      fs->freereg = target_last + 1;
-    }
     nparams = nargs;
     aql_debug("[DEBUG] funcargs: after calculation, nparams=%d (nargs=%d, freereg=%d, base=%d)\n",
                  nparams, nargs, fs->freereg, base);
@@ -1676,12 +1707,14 @@ static void emit_range_limit_adjustment(FuncState *fs, int limit_reg, int step_r
 
   /* Ascending range: [start, stop) -> inclusive limit stop - 1. */
   aqlK_codeABC(fs, OP_SUBI, limit_reg, limit_reg, int2sC(1));
+  aqlK_codeABCk(fs, OP_MMBINI, limit_reg, int2sC(1), TM_SUB, 0);
   done_jump = aqlK_jump(fs);
 
   aqlK_patchtohere(fs, non_positive_jump);
 
   /* Descending range: [start, stop) with negative step -> inclusive limit stop + 1. */
   aqlK_codeABC(fs, OP_ADDI, limit_reg, limit_reg, int2sC(1));
+  aqlK_codeABCk(fs, OP_MMBINI, limit_reg, int2sC(1), TM_ADD, 0);
 
   aqlK_patchtohere(fs, done_jump);
 }
@@ -1698,6 +1731,7 @@ static void emit_range_inferred_step(FuncState *fs, int start_reg, int limit_reg
   /* Descending range(start, stop): step = -1, inclusive limit stop + 1. */
   aqlK_int(fs, step_reg, -1);
   aqlK_codeABC(fs, OP_ADDI, limit_reg, limit_reg, int2sC(1));
+  aqlK_codeABCk(fs, OP_MMBINI, limit_reg, int2sC(1), TM_ADD, 0);
   done_jump = aqlK_jump(fs);
 
   aqlK_patchtohere(fs, ascending_jump);
@@ -1705,6 +1739,7 @@ static void emit_range_inferred_step(FuncState *fs, int start_reg, int limit_reg
   /* Ascending range(start, stop): step = 1, inclusive limit stop - 1. */
   aqlK_int(fs, step_reg, 1);
   aqlK_codeABC(fs, OP_SUBI, limit_reg, limit_reg, int2sC(1));
+  aqlK_codeABCk(fs, OP_MMBINI, limit_reg, int2sC(1), TM_SUB, 0);
 
   aqlK_patchtohere(fs, done_jump);
 }
@@ -1997,45 +2032,18 @@ static void letstat (LexState *ls) {
       fs->freereg = aqlY_nvarstack(fs);
     } else {
       /* Multi-variable assignment - need to handle function call with multiple returns */
-      
-      /* The expression should be a function call that returns multiple values */
-      /* We need to modify the function call to expect multiple return values */
-      if (e.k == VRELOC || e.k == VLOCAL || e.k == VNONRELOC) {
-        /* This is likely a function call result */
-        /* We need to modify the previous CALL instruction to expect nvars return values */
-        
-        /* Get the last instruction (should be CALL) */
-        if (fs->pc > 0) {
-          Instruction *pc = &fs->f->code[fs->pc - 1];
-          
-          if (GET_OPCODE(*pc) == OP_CALL) {
-            /* Modify C parameter to expect nvars return values */
-            SETARG_C(*pc, nvars + 1);  /* C = expected_returns + 1 */
-            
-            /* The function call result is in register e.u.info */
-            /* Return values will be in registers func_reg to func_reg+nvars-1 */
-            int func_reg = e.u.info;
-            int base_reg = func_reg;
-            
-            /* Move return values to the correct local variable registers */
-            for (int i = 0; i < nvars; i++) {
-              Vardesc *localvar = getlocalvardesc(fs, fs->nactvar - nvars + i);
-              int target_reg = localvar->vd.ridx;
-              int source_reg = base_reg + i;
-              
-              if (source_reg != target_reg) {
-                aqlK_codeABC(fs, OP_MOVE, target_reg, source_reg, 0);
-              } else {
-              }
-            }
-          } else {
-            aqlX_syntaxerror(ls, "multi-variable assignment requires function call with multiple returns");
-          }
+      int base_reg = adjust_multiassign_call(ls, &e, nvars);
+
+      /* Move return values to the correct local variable registers */
+      for (int i = 0; i < nvars; i++) {
+        Vardesc *localvar = getlocalvardesc(fs, fs->nactvar - nvars + i);
+        int target_reg = localvar->vd.ridx;
+        int source_reg = base_reg + i;
+
+        if (source_reg != target_reg) {
+          aqlK_codeABC(fs, OP_MOVE, target_reg, source_reg, 0);
         } else {
-          aqlX_syntaxerror(ls, "multi-variable assignment requires function call with multiple returns");
         }
-      } else {
-        aqlX_syntaxerror(ls, "multi-variable assignment requires function call with multiple returns");
       }
 
       fs->freereg = aqlY_nvarstack(fs);
@@ -2043,15 +2051,16 @@ static void letstat (LexState *ls) {
     
   } else {
     /* Top-level scope - create global variables */
-    const char *source_name = getstr(ls->source);
-    
     if (nvars == 1) {
       /* Single global variable assignment - use existing logic */
       mark_global_indexed(fs, ls, &var, varnames[0]);
       aqlK_storevar(fs, &var, &e);
     } else {
       /* Multi-variable global assignment */
-      aqlX_syntaxerror(ls, "multi-variable assignment for global variables not yet implemented");
+      int base_reg = adjust_multiassign_call(ls, &e, nvars);
+      for (int i = 0; i < nvars; i++)
+        store_global_register(fs, ls, varnames[i], base_reg + i);
+      fs->freereg = aqlY_nvarstack(fs);
     }
   }
   
@@ -2506,9 +2515,9 @@ static void singlevar_unified(LexState *ls, expdesc *var) {
   TString *varname = str_checkname(ls);
   FuncState *fs = ls->fs;
   
-  /* First check if this is a builtin function */
+  /* Builtins are call syntax only; plain names can be user globals. */
   int builtin_id = get_builtin_id(varname);
-  if (builtin_id >= 0) {
+  if (builtin_id >= 0 && ls->t.token == TK_LPAREN) {
     /* This is a builtin function - put it in a register like any other function */
     if (fs != NULL) {
       /* Compilation mode: load builtin function into a register */

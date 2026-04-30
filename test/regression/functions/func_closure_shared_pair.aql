@@ -1,0 +1,18 @@
+function make_counter_pair(start) {
+    let count = start
+    let inc = function() {
+        count = count + 1
+        return count
+    }
+    let get = function() {
+        return count
+    }
+    return inc, get
+}
+
+let inc, get = make_counter_pair(10)
+print(get())
+print(inc())
+print(get())
+print(inc())
+print(get())

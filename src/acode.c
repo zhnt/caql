@@ -907,6 +907,17 @@ void aqlK_exp2nextreg (FuncState *fs, expdesc *e) {
 }
 
 /*
+** Ensure that expression 'e' is in a specific register.
+*/
+void aqlK_exp2reg (FuncState *fs, expdesc *e, int reg) {
+  if (e->k == VCALL || e->k == VVARARG)
+    aqlK_setoneret(fs, e);
+  aqlK_dischargevars(fs, e);
+  aqlK_freeexp(fs, e);
+  exp2reg(fs, e, reg);
+}
+
+/*
 ** Ensure that expression 'e' is in any register.
 */
 int aqlK_exp2anyreg (FuncState *fs, expdesc *e) {

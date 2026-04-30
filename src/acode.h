@@ -58,6 +58,7 @@ AQL_API void aqlK_finish(FuncState *fs);
 
 struct expdesc;  /* forward declaration */
 AQL_API void aqlK_exp2nextreg(FuncState *fs, struct expdesc *e);
+AQL_API void aqlK_exp2reg(FuncState *fs, struct expdesc *e, int reg);
 AQL_API int aqlK_exp2anyreg(FuncState *fs, struct expdesc *e);
 AQL_API void aqlK_exp2anyregup(FuncState *fs, struct expdesc *e);
 AQL_API void aqlK_exp2val(FuncState *fs, struct expdesc *e);

@@ -1,0 +1,13 @@
+function make_from_block(flag) {
+    let reader = nil
+    if flag {
+        let x = 33
+        reader = function() {
+            return x
+        }
+    }
+    return reader
+}
+
+let reader = make_from_block(1)
+print(reader())

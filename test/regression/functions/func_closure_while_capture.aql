@@ -1,0 +1,14 @@
+function make_last_reader() {
+    let reader = nil
+    let i = 0
+    while i < 3 {
+        i = i + 1
+        reader = function() {
+            return i
+        }
+    }
+    return reader
+}
+
+let reader = make_last_reader()
+print(reader())

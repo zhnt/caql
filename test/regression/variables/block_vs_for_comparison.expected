@@ -4,4 +4,5 @@ check a again=100
 === For loop (currently has issues) ===
 for: a=100, b=10
 check a again=100
-
+for: a=200, b=20
+check a again=200

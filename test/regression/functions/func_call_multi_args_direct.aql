@@ -1,0 +1,8 @@
+function add_three(a, b, c) {
+    print(a)
+    print(b)
+    print(c)
+    return a + b + c
+}
+
+print(add_three(1, 2, 3))

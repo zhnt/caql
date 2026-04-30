@@ -608,6 +608,7 @@ AQL_API CallInfo *aqlD_precall(aql_State *L, StkId func, int nResults) {
     LClosure *cl = clLvalue(f);
     Proto *p = cl->p;
     int n = cast_int(L->top.p - func) - 1;  /* number of arguments */
+    int nextraargs = (n > p->numparams) ? (n - p->numparams) : 0;
     
     aql_debug("[DEBUG] aqlD_precall: AQL function, proto=%p, code=%p, nargs=%d, numparams=%d\n", 
                  (void*)p, (void*)p->code, n, p->numparams);
@@ -651,6 +652,7 @@ AQL_API CallInfo *aqlD_precall(aql_State *L, StkId func, int nResults) {
     CallInfo *ci = aqlE_extendCI(L);
     ci->func.p = func;
     ci->u.l.savedpc = p->code;  /* Start at beginning of function code */
+    ci->u.l.nextraargs = nextraargs;
     ci->callstatus = 0;  /* AQL function */
     /* Set stack top with safety buffer for compiler register allocation issues */
     int safe_stacksize = p->maxstacksize + AQL_FUNCTION_STACK_SAFETY;  /* Add safety buffer for complex functions */

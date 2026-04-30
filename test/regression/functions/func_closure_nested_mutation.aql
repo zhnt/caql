@@ -1,0 +1,20 @@
+function outer(start) {
+    let value = start
+    return function(delta) {
+        value = value + delta
+        return function() {
+            value = value + 1
+            return value
+        }
+    }
+}
+
+let make_reader = outer(5)
+let first = make_reader(10)
+
+print(first())
+print(first())
+
+let second = make_reader(1)
+print(second())
+print(first())

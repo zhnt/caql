@@ -15,6 +15,11 @@ For x: 402
 If x in for: 300
 Function x in for: 200
 Global x in for: 100
+=== For block start ===
+For x: 403
+If x in for: 300
+Function x in for: 200
+Global x in for: 100
 === Back to if block ===
 If x after for: 300
 === Back to function ===

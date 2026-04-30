@@ -1,0 +1,9 @@
+function get_values() {
+    return 10, 20, 30
+}
+
+let a, b, c = get_values()
+
+print(a)
+print(b)
+print(c)

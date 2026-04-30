@@ -1,0 +1,13 @@
+function make_adder(x) {
+    return function(y) {
+        return x + y
+    }
+}
+
+function apply_twice(fn, value) {
+    print(fn(value))
+    print(fn(value + 1))
+}
+
+let add_five = make_adder(5)
+apply_twice(add_five, 10)

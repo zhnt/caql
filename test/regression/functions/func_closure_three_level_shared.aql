@@ -1,0 +1,17 @@
+function outer() {
+    let x = 1
+    return function() {
+        return function() {
+            x = x + 1
+            return x
+        }
+    }
+}
+
+let make_inner = outer()
+let first = make_inner()
+let second = make_inner()
+
+print(first())
+print(second())
+print(first())

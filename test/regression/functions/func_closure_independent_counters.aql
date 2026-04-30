@@ -1,0 +1,16 @@
+function make_counter(start) {
+    let count = start
+    return function() {
+        count = count + 1
+        return count
+    }
+}
+
+let first = make_counter(0)
+let second = make_counter(10)
+
+print(first())
+print(first())
+print(second())
+print(first())
+print(second())
