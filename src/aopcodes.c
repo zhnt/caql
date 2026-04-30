@@ -10,6 +10,42 @@
 #include "aopcodes.h"
 
 /*
+** Normalize legacy text bytecode mnemonics to current opcode names.
+** This keeps older hand-written VM tests loadable through the same parser.
+*/
+static const char *normalize_opcode_name(const char *opcode) {
+    if (strcmp(opcode, "RET") == 0) {
+        return "RETURN";
+    }
+    if (strcmp(opcode, "RET_ONE") == 0) {
+        return "RETURN1";
+    }
+    if (strcmp(opcode, "RET_VOID") == 0) {
+        return "RETURN0";
+    }
+    return opcode;
+}
+
+static int is_numeric_token(const char *s) {
+    if (s == NULL || *s == '\0') {
+        return 0;
+    }
+    if (*s == '+' || *s == '-') {
+        s++;
+    }
+    if (!isdigit(cast_uchar(*s))) {
+        return 0;
+    }
+    while (*s != '\0') {
+        if (!isdigit(cast_uchar(*s))) {
+            return 0;
+        }
+        s++;
+    }
+    return 1;
+}
+
+/*
 ** 获取指令格式描述
 */
 static const char* get_instruction_format(OpCode op) {
@@ -67,10 +103,11 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
                          const char *arg2, const char *arg3, 
                          const char *arg4, int args, Instruction *result) {
     OpCode op = NUM_OPCODES; // 无效值
+    const char *normalized_opcode = normalize_opcode_name(opcode);
     
     // 查找操作码
     for (int i = 0; i < NUM_OPCODES; i++) {
-        if (strcmp(aql_opnames[i], opcode) == 0) {
+        if (strcmp(aql_opnames[i], normalized_opcode) == 0) {
             op = (OpCode)i;
             break;
         }
@@ -102,7 +139,7 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
             break;
             
         case OP_JMP:
-            if (args >= 2) {
+            if (args >= 2 && arg1 && is_numeric_token(arg1)) {
                 int offset = atoi(arg1);
                 *result = CREATE_sJ(op, offset, 0);
                 return 1;
@@ -274,21 +311,35 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
             break;
             
         case OP_RETURN:
-            // RETURN R0, nvalues, k  -> 返回多个值
+            // OP_RETURN R0, nvalues, k  -> 返回多个值
             if (args >= 3) {
                 b = atoi(arg2);  // 返回值数量+1 (Lua风格)
                 c = (args >= 4) ? atoi(arg3) : 0;  // k标志 (可选)
                 if (args >= 4 && c != 0) {
-                    // 如果有k位，使用CREATE_ABCk
                     *result = CREATE_ABCk(op, a, b, 0, c);
                 } else {
-                    // 没有k位，使用CREATE_ABC
                     *result = CREATE_ABC(op, a, b, c);
                 }
                 return 1;
             }
             break;
-            
+
+        case OP_RETURN1:
+            // Lua风格短写 RETURN1 R(A)
+            if (args >= 2) {
+                *result = CREATE_ABC(op, a, 0, 0);
+                return 1;
+            }
+            break;
+
+        case OP_RETURN0:
+            // Lua风格短写 RETURN0 (无返回值)
+            if (args >= 1) {
+                *result = CREATE_ABC(op, a, 0, 0);
+                return 1;
+            }
+            break;
+
         case OP_GETTABUP:
             // GETTABUP R0, upvalue_index, key_index  -> 从upvalue表获取值
             if (args >= 4) {
@@ -410,6 +461,6 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
     if (arg4) printf("'%s' ", arg4);
     printf("\n");
     printf("  Expected format: %s\n", get_instruction_format(op));
-    
+
     return 0; // 解析失败
-} 
+}

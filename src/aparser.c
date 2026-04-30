@@ -214,6 +214,13 @@ static int expdesc_is_true(expdesc *e) {
   }
 }
 
+static int in_toplevel_chunk(FuncState *fs) {
+  return (fs != NULL &&
+          fs->prev == NULL &&
+          fs->bl != NULL &&
+          fs->bl->previous == NULL);
+}
+
 
 static l_noret error_expected (LexState *ls, int token) {
   aqlX_syntaxerror(ls,
@@ -632,22 +639,31 @@ static void singlevar (LexState *ls, expdesc *var) {
   FuncState *fs = ls->fs;
   singlevaraux(fs, varname, var, 1);
   if (var->k == VVOID) {  /* global name? */
-    expdesc key;
-    
     singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
     aql_assert(var->k != VVOID);  /* this one must exist */
     
     
     aqlK_exp2anyregup(fs, var);  /* but could be a constant */
-    codestring(&key, varname);  /* key is variable name */
     
     /* For global variables, we need to set up for both reading and writing */
     /* Store the table (env) and key information for later use in assignment */
     var->u.ind.t = var->u.info;  /* table is the environment upvalue */
-    var->u.ind.idx = aqlK_exp2RK(fs, &key);  /* key index */
+    var->u.ind.idx = aqlK_stringK(fs, varname);  /* GET/SETTABUP expects K[idx] */
     var->k = VINDEXUP;  /* mark as indexed upvalue for proper assignment handling */
     
   }
+}
+
+static void mark_global_indexed(FuncState *fs, LexState *ls, expdesc *var,
+                                TString *varname) {
+  singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
+  aql_assert(var->k != VVOID);  /* this one must exist */
+
+  aqlK_exp2anyregup(fs, var);  /* but could be a constant */
+
+  var->u.ind.t = var->u.info;          /* table/upvalue register */
+  var->u.ind.idx = aqlK_stringK(fs, varname);  /* GET/SETTABUP expects K[idx] */
+  var->k = VINDEXUP;
 }
 
 static void enterblock (FuncState *fs, BlockCnt *bl, aql_byte isloop) {
@@ -1076,12 +1092,7 @@ static void funcstat (LexState *ls, int line) {
   singlevaraux(fs, varname, &v, 1);
   if (v.k == VVOID) {
     /* Handle global functions */
-    expdesc key;
-    singlevaraux(fs, ls->envn, &v, 1);  /* get environment variable */
-    aql_assert(v.k != VVOID);  /* this one must exist */
-    init_exp(&key, VKSTR, 0);
-    key.u.strval = varname;  /* key is variable name */
-    aqlK_indexed(fs, &v, &key);  /* env[varname] */
+    mark_global_indexed(fs, ls, &v, varname);
   }
   
   /* Parse function body */
@@ -1307,17 +1318,28 @@ static void retstat (LexState *ls) {
 static void funcargs (LexState *ls, expdesc *f) {
   FuncState *fs = ls->fs;
   expdesc args;
-  int base, nparams;
+  int base, nparams, nargs = 0;
   int line = ls->linenumber;
+
+  aql_assert(f->k == VNONRELOC);
+  base = f->u.info;  /* base register for call */
+  /*
+  ** Keep function and arguments contiguous, like Lua does. Without this,
+  ** nested calls such as print(hello(41)) can leave a hole between the
+  ** callee and its first argument, which later turns into spurious nil
+  ** arguments for open calls.
+  */
+  fs->freereg = base + 1;
+
   switch (ls->t.token) {
     case TK_LPAREN: {  /* funcargs -> '(' [ explist ] ')' */
       aqlX_next(ls);
       if (ls->t.token == TK_RPAREN)  /* arg list is empty? */
         args.k = VVOID;
       else {
-        explist(ls, &args);
+        nargs = explist(ls, &args);
         if (hasmultret(args.k))
-          aqlK_setmultret(fs, &args);
+          aqlK_setoneret(fs, &args);
       }
       checknext(ls, TK_RPAREN);
       break;
@@ -1326,18 +1348,28 @@ static void funcargs (LexState *ls, expdesc *f) {
       aqlX_syntaxerror(ls, "function arguments expected");
     }
   }
-  aql_assert(f->k == VNONRELOC);
-  base = f->u.info;  /* base register for call */
   aql_debug("[DEBUG] funcargs: base=%d, args.k=%d, hasmultret=%d, freereg=%d\n", 
                base, args.k, hasmultret(args.k), fs->freereg);
   if (hasmultret(args.k))
     nparams = AQL_MULTRET;  /* open call */
   else {
-    if (args.k != VVOID)
+    if (args.k != VVOID) {
       aqlK_exp2nextreg(fs, &args);  /* close last argument */
-    nparams = fs->freereg - (base + 1);
-    aql_debug("[DEBUG] funcargs: after calculation, nparams=%d (freereg=%d - (base=%d + 1))\n", 
-                 nparams, fs->freereg, base);
+      /*
+      ** Some expressions (notably comparisons) can use scratch registers
+      ** above the contiguous argument area. Move the finalized last
+      ** argument back into the expected slot right after the function.
+      */
+      int target_last = base + nargs;
+      if (args.u.info != target_last) {
+        aqlK_codeABC(fs, OP_MOVE, target_last, args.u.info, 0);
+        args.u.info = target_last;
+      }
+      fs->freereg = target_last + 1;
+    }
+    nparams = nargs;
+    aql_debug("[DEBUG] funcargs: after calculation, nparams=%d (nargs=%d, freereg=%d, base=%d)\n",
+                 nparams, nargs, fs->freereg, base);
   }
   aql_debug("[DEBUG] funcargs: generating CALL with base=%d, B=%d, C=2\n", base, nparams + 1);
   init_exp(f, VCALL, aqlK_codeABC(fs, OP_CALL, base, nparams + 1, 2));
@@ -1372,24 +1404,32 @@ static void block (LexState *ls) {
 }
 
 /*
+** Parse a condition using Lua-style jump lists.
+** The returned list contains jumps taken when the condition is false.
+*/
+static int cond (LexState *ls) {
+  expdesc v;
+  expr(ls, &v);
+  if (v.k == VNIL)
+    v.k = VFALSE;
+  aqlK_goiftrue(ls->fs, &v);
+  return v.f;
+}
+
+/*
 ** AQL test_then_block: [IF | ELIF] cond '{' block '}'
 */
 static void test_then_block (LexState *ls, int *escapelist) {
   /* test_then_block -> [IF | ELIF] cond '{' block '}' */
   BlockCnt bl;
   FuncState *fs = ls->fs;
-  expdesc v;
-  int jf;  /* instruction to skip 'then' code (if condition is false) */
+  int condexit;  /* jumps to the next branch when condition is false */
   
   aqlX_next(ls);  /* skip IF or ELIF */
-  expr(ls, &v);  /* read condition */
+  condexit = cond(ls);
   checknext(ls, '{');
   
-  /* Generate conditional jump */
-  aqlK_goiffalse(fs, &v);  /* jump to next elif/else if condition is false */
   enterblock(fs, &bl, 0);
-  jf = v.f;
-  
   statlist(ls);  /* 'then' part */
   leaveblock(fs);
   
@@ -1398,8 +1438,7 @@ static void test_then_block (LexState *ls, int *escapelist) {
   if (ls->t.token == TK_ELSE ||
       ls->t.token == TK_ELIF)  /* followed by 'else'/'elif'? */
     aqlK_concat(fs, escapelist, aqlK_jump(fs));  /* must jump over it */
-  aqlK_patchtohere(fs, jf);
-  aqlK_patchtohere(fs, v.t);  /* patch true jumps to here too */
+  aqlK_patchtohere(fs, condexit);
 }
 
 /*
@@ -1427,15 +1466,10 @@ static void ifstat (LexState *ls, int line) {
 }
 
 /*
-** AQL condition parsing for while loop (use goiffalse instead of goiftrue)
+** AQL condition parsing for while loop.
 */
 static int whilecond (LexState *ls) {
-  /* whilecond -> expr */
-  expdesc v;
-  expr(ls, &v);  /* read condition */
-  if (v.k == VNIL) v.k = VFALSE;  /* 'falses' are all equal here */
-  aqlK_goiffalse(ls->fs, &v);  /* jump when condition is false (exit loop) */
-  return v.f;  /* return false list (exit when condition is false) */
+  return cond(ls);
 }
 
 /*
@@ -1454,6 +1488,10 @@ static void breakstat (LexState *ls) {
   
   if (!bl) {
     aqlX_syntaxerror(ls, "break statement not inside a loop");
+  }
+
+  if (bl->upval) {
+    upval = 1;
   }
   
   /* Generate jump to loop exit */
@@ -1483,6 +1521,10 @@ static void continuestat (LexState *ls) {
   if (!bl) {
     aqlX_syntaxerror(ls, "continue statement not inside a loop");
   }
+
+  if (bl->upval) {
+    upval = 1;
+  }
   
   /* Generate jump to loop start */
   if (upval) {
@@ -1503,10 +1545,10 @@ static void fixforjump (FuncState *fs, int pc, int dest, int back) {
   int offset = dest - (pc + 1);
   if (back)
     offset = -offset;
-  if (offset > MAXARG_sBx) {
+  if (offset > MAXARG_Bx) {
     aqlX_syntaxerror(fs->ls, "control structure too long");
   }
-  SETARG_sBx(*jmp, offset);
+  SETARG_Bx(*jmp, offset);
 }
 
 /*
@@ -1585,6 +1627,7 @@ static void forstat_numeric (LexState *ls, int line, TString *varname) {
   if (e.u.info != base) {
     aqlK_codeABC(fs, OP_MOVE, base, e.u.info, 0);
   }
+  fs->freereg = base + 1;  /* protect initial value/control slot */
   
   checknext(ls, ',');  /* expect ',' */
   
@@ -1594,6 +1637,7 @@ static void forstat_numeric (LexState *ls, int line, TString *varname) {
   if (e.u.info != base + 1) {
     aqlK_codeABC(fs, OP_MOVE, base + 1, e.u.info, 0);
   }
+  fs->freereg = base + 2;  /* protect init/limit slots */
   
   if (testnext(ls, ',')) {
     /* Parse step value */
@@ -1622,8 +1666,52 @@ static void forstat_numeric (LexState *ls, int line, TString *varname) {
 /*
 ** Convert range(...) to numeric for loop - Lua style
 */
-static void forstat_range_to_numeric(LexState *ls, int line, TString *varname, 
-                                     expdesc *start, expdesc *stop, expdesc *step) {
+static void emit_range_limit_adjustment(FuncState *fs, int limit_reg, int step_reg) {
+  int non_positive_jump;
+  int done_jump;
+
+  /* If step <= 0, branch to the descending adjustment. */
+  aqlK_codeABCk(fs, OP_LEI, step_reg, int2sC(0), 0, 1);
+  non_positive_jump = aqlK_jump(fs);
+
+  /* Ascending range: [start, stop) -> inclusive limit stop - 1. */
+  aqlK_codeABC(fs, OP_SUBI, limit_reg, limit_reg, int2sC(1));
+  done_jump = aqlK_jump(fs);
+
+  aqlK_patchtohere(fs, non_positive_jump);
+
+  /* Descending range: [start, stop) with negative step -> inclusive limit stop + 1. */
+  aqlK_codeABC(fs, OP_ADDI, limit_reg, limit_reg, int2sC(1));
+
+  aqlK_patchtohere(fs, done_jump);
+}
+
+static void emit_range_inferred_step(FuncState *fs, int start_reg, int limit_reg,
+                                     int step_reg) {
+  int ascending_jump;
+  int done_jump;
+
+  /* If start <= stop, branch to the ascending setup. */
+  aqlK_codeABCk(fs, OP_LE, start_reg, limit_reg, 0, 1);
+  ascending_jump = aqlK_jump(fs);
+
+  /* Descending range(start, stop): step = -1, inclusive limit stop + 1. */
+  aqlK_int(fs, step_reg, -1);
+  aqlK_codeABC(fs, OP_ADDI, limit_reg, limit_reg, int2sC(1));
+  done_jump = aqlK_jump(fs);
+
+  aqlK_patchtohere(fs, ascending_jump);
+
+  /* Ascending range(start, stop): step = 1, inclusive limit stop - 1. */
+  aqlK_int(fs, step_reg, 1);
+  aqlK_codeABC(fs, OP_SUBI, limit_reg, limit_reg, int2sC(1));
+
+  aqlK_patchtohere(fs, done_jump);
+}
+
+static void forstat_range_to_numeric(LexState *ls, int line, TString *varname,
+                                     expdesc *start, expdesc *stop, expdesc *step,
+                                     int nargs) {
   aql_debug("[DEBUG] forstat_range_to_numeric: converting range to numeric for loop\n");
   
   FuncState *fs = ls->fs;
@@ -1643,22 +1731,32 @@ static void forstat_range_to_numeric(LexState *ls, int line, TString *varname,
   if (start->u.info != base) {
     aqlK_codeABC(fs, OP_MOVE, base, start->u.info, 0);
   }
+  fs->freereg = base + 1;  /* protect start slot */
   
   /* Evaluate stop expression to base+1 register */
   aqlK_exp2anyreg(fs, stop);
   if (stop->u.info != base + 1) {
     aqlK_codeABC(fs, OP_MOVE, base + 1, stop->u.info, 0);
   }
+  fs->freereg = base + 2;  /* protect start/stop slots */
   
-  /* Evaluate step expression to base+2 register */
-  aqlK_exp2anyreg(fs, step);
-  if (step->u.info != base + 2) {
-    aqlK_codeABC(fs, OP_MOVE, base + 2, step->u.info, 0);
+  /* Evaluate step expression to base+2 register when explicitly provided. */
+  if (nargs != 2) {
+    aqlK_exp2anyreg(fs, step);
+    if (step->u.info != base + 2) {
+      aqlK_codeABC(fs, OP_MOVE, base + 2, step->u.info, 0);
+    }
   }
-  
+
   /* Reserve the registers we just used */
   fs->freereg = base + 3;
-  
+
+  if (nargs == 2) {
+    emit_range_inferred_step(fs, base, base + 1, base + 2);
+  } else {
+    emit_range_limit_adjustment(fs, base + 1, base + 2);
+  }
+
   aql_debug("[DEBUG] forstat_range_to_numeric: expressions placed at R[%d], R[%d], R[%d]\n", 
                base, base + 1, base + 2);
   
@@ -1736,12 +1834,11 @@ static void forinstat_range (LexState *ls, int line, TString *varname) {
       checknext(ls, TK_RPAREN);  /* expect ')' */
       
       /* Now we have start, stop, step expressions */
-      /* Convert to numeric for loop: for var = start, stop-1, step */
-      
-      /* Note: No adjustment needed here since numeric for loop now uses left-closed, right-open semantics */
-      
-      /* Call the numeric for loop implementation */
-      forstat_range_to_numeric(ls, line, varname, &start, &stop, &step);
+      /*
+      ** Convert to numeric for loop while preserving right-open range(...)
+      ** semantics on top of the inclusive numeric-for core.
+      */
+      forstat_range_to_numeric(ls, line, varname, &start, &stop, &step, nargs);
       return;  /* Early return - we're done */
     }
   }
@@ -1870,7 +1967,7 @@ static void letstat (LexState *ls) {
   
   /* Determine scope: local vs global based on block nesting */
   /* Functions always have local scope, even if it's the first block */
-  if (fs->bl != NULL) {
+  if (!in_toplevel_chunk(fs)) {
     /* Inside a block (not top-level) - create local variables */
     
     /* Create all local variables first */
@@ -1881,16 +1978,24 @@ static void letstat (LexState *ls) {
     
     if (nvars == 1) {
       /* Single variable assignment - use existing logic */
-    Vardesc *localvar = getlocalvardesc(fs, fs->nactvar - 1);
-    int reg = localvar->vd.ridx;
-    
-    
+      Vardesc *localvar = getlocalvardesc(fs, fs->nactvar - 1);
+      int reg = localvar->vd.ridx;
+
       aqlK_exp2anyreg(fs, &e);
-    if (e.u.info != reg) {
-      aqlK_codeABC(fs, OP_MOVE, reg, e.u.info, 0);
+      if (e.u.info != reg) {
+        aqlK_codeABC(fs, OP_MOVE, reg, e.u.info, 0);
       } else {
-    }
-  } else {
+      }
+
+      /*
+      ** Initializer temporaries are no longer needed once the declared
+      ** local has its final register value. Keep freereg aligned with
+      ** the active local-variable stack so subsequent statements do not
+      ** observe stale scratch registers.
+      */
+      aqlK_freeexp(fs, &e);
+      fs->freereg = aqlY_nvarstack(fs);
+    } else {
       /* Multi-variable assignment - need to handle function call with multiple returns */
       
       /* The expression should be a function call that returns multiple values */
@@ -1932,6 +2037,8 @@ static void letstat (LexState *ls) {
       } else {
         aqlX_syntaxerror(ls, "multi-variable assignment requires function call with multiple returns");
       }
+
+      fs->freereg = aqlY_nvarstack(fs);
     }
     
   } else {
@@ -1940,7 +2047,7 @@ static void letstat (LexState *ls) {
     
     if (nvars == 1) {
       /* Single global variable assignment - use existing logic */
-      singlevaraux(fs, varnames[0], &var, 1);  /* create global variable */
+      mark_global_indexed(fs, ls, &var, varnames[0]);
       aqlK_storevar(fs, &var, &e);
     } else {
       /* Multi-variable global assignment */
@@ -2029,9 +2136,9 @@ static void exprstat(LexState *ls) {
     /* Function call: name(...) - use unified funcargs */
     aqlK_exp2nextreg(fs, &v);  /* ensure function is in a register */
     funcargs(ls, &v);  /* handle function call with Lua-style approach */
-    
-    /* Result not used in statement context */
-    aqlK_exp2nextreg(fs, &v);
+
+    /* Statement calls execute for side effects and discard results. */
+    mark_statement_call(fs, &v);
   }
   else {
     /* Not supported as statement */
@@ -2164,6 +2271,9 @@ static void close_func (LexState *ls) {
   
   leaveblock(fs);
   aql_assert(fs->bl == NULL);
+
+  /* Apply post-pass return fixups (e.g. close upvalues on return). */
+  aqlK_finish(fs);
   
   /* Finish code generation - the bytecode is already in f->code */
   /* Just update the size, the code was generated directly into f->code */
@@ -2419,12 +2529,7 @@ static void singlevar_unified(LexState *ls, expdesc *var) {
     singlevaraux(fs, varname, var, 1);
     if (var->k == VVOID) {
       /* Handle global variables */
-      expdesc key;
-      singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
-      aql_assert(var->k != VVOID);  /* this one must exist */
-      init_exp(&key, VKSTR, 0);
-      key.u.strval = varname;  /* key is variable name */
-      aqlK_indexed(fs, var, &key);  /* env[varname] */
+      mark_global_indexed(fs, ls, var, varname);
     }
     else {
       /* Variable found by singlevaraux, but we need to check if it's actually a global */
@@ -2432,12 +2537,7 @@ static void singlevar_unified(LexState *ls, expdesc *var) {
       if (var->k != VLOCAL && var->k != VUPVAL) {
         /* This might be a global variable that was incorrectly identified */
         /* Force it to be treated as a global variable */
-        expdesc key;
-        singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
-        aql_assert(var->k != VVOID);  /* this one must exist */
-        init_exp(&key, VKSTR, 0);
-        key.u.strval = varname;  /* key is variable name */
-        aqlK_indexed(fs, var, &key);  /* env[varname] */
+        mark_global_indexed(fs, ls, var, varname);
       }
     }
   } else {
@@ -2663,39 +2763,26 @@ AQL_API void aqlP_free_value(TValue *v) {
 
 
 /*
-** Execute an AQL source file with automatic last expression display
-** Returns 1 on success, 0 on error
+** Execute an AQL source file.
+** File execution follows chunk semantics like Lua: no implicit "return"
+** is added for the last line and no top-level result is auto-printed.
+** Returns 1 on success, 0 on error.
 */
 AQL_API int aqlP_execute_file(aql_State *L, const char *filename) {
   if (!L || !filename) return 0;
   
   //printf("Executing file: %s\n", filename);
   
-  /* Load and compile the file with automatic return for last expression */
-  if (aql_loadfile_with_return(L, filename) != 0) {
+  /* Load and compile the file as a regular chunk. */
+  if (aql_loadfile(L, filename) != 0) {
     printf("Error: Failed to load file '%s'\n", filename);
     return 0;
   }
   
-  /* Execute the compiled function with 1 result expected (for last expression) */
-  if (aql_execute(L, 0, 1) != 0) {
+  /* Execute the compiled chunk and discard any returned values. */
+  if (aql_execute(L, 0, 0) != 0) {
     printf("Error: Failed to execute file '%s'\n", filename);
     return 0;
-  }
-  
-  /* Check if there's a result on the stack (last expression value) */
-  
-  if (L->top.p > L->ci->func.p + 1) {  /* Has result? */
-    TValue *result = s2v(L->top.p - 1);
-    /* Only print non-nil results */
-    if (!ttisnil(result)) {
-      aqlP_print_value(result);
-      printf("\n");
-    } else {
-    }
-    /* Clean up stack */
-    L->top.p = L->ci->func.p + 1;
-  } else {
   }
   
   return 1;  /* success */

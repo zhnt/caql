@@ -1,0 +1,18 @@
+# 非整数索引赋值应通过 __newindex 回退而不改变数组已有值
+
+.constants
+K0 FLOAT 0.0
+
+.code
+NEWOBJECT R0, 0, 2
+LOADI    R10, 0
+LOADI    R11, 11
+SETPROP  R0, R10, R11
+
+LOADK    R1, 0
+LOADI    R2, 99
+SETPROP  R0, R1, R2
+
+GETPROP  R3, R0, R10
+RETURN1  R3
+.end

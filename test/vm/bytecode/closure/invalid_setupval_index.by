@@ -1,0 +1,16 @@
+# invalid_setupval_index.by
+# 无效 SETUPVAL 索引不应崩溃，本地返回值仍应可见
+
+.main
+.code
+CLOSURE   R0, 0
+CALL      R0, 1, 2
+RETURN1   R0
+.end
+
+.function bad 0
+.code
+LOADI     R0, 7
+SETUPVAL  R0, 0
+RETURN1   R0
+.end

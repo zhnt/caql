@@ -29,7 +29,8 @@ RETURN1   R3          # 返回调用结果，应该是5+42=47
 K0 INTEGER 42
 .code
 # 接受参数并返回 参数 + 42
-ADD       R1, R0, K0  # R1 = 参数 + 42
-MMBIN     R0, K0, 6   # ADD的元方法绑定
+LOADK     R1, K0      # R1 = 42
+ADD       R1, R0, R1  # R1 = 参数 + 42
+MMBIN     R0, R1, 6   # ADD的元方法绑定
 RETURN1   R1                    
 .end

@@ -1,0 +1,4 @@
+# return0_legacy.by
+.code
+RET_VOID
+.end

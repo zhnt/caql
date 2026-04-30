@@ -1,0 +1,22 @@
+# 数组小于等于元方法测试
+# 测试: [1, 2] <= [1, 2] 触发 __le 并返回真
+
+.code
+NEWOBJECT R0, 0, 2
+LOADI     R10, 0
+LOADI     R11, 1
+LOADI     R12, 2
+SETPROP   R0, R10, R11
+SETPROP   R0, R11, R12
+
+NEWOBJECT R1, 0, 2
+SETPROP   R1, R10, R11
+SETPROP   R1, R11, R12
+
+LE        R0, R1, 0
+JMP       2
+LOADI     R2, 1
+JMP       1
+LOADI     R2, 0
+RETURN1   R2
+.end

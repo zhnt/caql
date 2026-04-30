@@ -1,0 +1,36 @@
+# close_shared_pair.by
+# 显式 CLOSE 后，两个 sibling closures 仍共享同一个 closed upvalue
+
+.main
+.code
+LOADI     R0, 10
+CLOSURE   R1, 0
+CLOSURE   R2, 1
+CLOSE     R0
+LOADI     R0, 99
+MOVE      R3, R1
+CALL      R3, 1, 2
+MOVE      R3, R2
+CALL      R3, 1, 2
+RETURN1   R3
+.end
+
+.function inc 0
+.upvalues 1
+.upvalue 0 "x" instack 0
+.code
+GETUPVAL  R0, 0
+ADDI      R0, R0, 1
+MMBINI    R0, 1, 6, 0
+SETUPVAL  R0, 0
+GETUPVAL  R0, 0
+RETURN1   R0
+.end
+
+.function read 0
+.upvalues 1
+.upvalue 0 "x" instack 0
+.code
+GETUPVAL  R0, 0
+RETURN1   R0
+.end

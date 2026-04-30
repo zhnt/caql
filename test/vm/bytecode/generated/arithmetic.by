@@ -1,0 +1,8 @@
+# arithmetic.by
+.code
+LOADI   R0, 5
+LOADI   R1, 3
+ADD     R2, R0, R1
+MMBIN   R0, R1, 6
+RETURN1 R2
+.end

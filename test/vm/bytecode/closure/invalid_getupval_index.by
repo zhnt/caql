@@ -1,0 +1,15 @@
+# invalid_getupval_index.by
+# 无效 GETUPVAL 索引应返回 nil 而不是崩溃
+
+.main
+.code
+CLOSURE   R0, 0
+CALL      R0, 1, 2
+RETURN1   R0
+.end
+
+.function bad 0
+.code
+GETUPVAL  R0, 0
+RETURN1   R0
+.end

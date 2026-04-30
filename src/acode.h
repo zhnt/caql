@@ -61,6 +61,7 @@ AQL_API void aqlK_exp2nextreg(FuncState *fs, struct expdesc *e);
 AQL_API int aqlK_exp2anyreg(FuncState *fs, struct expdesc *e);
 AQL_API void aqlK_exp2anyregup(FuncState *fs, struct expdesc *e);
 AQL_API void aqlK_exp2val(FuncState *fs, struct expdesc *e);
+AQL_API void aqlK_setoneret(FuncState *fs, struct expdesc *e);
 AQL_API void aqlK_setreturns(FuncState *fs, struct expdesc *e, int nresults);
 AQL_API void aqlK_setmultret(FuncState *fs, struct expdesc *e);
 AQL_API void aqlK_int(FuncState *fs, int reg, aql_Integer i);
@@ -238,4 +239,4 @@ AQL_API void aqlK_trace_instruction(FuncState *fs, int pc);
 #define aqlK_trace_instruction(fs, pc) ((void)0)
 #endif
 
-#endif /* acode_h */ 
+#endif /* acode_h */

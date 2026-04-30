@@ -1,0 +1,14 @@
+# 容器下标越界应回落到 __index 元方法并返回 nil
+
+.code
+NEWOBJECT R0, 0, 2   # 创建长度为2的数组容器
+LOADI R10, 0
+LOADI R11, 11
+LOADI R12, 22
+SETPROP   R0, R10, R11
+SETPROP   R0, R11, R12
+
+LOADI     R1, 5       # 越界索引
+GETPROP   R2, R0, R1
+RETURN1    R2
+.end

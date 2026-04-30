@@ -363,7 +363,7 @@ static void freeexps (FuncState *fs, expdesc *e1, expdesc *e2);
 ** in "stack order" (that is, first on 'e2', which may have more
 ** recent registers to be released).
 */
-static void codebinexpval (FuncState *fs, OpCode op,
+static void codebinexpval (FuncState *fs, OpCode op, TMS event,
                            expdesc *e1, expdesc *e2, int line) {
   aql_debug("[DEBUG] codebinexpval: entering, e1->k=%d, e1->u.info=%d, e2->k=%d, e2->u.info=%d, freereg=%d\n", 
                e1->k, e1->u.info, e2->k, e2->u.info, fs->freereg);
@@ -378,11 +378,14 @@ static void codebinexpval (FuncState *fs, OpCode op,
   aql_debug("[DEBUG] codebinexpval: after exp2anyreg(e1), v1=%d, v2=%d, freereg=%d\n", v1, v2, fs->freereg);
   
   int pc = aqlK_codeABC(fs, op, 0, v1, v2);
-  aql_debug("[DEBUG] codebinexpval: generated instruction with v1=%d, v2=%d\n", v1, v2);
-  
+  aql_debug("[DEBUG] codebinexpval: generated instruction with v1=%d, v2=%d, event=%d\n",
+               v1, v2, cast_int(event));
+
   freeexps(fs, e1, e2);
   e1->u.info = pc;
   e1->k = VRELOC;  /* all those operations are relocatable */
+  aqlK_fixline(fs, line);
+  aqlK_codeABC(fs, OP_MMBIN, v1, v2, cast_int(event));
   aqlK_fixline(fs, line);
 }
 
@@ -392,7 +395,7 @@ static void codebinexpval (FuncState *fs, OpCode op,
 ** Expression to produce final result will be encoded in 'e'.
 */
 static void codeunexpval (FuncState *fs, OpCode op, expdesc *e, int line) {
-  int r1 = aqlK_exp2RK(fs, e);  /* opcodes operate only on registers */
+  int r1 = aqlK_exp2anyreg(fs, e);  /* unary opcodes read from registers */
   aqlK_freeexp(fs, e);
   e->u.info = aqlK_codeABC(fs, op, 0, r1, 0);  /* generate opcode */
   e->k = VRELOC;  /* all those operations are relocatable */
@@ -458,8 +461,12 @@ static int constfolding (FuncState *fs, int op, expdesc *e1,
 static void finishbinexpval (FuncState *fs, expdesc *e1, expdesc *e2,
                            OpCode op, int v2, int flip, int line,
                            OpCode mmop, TMS event) {
+  UNUSED(flip);
+  UNUSED(mmop);
   int v1 = aqlK_exp2RK(fs, e1);
   int pc = aqlK_codeABC(fs, op, 0, v1, v2);
+  aqlK_fixline(fs, line);
+  aqlK_codeABC(fs, OP_MMBIN, v1, v2, cast_int(event));
   aqlK_fixline(fs, line);
   e1->u.info = pc;
   e1->k = VRELOC;  /* all those operations are relocatable */
@@ -508,7 +515,23 @@ void aqlK_posfix (FuncState *fs, BinOpr opr,
         case OPR_SHR: op = OP_SHR; break;
         default: aql_assert(0); op = OP_ADD; /* should not happen */
       }
-      codebinexpval(fs, op, e1, e2, line);
+      TMS event;
+      switch (opr) {
+        case OPR_ADD: event = TM_ADD; break;
+        case OPR_SUB: event = TM_SUB; break;
+        case OPR_MUL: event = TM_MUL; break;
+        case OPR_DIV: event = TM_DIV; break;
+        case OPR_IDIV: event = TM_IDIV; break;
+        case OPR_MOD: event = TM_MOD; break;
+        case OPR_POW: event = TM_POW; break;
+        case OPR_BAND: event = TM_BAND; break;
+        case OPR_BOR: event = TM_BOR; break;
+        case OPR_BXOR: event = TM_BXOR; break;
+        case OPR_SHL: event = TM_SHL; break;
+        case OPR_SHR: event = TM_SHR; break;
+        default: aql_assert(0); event = TM_ADD; break;
+      }
+      codebinexpval(fs, op, event, e1, e2, line);
       break;
     }
     case OPR_EQ: case OPR_LT: case OPR_LE: {
@@ -869,14 +892,15 @@ void aqlK_setmultret (FuncState *fs, expdesc *e) {
 ** Ensure that expression 'e' is in a register.
 */
 void aqlK_exp2nextreg (FuncState *fs, expdesc *e) {
+  if (e->k == VCALL || e->k == VVARARG)
+    aqlK_setoneret(fs, e);
   aql_debug("[DEBUG] aqlK_exp2nextreg: before - e->k=%d, e->u.info=%d, freereg=%d\n", 
                e->k, e->u.info, fs->freereg);
   
-  /* EXACTLY like Lua: always move to next register, no optimization */
   aqlK_dischargevars(fs, e);
   aqlK_freeexp(fs, e);
   aqlK_reserveregs(fs, 1);
-  discharge2reg(fs, e, fs->freereg-1);
+  exp2reg(fs, e, fs->freereg - 1);
   
   aql_debug("[DEBUG] aqlK_exp2nextreg: after - e->k=%d, e->u.info=%d, freereg=%d\n", 
                e->k, e->u.info, fs->freereg);
@@ -886,6 +910,8 @@ void aqlK_exp2nextreg (FuncState *fs, expdesc *e) {
 ** Ensure that expression 'e' is in any register.
 */
 int aqlK_exp2anyreg (FuncState *fs, expdesc *e) {
+  if (e->k == VCALL || e->k == VVARARG)
+    aqlK_setoneret(fs, e);
   aql_debug("[DEBUG] aqlK_exp2anyreg: entering, e->k=%d, e->u.info=%d, freereg=%d\n", 
                e->k, e->u.info, fs->freereg);
   
@@ -949,6 +975,34 @@ int aqlK_exp2RK (FuncState *fs, expdesc *e) {
 }
 
 /*
+** Lua 5.4-style operand encoding for ABCk instructions:
+** constants are carried by the separate 'k' bit, not by RKASK().
+*/
+static int aqlK_exp2abcik (FuncState *fs, expdesc *e, int *kflag) {
+  aqlK_exp2val(fs, e);
+  switch (e->k) {
+    case VTRUE: e->u.info = boolK(fs, 1); goto vk;
+    case VFALSE: e->u.info = boolK(fs, 0); goto vk;
+    case VNIL: e->u.info = nilK(fs); goto vk;
+    case VKINT: e->u.info = aqlK_intK(fs, e->u.ival); goto vk;
+    case VKFLT: e->u.info = aqlK_numberK(fs, e->u.nval); goto vk;
+    case VKSTR: e->u.info = aqlK_stringK(fs, e->u.strval); goto vk;
+    case VK: vk:
+      e->k = VK;
+      if (e->u.info <= MAXARG_C) {
+        *kflag = 1;
+        return e->u.info;
+      }
+      break;
+    default:
+      break;
+  }
+
+  *kflag = 0;
+  return aqlK_exp2anyreg(fs, e);
+}
+
+/*
 ** Generate code to store result of expression 'ex' into variable 'var'.
 */
 void aqlK_storevar (FuncState *fs, expdesc *var, expdesc *ex) {
@@ -969,25 +1023,29 @@ void aqlK_storevar (FuncState *fs, expdesc *var, expdesc *ex) {
     }
     case VINDEXUP: {
       aql_debug("[DEBUG] aqlK_storevar: VINDEXUP case, generating SETTABUP\n");
-      int e = aqlK_exp2RK(fs, ex);
-      aql_debug("[DEBUG] aqlK_storevar: calling aqlK_codeABC(OP_SETTABUP, %d, %d, %d)\n", var->u.ind.t, var->u.ind.idx, e);
-      aqlK_codeABC(fs, OP_SETTABUP, var->u.ind.t, var->u.ind.idx, e);
+      int k = 0;
+      int e = aqlK_exp2abcik(fs, ex, &k);
+      aql_debug("[DEBUG] aqlK_storevar: calling aqlK_codeABCk(OP_SETTABUP, %d, %d, %d, %d)\n", var->u.ind.t, var->u.ind.idx, e, k);
+      aqlK_codeABCk(fs, OP_SETTABUP, var->u.ind.t, var->u.ind.idx, e, k);
       aql_debug("[DEBUG] aqlK_storevar: SETTABUP instruction generated\n");
       break;
     }
     case VINDEXED: {
-      int e = aqlK_exp2RK(fs, ex);
-      aqlK_codeABC(fs, OP_SETTABUP, var->u.ind.t, var->u.ind.idx, e);
+      int k = 0;
+      int e = aqlK_exp2abcik(fs, ex, &k);
+      aqlK_codeABCk(fs, OP_SETTABUP, var->u.ind.t, var->u.ind.idx, e, k);
       break;
     }
     case VINDEXI: {
-      int e = aqlK_exp2RK(fs, ex);
-      aqlK_codeABC(fs, OP_SETTABUP, var->u.ind.t, var->u.ind.idx, e);
+      int k = 0;
+      int e = aqlK_exp2abcik(fs, ex, &k);
+      aqlK_codeABCk(fs, OP_SETTABUP, var->u.ind.t, var->u.ind.idx, e, k);
       break;
     }
     case VINDEXSTR: {
-      int e = aqlK_exp2RK(fs, ex);
-      aqlK_codeABC(fs, OP_SETTABUP, var->u.ind.t, var->u.ind.idx, e);
+      int k = 0;
+      int e = aqlK_exp2abcik(fs, ex, &k);
+      aqlK_codeABCk(fs, OP_SETTABUP, var->u.ind.t, var->u.ind.idx, e, k);
       break;
     }
     case VRELOC: {
@@ -1005,9 +1063,10 @@ void aqlK_storevar (FuncState *fs, expdesc *var, expdesc *ex) {
         /* Extract table and key from the previous GETTABUP instruction */
         int table = GETARG_B(*previous);
         int key = GETARG_C(*previous);
-        int value = aqlK_exp2RK(fs, ex);
-        aql_debug("[DEBUG] aqlK_storevar: generating SETTABUP with table=%d, key=%d, value=%d\n", table, key, value);
-        aqlK_codeABC(fs, OP_SETTABUP, table, key, value);
+        int k = 0;
+        int value = aqlK_exp2abcik(fs, ex, &k);
+        aql_debug("[DEBUG] aqlK_storevar: generating SETTABUP with table=%d, key=%d, value=%d, k=%d\n", table, key, value, k);
+        aqlK_codeABCk(fs, OP_SETTABUP, table, key, value, k);
       } else {
         aql_debug("[DEBUG] aqlK_storevar: unexpected previous instruction, falling back\n");
         /* Fallback: convert to any register */
@@ -1114,42 +1173,17 @@ void aqlK_goiftrue (FuncState *fs, expdesc *e) {
 ** Emit code to go through if 'e' is false, jump otherwise.
 */
 void aqlK_goiffalse (FuncState *fs, expdesc *e) {
-  //aql_debug("[DEBUG] aqlK_goiffalse: entering\n");
   int pc;  /* pc of new jump */
   
   if (!fs) {
-    //aql_debug("[ERROR] aqlK_goiffalse: fs is NULL\n");
     return;
   }
   
   if (!e) {
-    //aql_debug("[ERROR] aqlK_goiffalse: e is NULL\n");
     return;
   }
   
-  //aql_debug("[DEBUG] aqlK_goiffalse: calling aqlK_dischargevars\n");
   aqlK_dischargevars(fs, e);
-  //aql_debug("[DEBUG] aqlK_goiffalse: aqlK_dischargevars completed, e->k=%d\n", e->k);
-  
-  /* Handle VJMP case early to avoid switch statement issues */
-  if (e->k == VJMP) {
-    //aql_debug("[DEBUG] aqlK_goiffalse: detected VJMP, handling specially\n");
-    negatecondition(fs, e);  /* jump when it is false */
-    //aql_debug("[DEBUG] aqlK_goiffalse: negatecondition called\n");
-    pc = e->u.info;  /* save jump position */
-    //aql_debug("[DEBUG] aqlK_goiffalse: calling aqlK_concat with pc=%d\n", pc);
-    aqlK_concat(fs, &e->t, pc);  /* insert new jump in 't' list */
-    //aql_debug("[DEBUG] aqlK_goiffalse: aqlK_concat completed, calling aqlK_patchtohere\n");
-    aqlK_patchtohere(fs, e->f);  /* false list jumps to here (to go through) */
-    //aql_debug("[DEBUG] aqlK_goiffalse: aqlK_patchtohere completed\n");
-    /* After negation, the true list becomes the false list */
-    e->f = e->t;  /* false list is now the negated true list */
-    e->t = NO_JUMP;
-    //aql_debug("[DEBUG] aqlK_goiffalse: VJMP handling completed, e->f=%d\n", e->f);
-    return;
-  }
-  
-  //aql_debug("[DEBUG] aqlK_goiffalse: about to enter switch statement\n");
   switch (e->k) {
     case VJMP: {
       pc = e->u.info;  /* already jump if true */
@@ -1160,15 +1194,12 @@ void aqlK_goiffalse (FuncState *fs, expdesc *e) {
       break;
     }
     case VVARARG: {
-      //aql_debug("[DEBUG] aqlK_goiffalse: handling VVARARG case\n");
       /* VVARARG should not appear in condition expressions, but handle it gracefully */
       pc = jumponcond(fs, e, 1);  /* jump when true */
       break;
     }
     default: {
-      //aql_debug("[DEBUG] aqlK_goiffalse: default case, calling jumponcond with e->k=%d\n", e->k);
-      pc = jumponcond(fs, e, 0);  /* jump when false */
-      //aql_debug("[DEBUG] aqlK_goiffalse: jumponcond completed, pc=%d\n", pc);
+      pc = jumponcond(fs, e, 1);  /* jump when true */
       break;
     }
   }
@@ -1247,64 +1278,45 @@ void aqlK_indexed (FuncState *fs, expdesc *t, expdesc *k) {
 ** 'e1' was already put in R/K form by 'luaK_infix'.
 */
 static void codecomp (FuncState *fs, BinOpr opr, expdesc *e1, expdesc *e2, int line) {
-  aql_debug("[DEBUG] codecomp: e1->k=%d, e1->u.info=%d, e2->k=%d, e2->u.info=%d\n", 
-    e1->k, e1->u.info, e2->k, e2->u.info);
-  
-  /* Ensure both operands are in R/K form */
-  int rk1 = aqlK_exp2RK(fs, e1);
-  int rk2 = aqlK_exp2RK(fs, e2);
-  aql_debug("[DEBUG] codecomp: rk1=%d, rk2=%d, freereg=%d\n", rk1, rk2, fs->freereg);
-  aqlK_freeexp(fs, e2);
-  
-  /* Map comparison operators to VM instructions */
+  int r1;
+  int r2;
   OpCode op;
-  int k = 1;  /* default: jump when condition is true */
-  
-  aql_debug("[DEBUG] codecomp: operator=%d (OPR_NE=%d)\n", opr, OPR_NE);
+  int k;
+
+  /*
+  ** Keep comparisons on the conservative, Lua-like path: both operands
+  ** are materialized in registers and the comparison opcode builds a jump
+  ** expression. This is less optimized than the immediate/K variants but
+  ** matches the VM operand layout.
+  */
+  r1 = aqlK_exp2anyreg(fs, e1);
+  r2 = aqlK_exp2anyreg(fs, e2);
+
   switch (opr) {
     case OPR_EQ:
       op = OP_EQ;
-      k = 1;  /* jump when equal */
-      aql_debug("[DEBUG] codecomp: OPR_EQ -> OP_EQ, k=1\n");
+      k = 1;
       break;
     case OPR_NE:
       op = OP_EQ;
-      k = 0;  /* jump when not equal (i.e., when EQ is false) */
-      aql_debug("[DEBUG] codecomp: OPR_NE -> OP_EQ, k=0\n");
+      k = 0;
       break;
     case OPR_LT:
       op = OP_LT;
-      k = 1;  /* jump when less than */
-      aql_debug("[DEBUG] codecomp: OPR_LT -> OP_LT, k=1\n");
+      k = 1;
       break;
     case OPR_LE:
       op = OP_LE;
-      k = 1;  /* jump when less or equal */
-      aql_debug("[DEBUG] codecomp: OPR_LE -> OP_LE, k=1\n");
+      k = 1;
       break;
-    default: 
-      aql_debug("[DEBUG] codecomp: unknown operator %d, defaulting to EQ\n", opr);
+    default:
       aql_assert(0);
       op = OP_EQ;
       k = 1;
   }
-  
-  /* Generate conditional jump instruction using condjump */
-  aql_debug("[DEBUG] codecomp: generating conditional jump with %s, k=%d\n", 
-    (op == OP_EQ) ? "EQ" : (op == OP_LT) ? "LT" : "LE", k);
-  
-  /* CRITICAL FIX: Allocate a safe register for comparison result */
-  /* Don't use register 0 as it may contain active local variables */
-  int active_var_level = aqlY_nvarstack(fs);  /* Level of active variables */
-  int result_reg = (fs->freereg > active_var_level) ? fs->freereg : active_var_level;
-  
-  aql_debug("[DEBUG] codecomp: using register %d for comparison result (active_vars=%d, freereg=%d)\n", 
-               result_reg, active_var_level, fs->freereg);
-  
-  e1->u.info = condjump(fs, op, result_reg, rk1, rk2, k);  /* A=result_reg, B=rk1, C=rk2, k=condition */
-  e1->k = VJMP;  /* mark as jump expression */
-  
-  aql_debug("[DEBUG] codecomp: generated VJMP expression with jump at PC=%d\n", e1->u.info);
+
+  e1->u.info = condjump(fs, op, r1, r2, 0, k);
+  e1->k = VJMP;
   aqlK_fixline(fs, line);
 }
 
@@ -1361,7 +1373,7 @@ static int luaK_codeABCk (FuncState *fs, OpCode o, int a, int b, int c, int k) {
 ** Use 'jump' to keep 'jpc' updated.
 */
 int aqlK_jump (FuncState *fs) {
-  return aqlK_codeAsBx(fs, OP_JMP, 0, NO_JUMP);
+  return aqlK_code(fs, CREATE_sJ(OP_JMP, NO_JUMP, 0));
 }
 
 /*
@@ -1402,6 +1414,40 @@ int aqlK_retk (FuncState *fs, int first, int nret, int k) {
   }
   aqlK_codeABCk(fs, op, first, nret + 1, 0, k);
   return fs->pc - 1;
+}
+
+/*
+** Final fixups over emitted bytecode.
+**
+** Match Lua's "finish" pass for the part this codebase already models:
+** when a function captured locals (fs->needclose), any RETURN0/RETURN1 must
+** be upgraded to OP_RETURN so the VM can honor the k-bit and close upvalues
+** before leaving the frame. TAILCALL/RETURN also get k=1 in that case.
+*/
+void aqlK_finish(FuncState *fs) {
+  int i;
+  Proto *p = fs->f;
+
+  for (i = 0; i < fs->pc; i++) {
+    Instruction *pc = &p->code[i];
+    switch (GET_OPCODE(*pc)) {
+      case OP_RETURN0:
+      case OP_RETURN1: {
+        if (!fs->needclose)
+          break;
+        SET_OPCODE(*pc, OP_RETURN);
+      }
+      /* FALLTHROUGH */
+      case OP_RETURN:
+      case OP_TAILCALL: {
+        if (fs->needclose)
+          SETARG_k(*pc, 1);
+        break;
+      }
+      default:
+        break;
+    }
+  }
 }
 
 /*
@@ -1453,7 +1499,7 @@ static int patchtestreg (FuncState *fs, int node, int reg) {
   } else {
      /* no register to put value or register already has the value;
         change instruction to simple test */
-    *i = CREATE_ABC(OP_TEST, GETARG_B(*i), 0, GETARG_C(*i));
+    *i = CREATE_ABCk(OP_TEST, GETARG_B(*i), 0, 0, GETARG_k(*i));
   }
   return 1;
 }
@@ -1623,6 +1669,8 @@ void aqlK_nil (FuncState *fs, int from, int n) {
 ** Convert expression to a value (discharge variables).
 */
 void aqlK_exp2val (FuncState *fs, expdesc *e) {
+  if (e->k == VCALL || e->k == VVARARG)
+    aqlK_setoneret(fs, e);
   if (hasjumps(e))
     aqlK_exp2anyreg(fs, e);
   else
@@ -1634,7 +1682,7 @@ void aqlK_exp2val (FuncState *fs, expdesc *e) {
 ** a list of jumps.
 */
 static int getjump (FuncState *fs, int pc) {
-  int offset = GETARG_sBx(fs->f->code[pc]);
+  int offset = GETARG_sJ(fs->f->code[pc]);
   aql_debug("[DEBUG] getjump: pc=%d, offset=%d\n", pc, offset);
   if (offset == NO_JUMP)  /* point to itself represents end of list */
     return NO_JUMP;  /* end of list */
@@ -1658,16 +1706,16 @@ static void fixjump (FuncState *fs, int pc, int dest) {
   Instruction *jmp = &fs->f->code[pc];
   int offset = dest - (pc + 1);
   aql_debug("[DEBUG] fixjump: pc=%d, dest=%d, offset=%d\n", pc, dest, offset);
-  aql_debug("[DEBUG] fixjump: OFFSET_sBx=%d, MAXARG_sBx=%d\n", OFFSET_sBx, MAXARG_sBx);
+  aql_debug("[DEBUG] fixjump: OFFSET_sJ=%d, MAXARG_sJ=%d\n", OFFSET_sJ, MAXARG_sJ);
   aql_debug("[DEBUG] fixjump: range check: %d <= %d <= %d\n", 
-               -OFFSET_sBx, offset, OFFSET_sBx);
+               -OFFSET_sJ, offset, OFFSET_sJ);
   
   aql_assert(dest != NO_JUMP);
-  if (!(-OFFSET_sBx <= offset && offset <= OFFSET_sBx))
+  if (!(-OFFSET_sJ <= offset && offset <= OFFSET_sJ))
     aqlX_syntaxerror(fs->ls, "control structure too long");
   aql_assert(GET_OPCODE(*jmp) == OP_JMP);
-  SETARG_sBx(*jmp, offset);
-  aql_debug("[DEBUG] fixjump: set sBx=%d for instruction at pc=%d\n", offset, pc);
+  SETARG_sJ(*jmp, offset);
+  aql_debug("[DEBUG] fixjump: set sJ=%d for instruction at pc=%d\n", offset, pc);
 }
 
 /*
@@ -1685,17 +1733,9 @@ static int need_value (FuncState *fs, int list) {
 /*
 ** Generate code to load a boolean value
 */
-static int code_loadbool (FuncState *fs, int A, int b, int jump) {
+static int code_loadbool (FuncState *fs, int A, OpCode op) {
   aqlK_getlabel(fs);  /* those instructions may be jump targets */
-  if (b) {
-    int pc = aqlK_codeABC(fs, OP_LOADTRUE, A, 0, 0);
-    if (jump) aqlK_jump(fs);  /* skip next instruction if needed */
-    return pc;
-  } else {
-    int pc = aqlK_codeABC(fs, OP_LOADFALSE, A, 0, 0);
-    if (jump) aqlK_jump(fs);  /* skip next instruction if needed */
-    return pc;
-  }
+  return aqlK_codeABC(fs, op, A, 0, 0);
 }
 
 /*
@@ -1711,8 +1751,8 @@ static void exp2reg (FuncState *fs, expdesc *e, int reg) {
     int p_t = NO_JUMP;  /* position of an eventual LOAD true */
     if (need_value(fs, e->t) || need_value(fs, e->f)) {
       int fj = (e->k == VJMP) ? NO_JUMP : aqlK_jump(fs);
-      p_f = code_loadbool(fs, reg, 0, 1);
-      p_t = code_loadbool(fs, reg, 1, 0);
+      p_f = code_loadbool(fs, reg, OP_LFALSESKIP);
+      p_t = code_loadbool(fs, reg, OP_LOADTRUE);
       aqlK_patchtohere(fs, fj);
     }
     final = aqlK_getlabel(fs);
@@ -1739,5 +1779,3 @@ static void str2K (FuncState *fs, expdesc *e) {
   e->u.info = aqlK_stringK(fs, e->u.strval);
   e->k = VK;
 }
-
-

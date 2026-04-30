@@ -164,6 +164,12 @@ typedef union {
 /* Builtin function */
 #define AQL_VBUILTIN	makevariant(AQL_TBUILTIN, 0)
 
+#define ttisbuiltin(o)		checktag((o), AQL_VBUILTIN)
+#define builtinvalue(o)	check_exp(ttisbuiltin(o), val_(o).i)
+
+#define setbuiltinvalue(obj,x) \
+  { TValue *io = (obj); val_(io).i = (x); settt_(io, AQL_VBUILTIN); }
+
 /* macro to test for (any kind of) nil */
 #define ttisnil(v)		checktype((v), AQL_TNIL)
 /* macro to test for a standard nil */
@@ -790,21 +796,36 @@ AQL_API aql_Integer aqlV_shiftr (aql_Integer x, aql_Integer y);
 AQL_API aql_Number aqlV_modf (aql_State *L, aql_Number m, aql_Number n);
 
 /*
-** Metamethod types and constants (placeholder)
+** Metamethod helpers
 */
 typedef int TMS;
-#define TM_ADD   0
 
-/*
-** Metamethod function declarations (placeholder)
-*/
-AQL_API void aqlT_trybinTM (aql_State *L, const TValue *p1, const TValue *p2,
-                            StkId res, TMS event);
+AQL_API void aqlT_initmetamethods(aql_State *L);
+AQL_API const TValue *aqlT_gettm(aql_State *L, Table *events, TMS event);
+AQL_API const TValue *aqlT_gettmbyobj(aql_State *L, const TValue *o, TMS event);
+AQL_API void aqlT_callTM(aql_State *L, const TValue *f, const TValue *p1,
+                         const TValue *p2, const TValue *p3);
+AQL_API int aqlT_callTMres(aql_State *L, const TValue *f, const TValue *p1,
+                           const TValue *p2, StkId res);
+AQL_API void aqlT_trybinTM(aql_State *L, const TValue *p1, const TValue *p2,
+                           StkId res, TMS event);
+AQL_API void aqlT_trybinassocTM(aql_State *L, const TValue *p1,
+                                const TValue *p2, int flip, StkId res,
+                                TMS event);
+AQL_API void aqlT_trybiniTM(aql_State *L, const TValue *p1, aql_Integer i2,
+                            int flip, StkId res, TMS event);
+AQL_API int aqlT_callorderTM(aql_State *L, const TValue *p1,
+                             const TValue *p2, TMS event);
+AQL_API int aqlT_callorderiTM(aql_State *L, const TValue *p1, int v2,
+                              int flip, int isfloat, TMS event);
 
 /*
 ** VM function declarations (placeholder)
 */
 AQL_API void aqlV_concat (aql_State *L, int total);
+AQL_API int aqlV_lessthan(aql_State *L, const TValue *l, const TValue *r);
+AQL_API int aqlV_lessequal(aql_State *L, const TValue *l, const TValue *r);
+AQL_API int aqlV_equalobj(aql_State *L, const TValue *t1, const TValue *t2);
 AQL_API void aqlG_runerror (aql_State *L, const char *fmt, ...);
 
 /*

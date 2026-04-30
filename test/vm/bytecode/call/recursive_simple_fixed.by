@@ -3,32 +3,36 @@
 # 预期结果: 0 (countdown(2) = 0)
 
 .main
+K0 STRING "countdown"
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
 .code
 CLOSURE   R0, 0            # R0 = function <countdown>
-LOADI     R1, 2            # R1 = 2 (从2开始倒数)
-CALL      R0, 2, 2         # 调用countdown(2)
-RETURN1   R0               # 返回结果
+SETTABUP  0, K0, R0        # 递归通过_ENV回调，避免重复创建闭包
+GETTABUP  R1, 0, K0
+LOADI     R2, 2
+CALL      R1, 2, 2
+RETURN1   R1
 .end
 
 .function countdown 1
 .upvalues 1
-.upvalue 0 "self" instack 0    # upvalue[0] = 函数自身引用
+.upvalue 0 "_ENV" upval 0
+.constants
+K0 STRING "countdown"
 .code
 # R0 = n (参数)
 # 基础情况: 如果 n <= 0，返回 0
-LOADI     R1, 0            # R1 = 0
-LE        R0, R1, 0        # 比较 R0 <= R1，如果成立则跳转
-JMP       0, 2             # 跳过返回0的指令
-RETURN1   R1               # 返回0 (基础情况)
+LEI       R0, 0, 0
+JMP       3
+LOADI     R1, 0
+RETURN1   R1
+JMP       7
 
 # 递归情况: countdown(n-1)
-GETUPVAL  R2, 0            # R2 = upvalue[0] (函数自身)
-LOADI     R3, 1            # R3 = 1
-SUB       R4, R0, R3       # R4 = n - 1
-MMBIN     R0, R3, 7        # 元方法处理 (__sub)
-MOVE      R5, R4           # R5 = n - 1 (参数)
-TAILCALL  R2, 2, 0         # 尾递归调用 countdown(n-1)
-RETURN    R2, 0, 0         # 返回尾调用结果
+GETTABUP  R1, 0, K0
+ADDI      R2, R0, -1
+MMBINI    R0, 1, 7, 0
+CALL      R1, 2, 2
+RETURN1   R1
 .end
-
-

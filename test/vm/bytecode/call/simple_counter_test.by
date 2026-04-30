@@ -37,7 +37,7 @@ RETURN1   R1               # 返回结果 (应该是11)
 # 为每个闭包创建独立的upvalue
 MOVE      R1, R0           # R1 = start (准备作为upvalue)
 CLOSURE   R2, 0            # R2 = counter函数
-RETURN1   R2               # 返回counter函数
+RETURN    R2, 2, 1        # 返回counter函数，并关闭捕获的upvalue
 .end
 
 .function counter 0

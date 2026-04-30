@@ -5,7 +5,7 @@
 
 # Compiler and flags
 CC = gcc
-BASE_CFLAGS = -std=c11 -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -I./src
+BASE_CFLAGS = -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -I./src
 DEBUG_CFLAGS = $(BASE_CFLAGS) -DAQL_DEBUG_BUILD -g -O0 -DDEBUG_DISABLED=0 -DDEBUG 
 RELEASE_CFLAGS = $(BASE_CFLAGS) -O2 -DNDEBUG -DDEBUG_DISABLED=1
 LDFLAGS = -lm
@@ -66,6 +66,7 @@ CORE_SOURCES = \
     $(SRC_DIR)/aapi.c \
     $(SRC_DIR)/ado.c \
     $(SRC_DIR)/aparser.c \
+    $(SRC_DIR)/arepl.c \
     $(SRC_DIR)/acode.c \
     $(SRC_DIR)/aerror.c \
     $(SRC_DIR)/main.c

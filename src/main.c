@@ -11,6 +11,7 @@
 #include "aobject.h"
 #include "astate.h"
 #include "avm.h"
+#include "aapi.h"
 #include "aparser.h"
 #include "arepl.h"
 #include "ajit.h"
@@ -61,6 +62,53 @@ static void print_version(void) {
     printf("Built with arithmetic operations, bitwise operations, and basic parsing.\n");
 }
 
+static int get_execution_result(aql_State *L, TValue **result) {
+    if (!L || !L->ci || !L->ci->func.p || !result) {
+        return 0;
+    }
+
+    if (L->top.p <= L->ci->func.p + 1) {
+        return 0;
+    }
+
+    *result = s2v(L->top.p - 1);
+    return (*result != NULL);
+}
+
+static void clear_execution_stack(aql_State *L) {
+    if (L && L->ci && L->ci->func.p) {
+        L->top.p = L->ci->func.p + 1;
+    }
+}
+
+static int execute_expression(aql_State *L, const char *expr, const char *chunkname) {
+    size_t expr_len;
+    size_t chunk_len;
+    char *chunk;
+    int status;
+
+    if (!L || !expr) {
+        return 0;
+    }
+
+    expr_len = strlen(expr);
+    chunk_len = expr_len + 9;  /* "return " + ";" + '\0' */
+    chunk = (char *)malloc(chunk_len);
+    if (!chunk) {
+        return 0;
+    }
+
+    snprintf(chunk, chunk_len, "return %s;", expr);
+    status = aqlP_compile_string(L, chunk, strlen(chunk), chunkname);
+    free(chunk);
+
+    if (status != 0) {
+        return 0;
+    }
+
+    return (aqlP_execute_compiled(L, 0, 1) == 1);
+}
+
 /*
 ** Test mode - run comprehensive arithmetic tests
 */
@@ -87,21 +135,21 @@ static int run_tests(aql_State *L) {
     };
     
     for (int i = 0; test_expressions[i]; i++) {
+        TValue *result = NULL;
+
         printf("Testing: %s\n", test_expressions[i]);
-        TValue expr_result;
-        if (aqlP_parse_expression(L, test_expressions[i], &expr_result) == 0) {
-            if (aql_gettop(L) > 0) {
-                if (aql_isinteger(L, -1)) {
-                    printf("  Result: %lld\n", aql_tointeger(L, -1));
-                } else if (aql_isnumber(L, -1)) {
-                    printf("  Result: %.6g\n", (double)aql_tonumber(L, -1));
-                }
-                aql_pop(L, 1);
-            }
-        } else {
-            printf("  Error parsing expression\n");
+        if (!execute_expression(L, test_expressions[i], "=(test)")) {
+            printf("  Error executing expression\n");
             return 0;
         }
+
+        if (get_execution_result(L, &result)) {
+            printf("  Result: ");
+            aqlP_print_value(result);
+            printf("\n");
+        }
+
+        clear_execution_stack(L);
     }
     
     printf("All arithmetic tests completed successfully!\n");
@@ -249,22 +297,21 @@ int main(int argc, char *argv[]) {
         /* Run internal tests */
         result = run_tests(L) ? 0 : 1;
     } else if (expression) {
+        TValue *result_value = NULL;
+
         /* Evaluate single expression */
         printf("Evaluating: %s\n", expression);
-        TValue expr_result;
-        if (aqlP_parse_expression(L, expression, &expr_result) == 0) {
-            if (aql_gettop(L) > 0) {
-                if (aql_isinteger(L, -1)) {
-                    printf("Result: %lld\n", aql_tointeger(L, -1));
-                } else if (aql_isnumber(L, -1)) {
-                    printf("Result: %.6g\n", (double)aql_tonumber(L, -1));
-                } else {
-                    printf("Result: (unknown type)\n");
-                }
-                aql_pop(L, 1);
+        if (execute_expression(L, expression, "=(command line)")) {
+            if (get_execution_result(L, &result_value)) {
+                printf("Result: ");
+                aqlP_print_value(result_value);
+                printf("\n");
+            } else {
+                printf("Result: (no value)\n");
             }
+            clear_execution_stack(L);
         } else {
-            fprintf(stderr, "Error: Failed to parse expression\n");
+            fprintf(stderr, "Error: Failed to execute expression\n");
             result = 1;
         }
     } else if (filename) {

@@ -1,0 +1,14 @@
+# complex.by
+.code
+LOADI   R0, 10
+LOADI   R1, 2
+MUL     R2, R0, R1
+MMBIN   R0, R1, 8
+LOADI   R3, 15
+LOADI   R4, 5
+SUB     R5, R3, R4
+MMBIN   R3, R4, 7
+ADD     R6, R2, R5
+MMBIN   R2, R5, 6
+RETURN1 R6
+.end

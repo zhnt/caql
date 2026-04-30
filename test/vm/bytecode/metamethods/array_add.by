@@ -1,0 +1,24 @@
+# 数组加法元方法测试
+# 测试: [1, 2] + [3, 4] 触发 __add，结果数组的第3个元素为 3
+
+.code
+NEWOBJECT R0, 0, 2   # a = [1, 2]
+LOADI     R10, 0
+LOADI     R11, 1
+LOADI     R12, 2
+SETPROP   R0, R10, R11
+SETPROP   R0, R11, R12
+
+NEWOBJECT R1, 0, 2   # b = [3, 4]
+LOADI     R13, 3
+LOADI     R14, 4
+SETPROP   R1, R10, R13
+SETPROP   R1, R11, R14
+
+ADD       R2, R0, R1
+MMBIN     R0, R1, 6  # TM_ADD
+
+LOADI     R3, 2
+GETPROP   R4, R2, R3
+RETURN1   R4
+.end

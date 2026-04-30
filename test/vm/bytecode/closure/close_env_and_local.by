@@ -1,0 +1,41 @@
+# close_env_and_local.by
+# 同时捕获 _ENV 和 local，显式 CLOSE local 后仍可正确访问
+
+.main
+K0 STRING "bonus"
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
+.code
+LOADI     R1, 3
+SETTABUP  0, K0, R1
+
+CLOSURE   R0, 0
+LOADI     R1, 10
+CALL      R0, 2, 2
+CALL      R0, 1, 2
+RETURN1   R0
+.end
+
+.function makeAdder 1
+K0 STRING "bonus"
+.upvalues 1
+.upvalue 0 "_ENV" upval 0
+.code
+MOVE      R1, R0
+CLOSURE   R2, 0
+CLOSE     R1
+RETURN1   R2
+.end
+
+.function adder 0
+K0 STRING "bonus"
+.upvalues 2
+.upvalue 0 "_ENV" upval 0
+.upvalue 1 "base" instack 1
+.code
+GETUPVAL  R0, 1
+GETTABUP  R1, 0, K0
+ADD       R2, R0, R1
+MMBIN     R0, R1, 6
+RETURN1   R2
+.end

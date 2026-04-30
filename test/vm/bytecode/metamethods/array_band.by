@@ -1,0 +1,24 @@
+# 数组按位与元方法测试
+# 测试: [6, 3] & [5, 1] 触发 __band，结果数组的第0个元素为 4
+
+.code
+NEWOBJECT R0, 0, 2
+LOADI     R10, 0
+LOADI     R11, 1
+LOADI     R12, 6
+LOADI     R13, 3
+SETPROP   R0, R10, R12
+SETPROP   R0, R11, R13
+
+NEWOBJECT R1, 0, 2
+LOADI     R14, 5
+LOADI     R15, 1
+SETPROP   R1, R10, R14
+SETPROP   R1, R11, R15
+
+BAND      R2, R0, R1
+MMBIN     R0, R1, 13   # TM_BAND
+
+GETPROP   R3, R2, R10
+RETURN1   R3
+.end

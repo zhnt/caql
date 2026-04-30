@@ -12,6 +12,7 @@
 #include "amem.h"
 #include "aobject.h"
 #include "adatatype.h"
+#include "adict.h"
 
 /* ============================================================================
  * 容器创建函数
@@ -48,7 +49,8 @@ AQL_API AQL_ContainerBase *acontainer_new(aql_State *L, ContainerType type,
     /* 容器特定初始化 */
     switch (type) {
         case CONTAINER_ARRAY:
-            /* 数组无需特殊初始化 */
+            /* Fixed-size arrays expose their full allocated range. */
+            c->length = capacity;
             break;
         case CONTAINER_SLICE:
             c->u.slice.offset = 0;
@@ -57,6 +59,7 @@ AQL_API AQL_ContainerBase *acontainer_new(aql_State *L, ContainerType type,
         case CONTAINER_VECTOR:
             c->u.vector.alignment = sizeof(void*);
             c->u.vector.simd_width = 1;
+            c->length = capacity;
             break;
         case CONTAINER_DICT:
             c->u.dict.bucket_count = capacity;
@@ -229,14 +232,37 @@ AQL_API int acontainer_vector_set(aql_State *L, AQL_ContainerBase *c,
 
 AQL_API int acontainer_dict_get(aql_State *L, AQL_ContainerBase *c, 
                                const TValue *key, TValue *result) {
-    (void)L; (void)c; (void)key; (void)result;
-    /* TODO: 实现字典查找 */
-    return -1;  /* 暂未实现 */
+    (void)L;
+
+    if (c == NULL || key == NULL || result == NULL) {
+        return -1;
+    }
+
+    const Dict *dict = (const Dict *)c;
+    const TValue *value = aqlD_get(dict, key);
+    if (value == NULL) {
+        return -1;
+    }
+
+    result->value_ = value->value_;
+    result->tt_ = value->tt_;
+    return 0;
 }
 
 AQL_API int acontainer_dict_set(aql_State *L, AQL_ContainerBase *c, 
                                const TValue *key, const TValue *value) {
-    (void)L; (void)c; (void)key; (void)value;
-    /* TODO: 实现字典设置 */
-    return -1;  /* 暂未实现 */
+    if (c == NULL || key == NULL) {
+        return -1;
+    }
+
+    Dict *dict = (Dict *)c;
+
+    if (ttisnil(value)) {
+        if (aqlD_delete(dict, key) == 0) {
+            return 0;  /* 删除不存在的键也认为成功 */
+        }
+        return 0;
+    }
+
+    return (aqlD_set(L, dict, key, value) == 0) ? 0 : -1;
 }

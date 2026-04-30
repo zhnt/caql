@@ -1,0 +1,44 @@
+# deep_nested_forward_3level.by
+# 三层 upvalue -> upvalue 转发
+
+.main
+.code
+CLOSURE   R0, 0
+LOADI     R1, 9
+CALL      R0, 2, 2
+CALL      R0, 1, 2
+CALL      R0, 1, 2
+CALL      R0, 1, 2
+RETURN1   R0
+.end
+
+.function outer 1
+.code
+MOVE      R1, R0
+CLOSURE   R2, 0
+RETURN    R2, 2, 1
+.end
+
+.function level1 0
+.upvalues 1
+.upvalue 0 "x" instack 1
+.code
+CLOSURE   R0, 0
+RETURN    R0, 2, 1
+.end
+
+.function level2 0
+.upvalues 1
+.upvalue 0 "x" upval 0
+.code
+CLOSURE   R0, 0
+RETURN    R0, 2, 1
+.end
+
+.function leaf 0
+.upvalues 1
+.upvalue 0 "x" upval 0
+.code
+GETUPVAL  R0, 0
+RETURN1   R0
+.end

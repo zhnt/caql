@@ -1,0 +1,33 @@
+# capture_write_local.by
+# 闭包写回 upvalue 并多次读取
+
+.main
+.code
+CLOSURE   R0, 0
+LOADI     R1, 10
+CALL      R0, 2, 2
+MOVE      R1, R0
+CALL      R1, 1, 2
+MOVE      R1, R0
+CALL      R1, 1, 2
+RETURN1   R1
+.end
+
+.function makeCounter 1
+.code
+MOVE      R1, R0
+CLOSURE   R2, 0
+RETURN    R2, 2, 1
+.end
+
+.function counter 0
+.upvalues 1
+.upvalue 0 "count" instack 1
+.code
+GETUPVAL  R0, 0
+ADDI      R0, R0, 1
+MMBINI    R0, 1, 6, 0
+SETUPVAL  R0, 0
+GETUPVAL  R0, 0
+RETURN1   R0
+.end

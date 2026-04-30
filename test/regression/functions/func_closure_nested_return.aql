@@ -1,0 +1,11 @@
+function outer(x) {
+    return function() {
+        return function() {
+            return x
+        }
+    }
+}
+
+let level1 = outer(7)
+let level2 = level1()
+print(level2())

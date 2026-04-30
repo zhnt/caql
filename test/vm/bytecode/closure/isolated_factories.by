@@ -1,0 +1,42 @@
+# isolated_factories.by
+# 两次 factory 调用得到独立的 upvalue 状态
+
+.main
+.code
+CLOSURE   R0, 0
+
+MOVE      R1, R0
+LOADI     R2, 10
+CALL      R1, 2, 2
+
+MOVE      R2, R0
+LOADI     R3, 100
+CALL      R2, 2, 2
+
+MOVE      R3, R1
+CALL      R3, 1, 2
+MOVE      R3, R2
+CALL      R3, 1, 2
+MOVE      R3, R1
+CALL      R3, 1, 2
+RETURN1   R3
+.end
+
+.function makeCounter 1
+.code
+MOVE      R1, R0
+CLOSURE   R2, 0
+RETURN    R2, 2, 1
+.end
+
+.function counter 0
+.upvalues 1
+.upvalue 0 "count" instack 1
+.code
+GETUPVAL  R0, 0
+ADDI      R0, R0, 1
+MMBINI    R0, 1, 6, 0
+SETUPVAL  R0, 0
+GETUPVAL  R0, 0
+RETURN1   R0
+.end

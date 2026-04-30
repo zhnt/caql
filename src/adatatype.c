@@ -5,6 +5,7 @@
 */
 
 #include "adatatype.h"
+#include "aobject.h"
 #include <stddef.h>
 
 /*
@@ -24,7 +25,7 @@ AQL_API size_t aqlDT_sizeof(DataType dtype) {
     case AQL_DATA_TYPE_FLOAT64: return sizeof(double);
     case AQL_DATA_TYPE_BOOLEAN: return sizeof(char);
     case AQL_DATA_TYPE_STRING:  return sizeof(void*);  /* Pointer to string */
-    case AQL_DATA_TYPE_ANY:     return sizeof(void*);  /* Pointer to TValue */
+    case AQL_DATA_TYPE_ANY:     return sizeof(TValue); /* Mixed-type containers store TValue slots */
     default:                    return 0;
   }
 }

@@ -1,0 +1,5 @@
+let a = [6, 3]
+let b = [5, 1]
+let c = a & b
+print(c[0])
+print(c[1])

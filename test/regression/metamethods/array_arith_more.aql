@@ -1,0 +1,11 @@
+let a = [9, 7]
+let b = [4, 2]
+let sub = a - b
+print(sub[0])
+print(sub[1])
+
+let c = [2, 3]
+let d = [4, 5]
+let mul = c * d
+print(mul[0])
+print(mul[1])

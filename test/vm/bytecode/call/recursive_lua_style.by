@@ -3,13 +3,16 @@
 # 预期结果: 0 (countdown(3) = 0)
 
 .main
+K0 STRING "countdown"
+.upvalues 1
+.upvalue 0 "_ENV" instack 0
 .code
 # 设置全局函数
 CLOSURE   R0, 0            # R0 = function <countdown>
-SETTABUP  0, 0, R0         # _ENV["countdown"] = function
+SETTABUP  0, K0, R0        # _ENV["countdown"] = function
 
 # 调用函数
-GETTABUP  R1, 0, 0         # R1 = _ENV["countdown"]
+GETTABUP  R1, 0, K0        # R1 = _ENV["countdown"]
 LOADI     R2, 3            # R2 = 3
 CALL      R1, 2, 2         # 调用countdown(3)
 RETURN1   R1               # 返回结果
@@ -17,22 +20,21 @@ RETURN1   R1               # 返回结果
 
 .function countdown 1
 K0 STRING "countdown"
+.upvalues 1
+.upvalue 0 "_ENV" upval 0
 .code
 # R0 = n (参数)
 # 基础情况: 如果 n <= 0，返回 0
-LOADI     R1, 0            # R1 = 0
-LE        R0, R1, 0        # 比较 R0 <= R1，如果成立则跳转
-JMP       0, 2             # 跳过返回0的指令
-RETURN1   R1               # 返回0 (基础情况)
+LEI       R0, 0, 0
+JMP       3
+LOADI     R1, 0
+RETURN1   R1
+JMP       6
 
 # 递归情况: countdown(n-1)
-GETTABUP  R2, 0, 0         # R2 = _ENV["countdown"] (从全局获取函数)
-LOADI     R3, 1            # R3 = 1
-SUB       R4, R0, R3       # R4 = n - 1
-MMBIN     R0, R3, 7        # 元方法处理 (__sub)
-MOVE      R5, R4           # R5 = n - 1 (参数)
-TAILCALL  R2, 2, 0         # 尾递归调用 countdown(n-1)
-RETURN    R2, 0, 0         # 返回尾调用结果
+GETTABUP  R1, 0, K0        # R1 = _ENV["countdown"]
+ADDI      R2, R0, -1       # R2 = n - 1
+MMBINI    R0, 1, 7, 0      # __sub 元方法
+TAILCALL  R1, 2, 0         # 尾递归调用 countdown(n-1)
+RETURN    R1, 0, 0         # 返回尾调用结果
 .end
-
-

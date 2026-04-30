@@ -25,6 +25,16 @@
 
 #if AQL_USE_JIT
 
+#ifndef _WIN32
+static size_t aqlJIT_page_size(void) {
+    long page_size = sysconf(_SC_PAGESIZE);
+    if (page_size <= 0) {
+        return 4096;
+    }
+    return (size_t)page_size;
+}
+#endif
+
 /*
 ** Forward declarations for internal functions
 */
@@ -567,7 +577,7 @@ AQL_API void *aqlJIT_alloc_code(size_t size) {
     return ptr;
 #else
     /* Unix-like: Use mmap for executable memory */
-    size_t page_size = getpagesize();
+    size_t page_size = aqlJIT_page_size();
     size_t aligned_size = (size + page_size - 1) & ~(page_size - 1);
     
     void *ptr = mmap(NULL, aligned_size, 
@@ -593,7 +603,7 @@ AQL_API void aqlJIT_free_code(void *ptr, size_t size) {
     VirtualFree(ptr, 0, MEM_RELEASE);
 #else
     /* Unix-like: Use munmap */
-    size_t page_size = getpagesize();
+    size_t page_size = aqlJIT_page_size();
     size_t aligned_size = (size + page_size - 1) & ~(page_size - 1);
     
     /* Update memory usage statistics */

@@ -102,7 +102,8 @@
 #define dummynode		(&dummynode_)
 
 static const Node dummynode_ = {
-  {{{NULL}, AQL_VNIL}, AQL_VNIL, 0, {NULL}}  /* value, key_tt, next, key_val */
+  {{NULL}, AQL_VEMPTY,  /* value's value and type */
+   AQL_TDEADKEY, 0, {NULL}}  /* key type, next, and key value */
 };
 
 

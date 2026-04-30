@@ -19,6 +19,7 @@
 
 #include "aapi.h"
 #include "adebug.h"
+#include "adebug_user.h"
 #include "ado.h"
 #include "afunc.h"
 #include "agc.h"
@@ -112,7 +113,7 @@ static void f_call(aql_State *L, void *ud) {
 /*
 ** Execute a protected call
 */
-AQL_API int aqlD_pcall(aql_State *L, aql_CFunction func, void *u,
+AQL_API int aqlD_pcall(aql_State *L, Pfunc func, void *u,
                        ptrdiff_t oldtop, ptrdiff_t ef) {
   int status;
   CallInfo *old_ci = L->ci;
@@ -509,8 +510,8 @@ AQL_API int aqlD_poscall(aql_State *L, CallInfo *ci, int nres) {
   aql_debug("[DEBUG] aqlD_poscall: closing upvalues at level %p\n", (void*)func_base);
   aqlF_closeupval(L, func_base);
   
-  /* Check if this is the base call (main function) */
-  if (ci->previous == NULL) {
+  /* Check if this is returning to the base C frame. */
+  if (ci->previous == NULL || ci->previous == &L->base_ci) {
     aql_debug("[DEBUG] aqlD_poscall: base call, returning 1 (exit VM)\n");
     return 1;  /* Exit VM execution */
   }
@@ -756,6 +757,10 @@ static void f_compile(aql_State *L, void *ud) {
   aqlZ_cleanup_string(L, &z);
   
   if (cl) {
+    if (aqlD_get_debug_flags() & AQL_DEBUG_CODE) {
+      aqlD_print_function_bytecode(cl->p, c->name);
+    }
+
     /* Push compiled function onto stack */
     setclLvalue2s(L, L->top.p, cl);
     L->top.p++;
@@ -767,13 +772,14 @@ static void f_compile(aql_State *L, void *ud) {
         aqlF_initupvals(L, cl);
       }
       
-      /* Get global dict directly from global state */
-      const TValue *globals = &G(L)->l_globals;
-      if (ttisdict(globals)) {
-        /* Set global dict as first upvalue */
-        setobj(L, cl->upvals[0]->v.p, globals);
+      /*
+      ** AQL uses a dict-backed global environment. Create it eagerly for
+      ** compiled chunks so source-level _ENV accesses do not start from nil.
+      */
+      Dict *globals_dict = get_globals_dict(L);
+      if (globals_dict != NULL) {
+        setobj(L, cl->upvals[0]->v.p, &G(L)->l_globals);
       } else {
-        /* Set nil for now, will be created on first global variable access */
         setnilvalue(cl->upvals[0]->v.p);
       }
     }
@@ -800,85 +806,22 @@ struct ExecuteS {  /* data for protected execution */
 };
 
 static void f_execute(aql_State *L, void *ud) {
-  aql_debug("[DEBUG] f_execute: entering\n");
-  
   struct ExecuteS *e = cast(struct ExecuteS *, ud);
-  
-  if (!L) {
-    aql_debug("[ERROR] f_execute: L is NULL\n");
+
+  if (!L || !L->ci || !L->ci->func.p) {
     aqlD_throw(L, AQL_ERRRUN);
   }
-  
-  if (!L->ci) {
-    aql_debug("[ERROR] f_execute: L->ci is NULL\n");
+
+  if (L->top.p < L->stack.p + e->nargs + 1) {
     aqlD_throw(L, AQL_ERRRUN);
   }
-  
-  if (!L->ci->func.p) {
-    aql_debug("[ERROR] f_execute: L->ci->func is NULL\n");
-    aqlD_throw(L, AQL_ERRRUN);
-  }
-  
-  if (L->top.p <= L->ci->func.p) {
-    aql_debug("[ERROR] f_execute: L->top <= L->ci->func\n");
-    aqlD_throw(L, AQL_ERRRUN);
-  }
-  
-  /* Check that we have a function on the stack */
-  if (L->top.p <= L->ci->func.p + 1) {
-    aqlD_throw(L, AQL_ERRRUN);
-  }
-  
-  TValue *func_val = s2v(L->top.p - 1);
-  if (!ttisclosure(func_val)) {
-    aqlD_throw(L, AQL_ERRRUN);
-  }
-  
-  /* Create a new call frame for the function */
-  CallInfo *ci = L->ci;
-  LClosure *cl = clLvalue(func_val);
-  
-  /* Initialize _ENV upvalue with global dictionary (like Lua does) */
-  aql_debug("[DEBUG] f_execute: cl->nupvalues=%d\n", cl->nupvalues);
-  aql_debug("[DEBUG] f_execute: TEMPORARILY SKIPPING _ENV initialization to isolate crash\n");
-  
-  /* Set up the call frame */
-  aql_debug("[DEBUG] f_execute: setting up call frame\n");
-  ci->func.p = L->top.p - 1;  /* Function is at top - 1 */
-  ci->u.l.savedpc = cl->p->code;  /* Start at beginning of code */
-  aql_debug("[DEBUG] f_execute: call frame set up, func=%p, savedpc=%p\n", (void*)ci->func.p, (void*)ci->u.l.savedpc);
-  
-  /* Adjust stack for function call with safety buffer */
-  aql_debug("[DEBUG] f_execute: adjusting stack for function call\n");
-  
-  /* Set ci->top with safety buffer for main function */
-  int main_safe_stacksize = cl->p->maxstacksize + AQL_FUNCTION_STACK_SAFETY;
-  ci->top.p = ci->func.p + 1 + main_safe_stacksize;
-  aql_debug("[DEBUG] f_execute: main function maxstacksize=%d + safety=%d = %d\n",
-               cl->p->maxstacksize, AQL_FUNCTION_STACK_SAFETY, main_safe_stacksize);
-  aql_debug("[DEBUG] f_execute: set ci->top=%p for main function\n", (void*)ci->top.p);
-  
-  /* Ensure we have enough stack space */
-  if (ci->top.p > L->stack_last.p) {
-    aql_debug("[DEBUG] f_execute: need to grow stack for main function\n");
-    int needed = cast_int(ci->top.p - L->stack_last.p) + EXTRA_STACK;
-    if (aqlD_growstack(L, needed, 1)) {
-      /* Recalculate pointers after stack growth */
-      ci->func.p = L->top.p - 1;
-      ci->top.p = ci->func.p + 1 + main_safe_stacksize;
-      aql_debug("[DEBUG] f_execute: stack grown, new ci->top=%p\n", (void*)ci->top.p);
-    }
-  }
-  
-  L->top.p = ci->func.p + 1 + e->nargs;  /* func + args */
-  
-  /* Call the virtual machine */
-  aql_debug("[DEBUG] f_execute: calling aqlV_execute\n");
-  int status = aqlV_execute(L, ci);
-  aql_debug("[DEBUG] f_execute: aqlV_execute returned status=%d\n", status);
-  if (status != 1) {  /* execution failed? */
-    aqlD_throw(L, AQL_ERRRUN);
-  }
+
+  /*
+  ** Execute compiled chunks through the normal call pipeline instead of
+  ** hand-building a CallInfo. This matches Lua's protected-call flow and
+  ** keeps call/return bookkeeping in one place.
+  */
+  aqlD_callnoyield(L, L->top.p - (e->nargs + 1), e->nresults);
 }
 
 /*

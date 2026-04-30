@@ -1,0 +1,27 @@
+# return1_after_close.by
+# 显式 CLOSE 之后用 RETURN1 返回闭包
+
+.main
+.code
+CLOSURE   R0, 0
+LOADI     R1, 77
+CALL      R0, 2, 2
+CALL      R0, 1, 2
+RETURN1   R0
+.end
+
+.function makeReader 1
+.code
+MOVE      R1, R0
+CLOSURE   R2, 0
+CLOSE     R1
+RETURN1   R2
+.end
+
+.function reader 0
+.upvalues 1
+.upvalue 0 "x" instack 1
+.code
+GETUPVAL  R0, 0
+RETURN1   R0
+.end

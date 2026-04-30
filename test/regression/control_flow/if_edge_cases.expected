@@ -1,4 +1,4 @@
-Zero is falsy
+Zero is truthy
 Negative is truthy
 Positive is truthy
 Zero equals zero

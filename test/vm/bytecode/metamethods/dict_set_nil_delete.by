@@ -1,0 +1,15 @@
+# 字典设置 nil 应删除键，后续读取返回 nil
+
+.constants
+K0 STRING "x"
+
+.code
+NEWOBJECT R0, 2, 0
+LOADK    R1, 0
+LOADI    R2, 99
+SETPROP  R0, R1, R2
+LOADNIL  R3, 1
+SETPROP  R0, R1, R3
+GETPROP  R4, R0, R1
+RETURN1   R4
+.end

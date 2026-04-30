@@ -1,0 +1,35 @@
+# nested_forward_2level.by
+# inner 通过 upvalue -> upvalue 转发拿到 outer 局部
+
+.main
+.code
+CLOSURE   R0, 0
+LOADI     R1, 7
+CALL      R0, 2, 2
+CALL      R0, 1, 2
+CALL      R0, 1, 2
+RETURN1   R0
+.end
+
+.function outer 1
+.code
+MOVE      R1, R0
+CLOSURE   R2, 0
+RETURN    R2, 2, 1
+.end
+
+.function middle 0
+.upvalues 1
+.upvalue 0 "x" instack 1
+.code
+CLOSURE   R0, 0
+RETURN    R0, 2, 1
+.end
+
+.function inner 0
+.upvalues 1
+.upvalue 0 "x" upval 0
+.code
+GETUPVAL  R0, 0
+RETURN1   R0
+.end

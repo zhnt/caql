@@ -1,0 +1,13 @@
+# 字典字符串键直接读取写入应生效，不走回退
+
+.constants
+K0 STRING "x"
+
+.code
+NEWOBJECT R0, 2, 0   # 创建 dict
+LOADK    R1, 0
+LOADI    R2, 7
+SETPROP  R0, R1, R2
+GETPROP  R3, R0, R1
+RETURN1   R3
+.end

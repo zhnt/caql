@@ -93,29 +93,23 @@ AQL_API Dict *aqlD_newcap(aql_State *L, DataType key_type, DataType value_type, 
   /* Ensure capacity is power of 2 and at least MIN_CAPACITY */
   if (capacity < MIN_CAPACITY) capacity = MIN_CAPACITY;
   capacity = 1 << aqlO_ceillog2((unsigned int)capacity);
-  
-  /* 使用统一容器创建函数 */
-  AQL_ContainerBase *base = acontainer_new(L, CONTAINER_DICT, value_type, capacity);
-  if (base == NULL) return NULL;
-  
-  Dict *dict = (Dict*)base;
+
+  Dict *dict = (Dict*)aqlM_newobject(L, AQL_TDICT, sizeof(Dict));
+  if (dict == NULL) return NULL;
   
   /* 设置字典特定字段 */
   dict->key_type = key_type;
   dict->value_type = value_type;
   dict->size = 0;
+  dict->length = 0;
+  dict->capacity = capacity;
   dict->mask = capacity - 1;
   dict->load_factor = MAX_LOAD_FACTOR;
-  
-  /* 初始化字典特定的union字段 */
-  base->u.dict.bucket_count = capacity;
-  base->u.dict.hash_mask = capacity - 1;
-  base->u.dict.load_factor = 0.75;
   
   /* 分配并初始化条目数组 - 使用独立内存避免冲突 */
   dict->entries = (DictEntry*)aqlM_newvector(L, capacity, DictEntry);
   if (dict->entries == NULL) {
-    /* TODO: 释放 base */
+    aqlM_freemem(L, dict, sizeof(Dict));
     return NULL;
   }
   
@@ -136,9 +130,9 @@ AQL_API Dict *aqlD_newcap(aql_State *L, DataType key_type, DataType value_type, 
 */
 AQL_API void aqlD_free(aql_State *L, Dict *dict) {
   if (dict == NULL) return;
-  
-  /* 使用统一容器销毁函数 */
-  acontainer_destroy(L, (AQL_ContainerBase*)dict);
+  if (dict->entries)
+    aqlM_freemem(L, dict->entries, dict->capacity * sizeof(DictEntry));
+  aqlM_freemem(L, dict, sizeof(Dict));
 }
 
 /*

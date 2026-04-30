@@ -32,6 +32,24 @@
 #include "aerror.h"
 #include "astate.h"
 
+static char *aql_strdup(const char *s) {
+  size_t len;
+  char *copy;
+
+  if (s == NULL) {
+    return NULL;
+  }
+
+  len = strlen(s) + 1;
+  copy = (char *)malloc(len);
+  if (copy == NULL) {
+    return NULL;
+  }
+
+  memcpy(copy, s, len);
+  return copy;
+}
+
 /* Forward declaration for VM execution */
 AQL_API int aqlV_execute(aql_State *L, CallInfo *ci);
 
@@ -143,7 +161,7 @@ AQL_API int aql_loadfile_with_return(aql_State *L, const char *filename) {
     last_line_start = p + 1;
     
     /* Check if last line looks like an expression (not a statement) */
-    char *line_copy = strdup(last_line_start);
+      char *line_copy = aql_strdup(last_line_start);
     if (line_copy) {
       /* Remove trailing whitespace from line copy */
       char *end = line_copy + strlen(line_copy) - 1;

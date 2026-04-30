@@ -10,6 +10,7 @@
 
 #include "aconf.h"
 
+#include <ctype.h>
 #include <stdio.h>
 
 #include "adebug.h"
@@ -195,28 +196,23 @@ static int aql_multiline(aql_State *L, const char *line) {
     /* Compilation successful - execute the compiled code */
     aql_debug("[DEBUG] aql_multiline: compilation successful, executing\n");
     status = aqlP_execute_compiled(L, 0, 0);  /* 0 args, 0 results for statements */
-    AQL_DEBUG(AQL_DEBUG_REPL, "aql_multiline: execute returned status=%d", status);
-    fflush(stdout);
+    aql_debug("aql_multiline: execute returned status=%d", status);
     
     if (status == 1) {  /* aqlV_execute returns 1 for successful completion */
-      AQL_DEBUG(AQL_DEBUG_REPL, "aql_multiline: statement executed successfully");
-      fflush(stdout);
+      aql_debug("aql_multiline: statement executed successfully");
       
       /* Clean up stack */
       L->top.p = L->ci->func.p + 1;
-      AQL_DEBUG(AQL_DEBUG_REPL, "aql_multiline: cleaned up stack");
-      fflush(stdout);
+      aql_debug("aql_multiline: cleaned up stack");
       
       return 0;  /* Success */
     } else {
-      AQL_DEBUG(AQL_DEBUG_REPL, "aql_multiline: execution failed with status=%d", status);
-      fflush(stdout);
+      aql_debug("aql_multiline: execution failed with status=%d", status);
     }
     
     /* Clean up stack for failed execution */
     L->top.p = L->ci->func.p + 1;
-    AQL_DEBUG(AQL_DEBUG_REPL, "aql_multiline: cleaned up stack after execution failure");
-    fflush(stdout);
+    aql_debug("aql_multiline: cleaned up stack after execution failure");
   } else {
     aql_debug("[DEBUG] aql_multiline: compilation failed\n");
   }

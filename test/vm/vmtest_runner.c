@@ -44,9 +44,9 @@ static void show_help(void) {
     printf("  -t <test>      只运行指定的测试\n");
     printf("\n");
     printf("示例:\n");
-    printf("  vmtest test/vm/bytecode_text bin/aqlm\n");
-    printf("  vmtest test/vm/bytecode_text bin/aqlm -v\n");
-    printf("  vmtest test/vm/bytecode_text bin/aqlm -t simple\n");
+    printf("  vmtest test/vm/bytecode bin/aqlm\n");
+    printf("  vmtest test/vm/bytecode bin/aqlm -v\n");
+    printf("  vmtest test/vm/bytecode bin/aqlm -t simple\n");
 }
 
 /*

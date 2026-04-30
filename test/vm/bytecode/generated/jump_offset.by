@@ -1,0 +1,11 @@
+# jump_offset.by
+.code
+LOADFALSE R0
+TEST      R0, 0
+JMP       3         # inline comment should be ignored
+LOADI     R1, 200
+RETURN1   R1
+JMP       2         # inline comment should be ignored
+LOADI     R1, 100
+RETURN1   R1
+.end

@@ -147,7 +147,7 @@ match value {
 
 ### 1.4 循环语句
 ```aql
--- 传统for循环
+-- 传统for循环（Lua 风格，包含终点）
 for i = 1, 10 {
     -- 循环体
 }
@@ -180,6 +180,16 @@ for i in range(0, 100, 2) {
 -- 反向遍历
 for i in range(10, 0, -1) {
     print("Countdown: ${i}")
+}
+
+-- 数值 for 是闭区间；这里会访问 1、2、3
+for i = 1, 3, 1 {
+    print(i)
+}
+
+-- range() 是左闭右开；这里同样访问 1、2、3
+for i in range(1, 4, 1) {
+    print(i)
 }
 
 -- While循环
@@ -445,7 +455,7 @@ coroutine function generate_combinations(items: []string, k: int): string {
         }
     }
 }
-``` 
+```
 
 ## 3. 数据类型系统
 
@@ -1271,4 +1281,4 @@ results: []dict<string, any> = data
 
 -- 使用自定义服务
 result: dict<string, any> = await @my_service.process(data)
-``` 
+```

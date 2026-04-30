@@ -23,7 +23,7 @@ RETURN1   R1               # 返回结果
 # R0 = n (参数)
 # 基础情况: 如果 n <= 1，返回 n
 LEI       R0, 1, 0         # n <= 1? 如果为真跳过JMP，为假执行JMP
-JMP       2                # 跳转到递归情况
+JMP       1                # 跳转到递归情况
 
 # 基础情况: 返回 n
 RETURN1   R0               # return n

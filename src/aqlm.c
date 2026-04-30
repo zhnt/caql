@@ -57,11 +57,53 @@ typedef struct {
     Upvaldesc *upvalues;
 } FunctionProto;
 
+typedef struct {
+    int parent_func;
+    int *child_indices;
+    int child_count;
+} FunctionDependency;
+
 /*
 ** 函数前向声明
 */
 static int execute_multi_function_bytecode(FunctionProto *functions, int function_count);
 static int execute_single_function_bytecode(Instruction *code, int code_size, void *constants, int const_size, int stack_size);
+
+/*
+** Reconstruct nested-function links from the flat .by list. The file format
+** emits functions in pre-order, so each function's children occupy the next
+** contiguous subtrees in declaration order.
+*/
+static int assign_preorder_children(FunctionDependency *deps, int function_count,
+                                    int func_index, int next_index) {
+    if (func_index < 0 || func_index >= function_count) {
+        return next_index;
+    }
+    for (int child = 0; child < deps[func_index].child_count; child++) {
+        if (next_index >= function_count) {
+            break;
+        }
+        deps[func_index].child_indices[child] = next_index;
+        deps[next_index].parent_func = func_index;
+        next_index = assign_preorder_children(deps, function_count, next_index,
+                                              next_index + 1);
+    }
+    return next_index;
+}
+
+static void strip_inline_comment(char *line) {
+    int in_string = 0;
+    for (char *p = line; *p != '\0'; p++) {
+        if (*p == '"') {
+            in_string = !in_string;
+            continue;
+        }
+        if (!in_string && *p == '#') {
+            *p = '\0';
+            return;
+        }
+    }
+}
 
 /*
 ** 简单的内存分配器
@@ -146,6 +188,7 @@ static int load_bytecode_text_file(const char *filename, Instruction **code, int
         // 移除换行符
         char *newline = strchr(line, '\n');
         if (newline) *newline = '\0';
+        strip_inline_comment(line);
         
         // 跳过空行和注释
         char *trimmed = line;
@@ -322,6 +365,7 @@ static int load_multi_function_bytecode(const char *filename, FunctionProto **fu
         // 移除换行符
         char *newline = strchr(line, '\n');
         if (newline) *newline = '\0';
+        strip_inline_comment(line);
         
         // 跳过空行和注释
         char *trimmed = line;
@@ -686,12 +730,6 @@ static int execute_multi_function_bytecode(FunctionProto *functions, int functio
     // ========================================================================
     
     // 第一步：分析每个函数的CLOSURE指令，确定子函数需求
-    typedef struct {
-        int parent_func;     // 父函数索引
-        int *child_indices;  // 子函数索引数组
-        int child_count;     // 子函数数量
-    } FunctionDependency;
-    
     FunctionDependency *deps = calloc(function_count, sizeof(FunctionDependency));
     
     // 分析函数依赖关系
@@ -716,22 +754,10 @@ static int execute_multi_function_bytecode(FunctionProto *functions, int functio
             deps[i].child_indices = calloc(deps[i].child_count, sizeof(int));
             
             aql_debug("📝 [VM] 函数[%d]需要%d个子函数\n", i, deps[i].child_count);
-            
-            // 根据函数结构确定子函数映射
-            if (i == 0) {
-                // 主函数：按顺序映射子函数
-                for (int k = 0; k < deps[i].child_count && (k + 1) < function_count; k++) {
-                    deps[i].child_indices[k] = k + 1; // functions[1], functions[2], ...
-                }
-            } else if (i == 1) {
-                // outer函数（用于嵌套函数测试）：子函数0映射到functions[2], 子函数1映射到functions[3]
-                for (int k = 0; k < deps[i].child_count && (k + 2) < function_count; k++) {
-                    deps[i].child_indices[k] = k + 2; // inner1, inner2等
-                }
-            }
-            // 其他函数暂时不需要子函数
         }
     }
+
+    assign_preorder_children(deps, function_count, 0, 1);
     
     // 第二步：创建所有函数的原型
     Proto **all_protos = calloc(function_count, sizeof(Proto*));
@@ -1014,27 +1040,8 @@ static int execute_single_function_bytecode(Instruction *code, int code_size, vo
     
     aql_debug("📝 [VM] 函数已设置到栈顶\n");
     
-    // 创建调用信息
-    aql_debug("📝 [VM] 创建调用信息\n");
-    
-    struct CallInfo *ci = &L->base_ci;
-    
-    aql_debug("📝 [VM] CallInfo 获取成功，ci=%p\n", (void*)ci);
-    
-    ci->func.p = L->top.p - 1;
-    ci->top.p = L->top.p + stack_size;
-    ci->u.l.savedpc = code;
-    ci->callstatus = 0;
-    ci->nresults = 1;  /* 期望1个返回值 */
-    
-    aql_debug("📝 [VM] 调用信息设置完成\n");
     aql_debug("🚀 [VM] 开始执行字节码...\n");
-    
-    // 执行字节码
-    aql_debug("📝 [VM] 即将调用 aqlV_execute2(L=%p, ci=%p)\n", (void*)L, (void*)ci);
-    
-    aqlV_execute2(L, ci);
-    
+    aqlD_call(L, L->top.p - 1, 1);
     aql_debug("📝 [VM] 字节码执行完成\n");
     
     // 获取返回值
@@ -1065,6 +1072,10 @@ static int execute_single_function_bytecode(Instruction *code, int code_size, vo
             } else if (ttisboolean(candidate)) {
                 printf("%s\n", bvalue(candidate) ? "true" : "false");  // 输出到标准输出
                 aql_debug("📝 [VM] 在位置[%d]找到布尔返回值: %s\n", offset, bvalue(candidate) ? "true" : "false");
+                goto found_return_value;
+            } else if (ttisdict(candidate)) {
+                printf("dict\n");
+                aql_debug("📝 [VM] 在位置[%d]找到字典返回值\n", offset);
                 goto found_return_value;
             } else if (ttiscontainer(candidate)) {
                 // 处理容器类型

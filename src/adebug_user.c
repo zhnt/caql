@@ -276,20 +276,13 @@ void aqlD_print_function_bytecode(Proto *f, const char *name) {
                 printf("R[%d] = nil", a);
                 break;
             case OP_GETTABUP:
-                if (c > 255) {
-                    printf("R[%d] = _ENV[K[%d]]", a, c - 256);
-                } else {
-                    printf("R[%d] = _ENV[R[%d]]", a, c);
-                }
+                printf("R[%d] = _ENV[K[%d]]", a, c);
                 break;
             case OP_SETTABUP:
-                if (b > 255 && c > 255) {
-                    printf("_ENV[K[%d]] = R[%d]", b - 256, c);
-                } else if (b > 255) {
-                    printf("_ENV[K[%d]] = R[%d]", b - 256, c);
-                } else {
-                    printf("_ENV[R[%d]] = R[%d]", b, c);
-                }
+                if (TESTARG_k(i))
+                    printf("_ENV[K[%d]] = K[%d]", b, c);
+                else
+                    printf("_ENV[K[%d]] = R[%d]", b, c);
                 break;
             case OP_CALL:
                 if (b == 0) {
@@ -325,6 +318,16 @@ void aqlD_print_function_bytecode(Proto *f, const char *name) {
     
     printf("\n🎯 Register Usage: R[0-%d] used, max stack = %d\n", 
            f->maxstacksize - 1, f->maxstacksize);
+
+    for (int child = 0; child < f->sizep; child++) {
+        if (f->p == NULL || f->p[child] == NULL) {
+            continue;
+        }
+        char child_name[64];
+        snprintf(child_name, sizeof(child_name), "%s::child[%d]",
+                 name ? name : "main", child);
+        aqlD_print_function_bytecode(f->p[child], child_name);
+    }
 }
 
 /*
@@ -605,6 +608,15 @@ const char *aqlD_token_name(int token_type) {
         case TK_DIV: return "DIVIDE";
         case TK_MOD: return "MODULO";
         case TK_POW: return "POWER";
+        case TK_LAND: return "LOGICAL_AND";
+        case TK_LOR: return "LOGICAL_OR";
+        case TK_LNOT: return "LOGICAL_NOT";
+        case TK_BAND: return "BIT_AND";
+        case TK_BOR: return "BIT_OR";
+        case TK_BXOR: return "BIT_XOR";
+        case TK_BNOT: return "BIT_NOT";
+        case TK_SHL: return "SHIFT_LEFT";
+        case TK_SHR: return "SHIFT_RIGHT";
         case TK_ASSIGN: return "ASSIGN";
         case TK_EQ: return "EQUAL";
         case TK_NE: return "NOT_EQUAL";
@@ -630,6 +642,8 @@ const char *aqlD_token_name(int token_type) {
         case '[': return "LBRACKET";
         case ']': return "RBRACKET";
         case ',': return "COMMA";
+        case '.': return "DOT";
+        case ':': return "COLON";
         default: return "UNKNOWN";
     }
 }
@@ -777,5 +791,3 @@ void aqlD_dump_globals(aql_State *L) {
     aqlD_printf("  (Global variable dumping not implemented yet)\n");
     aqlD_printf("\n");
 }
-
-

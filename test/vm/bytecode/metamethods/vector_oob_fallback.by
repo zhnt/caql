@@ -1,0 +1,8 @@
+# 向量越界索引应回落到 __index 并返回 nil
+
+.code
+NEWOBJECT R0, 3, 2
+LOADI    R1, 5
+GETPROP  R2, R0, R1
+RETURN1   R2
+.end

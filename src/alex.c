@@ -17,6 +17,24 @@
 #include "adebug_user.h"
 #include <setjmp.h>
 
+static char *aql_strdup(const char *s) {
+    size_t len;
+    char *copy;
+
+    if (s == NULL) {
+        return NULL;
+    }
+
+    len = strlen(s) + 1;
+    copy = (char *)malloc(len);
+    if (copy == NULL) {
+        return NULL;
+    }
+
+    memcpy(copy, s, len);
+    return copy;
+}
+
 #ifdef AQL_DEBUG_BUILD
 /* Token collection for debug output - only in debug builds */
 static AQL_TokenInfo *debug_tokens = NULL;
@@ -47,7 +65,7 @@ static void add_debug_token(int token_type, const char *value, int line, int col
     AQL_TokenInfo *token = &debug_tokens[debug_token_count++];
     token->type = token_type;
     token->name = aqlD_token_name(token_type);
-    token->value = value ? strdup(value) : NULL;
+    token->value = aql_strdup(value);
     token->line = line;
     token->column = column;
 }
@@ -258,19 +276,33 @@ static void read_string(LexState *ls, int del, SemInfo *seminfo) {
 }
 
 static int read_numeral(LexState *ls, SemInfo *seminfo) {
-  
-  /* Simple integer parsing for now */
-  aql_Integer value = 0;
+  int is_float = 0;
+
   do {
-    
-    value = value * 10 + (ls->current - '0');
-    
     save_and_next(ls);
-    
   } while (isdigit(ls->current));
-  
-  
-  seminfo->i = value;
+
+  if (ls->current == '.') {
+    is_float = 1;
+    save_and_next(ls);
+    while (isdigit(ls->current)) {
+      save_and_next(ls);
+    }
+  }
+
+  /*
+  ** Numeric conversion below uses C string APIs. The lexer buffer tracks
+  ** length separately and is reset between tokens, so without a terminator
+  ** strtoll/strtod can read stale bytes left from a previous token.
+  */
+  save(ls, '\0');
+
+  if (is_float) {
+    seminfo->r = strtod(aqlZ_buffer(ls->buff), NULL);
+    return TK_FLT;
+  }
+
+  seminfo->i = (aql_Integer)strtoll(aqlZ_buffer(ls->buff), NULL, 10);
   return TK_INT_LITERAL;
 }
 
@@ -357,7 +389,6 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
       /* Numbers */
       case '0': case '1': case '2': case '3': case '4':
       case '5': case '6': case '7': case '8': case '9': {
-        int start_col = ls->column;
         token_type = read_numeral(ls, seminfo);
         char num_buf[32];
         if (token_type == TK_INT_LITERAL) {
@@ -365,7 +396,7 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
         } else {
           snprintf(num_buf, sizeof(num_buf), "%.2f", seminfo->r);
         }
-        return token_type;
+        RETURN_TOKEN(token_type, num_buf);
       }
       
       /* Arithmetic operators */
@@ -420,104 +451,102 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
       }
       case '%': {
         next(ls);
-        return TK_MOD;
+        RETURN_TOKEN(TK_MOD, NULL);
       }
       
       /* Parentheses */
       case '(': {
         next(ls);
-        return TK_LPAREN;
+        RETURN_TOKEN(TK_LPAREN, NULL);
       }
       case ')': {
         next(ls);
-        return TK_RPAREN;
+        RETURN_TOKEN(TK_RPAREN, NULL);
       }
       
       /* Comparison operators */
       case '=': {
         next(ls);
-        if (check_next1(ls, '=')) return TK_EQ;  /* '==' */
-        else return TK_ASSIGN;  /* '=' */
+        if (check_next1(ls, '=')) RETURN_TOKEN(TK_EQ, NULL);  /* '==' */
+        else RETURN_TOKEN(TK_ASSIGN, NULL);  /* '=' */
       }
       case '>': {
         next(ls);
         if (check_next1(ls, '=')) {
-          return TK_GE;  /* '>=' */
+          RETURN_TOKEN(TK_GE, NULL);  /* '>=' */
         }
         else if (check_next1(ls, '>')) {
-          return TK_SHR;  /* '>>' */
+          RETURN_TOKEN(TK_SHR, NULL);  /* '>>' */
         }
         else {
-          return TK_GT;  /* '>' */
+          RETURN_TOKEN(TK_GT, NULL);  /* '>' */
         }
       }
       case '<': {
         next(ls);
-        if (check_next1(ls, '=')) return TK_LE;  /* '<=' */
-        else if (check_next1(ls, '<')) return TK_SHL;  /* '<<' */
-        else return TK_LT;  /* '<' */
+        if (check_next1(ls, '=')) RETURN_TOKEN(TK_LE, NULL);  /* '<=' */
+        else if (check_next1(ls, '<')) RETURN_TOKEN(TK_SHL, NULL);  /* '<<' */
+        else RETURN_TOKEN(TK_LT, NULL);  /* '<' */
       }
       case '!': {
         next(ls);
-        if (check_next1(ls, '=')) return TK_NE;  /* '!=' */
-        else return TK_LNOT;  /* '!' */
+        if (check_next1(ls, '=')) RETURN_TOKEN(TK_NE, NULL);  /* '!=' */
+        else RETURN_TOKEN(TK_LNOT, NULL);  /* '!' */
       }
       
       /* Logical operators */
       case '&': {
         next(ls);
-        if (check_next1(ls, '&')) return TK_LAND;  /* '&&' */
-        else return TK_BAND;  /* '&' */
+        if (check_next1(ls, '&')) RETURN_TOKEN(TK_LAND, NULL);  /* '&&' */
+        else RETURN_TOKEN(TK_BAND, NULL);  /* '&' */
       }
       case '|': {
         next(ls);
-        if (check_next1(ls, '|')) return TK_LOR;  /* '||' */
-        else return TK_BOR;  /* '|' */
+        if (check_next1(ls, '|')) RETURN_TOKEN(TK_LOR, NULL);  /* '||' */
+        else RETURN_TOKEN(TK_BOR, NULL);  /* '|' */
       }
       case '^': {
         next(ls);
-        return TK_BXOR;  /* '^' */
+        RETURN_TOKEN(TK_BXOR, NULL);  /* '^' */
       }
       case '~': {
         next(ls);
-        return TK_BNOT;  /* '~' */
+        RETURN_TOKEN(TK_BNOT, NULL);  /* '~' */
       }
       
       /* Ternary operators */
       case '?': {
         next(ls);
-        if (check_next1(ls, '?')) return TK_NULLCOAL;  /* '??' */
-        else return TK_QUESTION;  /* '?' */
+        if (check_next1(ls, '?')) RETURN_TOKEN(TK_NULLCOAL, NULL);  /* '??' */
+        else RETURN_TOKEN(TK_QUESTION, NULL);  /* '?' */
       }
       case ':': {
         next(ls);
-        if (check_next1(ls, ':')) return TK_DBCOLON;  /* '::' */
-        else if (check_next1(ls, '=')) return TK_ASSIGN;  /* ':=' */
-        else return TK_COLON;  /* ':' */
+        if (check_next1(ls, ':')) RETURN_TOKEN(TK_DBCOLON, NULL);  /* '::' */
+        else if (check_next1(ls, '=')) RETURN_TOKEN(TK_ASSIGN, NULL);  /* ':=' */
+        else RETURN_TOKEN(TK_COLON, NULL);  /* ':' */
       }
       
       /* Dot operators */
     case '.': {
       next(ls);
-      if (ls->current == '.') {
-        next(ls);
         if (ls->current == '.') {
           next(ls);
-          return TK_DOTS;  /* '...' */
+          if (ls->current == '.') {
+            next(ls);
+            RETURN_TOKEN(TK_DOTS, NULL);  /* '...' */
+          } else {
+            /* '..' is no longer supported, treat as two separate dots */
+            ls->current = '.';  /* Put back the second dot */
+            RETURN_TOKEN(TK_DOT, NULL);  /* Return first '.' */
+          }
+        } else if (aqlX_isdigit(ls->current)) {
+          /* Number starting with '.' */
+          RETURN_TOKEN(read_numeral(ls, seminfo), NULL);
         } else {
-          /* '..' is no longer supported, treat as two separate dots */
-          ls->current = '.';  /* Put back the second dot */
-          return TK_DOT;  /* Return first '.' */
+          RETURN_TOKEN(TK_DOT, NULL);
         }
-      } else if (aqlX_isdigit(ls->current)) {
-        /* Number starting with '.' */
-        RETURN_TOKEN(read_numeral(ls, seminfo), NULL);
-        //return read_numeral(ls, seminfo);
-      } else {
-        //return TK_DOT;  /* '.' */
-        RETURN_TOKEN(TK_DOT, NULL);
       }
-    }
       
       /* Strings */
       case '"': case '\'': {
@@ -527,7 +556,7 @@ static int aql_lex(LexState *ls, SemInfo *seminfo) {
       
       /* End of input */
       case EOZ: {
-        return TK_EOS;
+        RETURN_TOKEN(TK_EOS, NULL);
       }
       
       /* Default: identifiers or single-char tokens */

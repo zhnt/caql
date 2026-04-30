@@ -18,6 +18,9 @@ range(start, stop, step)       // [start, stop) with step
 
 ## 2. 语义定义
 
+`for i = a, b, step` 走 Lua 风格闭区间，包含终点 `b`。
+`for i in range(start, stop, step)` 保持左闭右开，不包含 `stop`。
+
 ### 参数规则
 - `stop`: 结束值（不包含）
 - `start`: 起始值（默认为0）

@@ -2,10 +2,17 @@ Processing matrix
 Odd row: 1
 Small value: 11
 Small value: 12
-Row sum: 46
+Small value: 13
+Row sum: 72
 Even row: 2
 Value: 21
 Value: 22
-Row sum: 45
-Matrix sum: 91
+Value: 23
+Row sum: 66
+Odd row: 3
+Large value: 31
+Large value: 32
+Large value: 33
+Row sum: 96
+Matrix sum: 234
 Complex nesting test done

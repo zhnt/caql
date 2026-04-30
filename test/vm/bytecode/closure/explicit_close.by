@@ -1,0 +1,20 @@
+# explicit_close.by
+# 显式 CLOSE 之后，闭包应保留关闭前的值
+
+.main
+.code
+LOADI     R0, 10
+CLOSURE   R1, 0
+CLOSE     R0
+LOADI     R0, 99
+CALL      R1, 1, 2
+RETURN1   R1
+.end
+
+.function reader 0
+.upvalues 1
+.upvalue 0 "x" instack 0
+.code
+GETUPVAL  R0, 0
+RETURN1   R0
+.end

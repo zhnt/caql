@@ -1,0 +1,27 @@
+# outer_mutates_before_return.by
+# 返回闭包前修改外层局部，闭包应看到修改后的值
+
+.main
+.code
+CLOSURE   R0, 0
+LOADI     R1, 1
+CALL      R0, 2, 2
+CALL      R0, 1, 2
+RETURN1   R0
+.end
+
+.function makeReader 1
+.code
+MOVE      R1, R0
+CLOSURE   R2, 0
+LOADI     R1, 5
+RETURN    R2, 2, 1
+.end
+
+.function reader 0
+.upvalues 1
+.upvalue 0 "x" instack 1
+.code
+GETUPVAL  R0, 0
+RETURN1   R0
+.end

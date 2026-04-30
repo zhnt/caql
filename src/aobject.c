@@ -19,6 +19,15 @@
 #include "aobject.h"
 #include "astate.h"
 #include "adebug.h"
+#include "acontainer.h"
+#include "afunc.h"
+#include "astring.h"
+#include "atable.h"
+
+#define savestack(L_,p_) ((char *)(p_) - (char *)(L_)->stack.p)
+#define restorestack(L_,n_) ((StkId)((char *)(L_)->stack.p + (n_)))
+
+AQL_API void aqlD_callnoyield(aql_State *L, StkId func, int nResults);
 
 /* Temporary math function implementations */
 static aql_Number aql_numpow(aql_State *L, aql_Number v1, aql_Number v2) {
@@ -79,14 +88,642 @@ int aqlO_hexavalue (int c) {
 }
 
 /*
-** VM arithmetic helper functions are implemented in avm.c
+** Metamethod support
 */
 
-void aqlT_trybinTM (aql_State *L, const TValue *p1, const TValue *p2,
-                    StkId res, TMS event) {
-  /* Placeholder - just fail silently for now */
-  UNUSED(L); UNUSED(p1); UNUSED(p2); UNUSED(res); UNUSED(event);
-  setnilvalue(s2v(res));
+static const char *const aqlT_eventname[TM_N] = {  /* ORDER TM */
+  "__index", "__newindex",
+  "__gc", "__mode", "__len", "__eq",
+  "__add", "__sub", "__mul", "__mod", "__pow",
+  "__div", "__idiv",
+  "__band", "__bor", "__bxor", "__shl", "__shr",
+  "__unm", "__bnot", "__lt", "__le",
+  "__concat", "__call", "__close"
+};
+
+static CClosure *newcclosure0(aql_State *L, aql_CFunction fn) {
+  CClosure *cl = aqlF_newCclosure(L, 0);
+  cl->f = fn;
+  return cl;
+}
+
+static void settmfield(aql_State *L, Table *mt, TMS event, aql_CFunction fn) {
+  TValue key;
+  TValue value;
+
+  setsvalue(L, &key, G(L)->tmname[event]);
+  setclCvalue(L, &value, newcclosure0(L, fn));
+  aqlH_set(L, mt, &key, &value);
+  invalidateTMcache(mt);
+}
+
+static int is_seq_container_value(const TValue *o) {
+  return ttisarray(o) || ttisslice(o);
+}
+
+static const TValue *aql_meta_index_arg(aql_State *L, int idx) {
+  StkId p = L->ci->func.p + idx;
+  return (p < L->top.p) ? s2v(p) : &G(L)->nilvalue;
+}
+
+static AQL_ContainerBase *seq_container(const TValue *o) {
+  return containervalue(o);
+}
+
+static TValue *container_slot(const AQL_ContainerBase *c, size_t idx) {
+  return &((TValue *)c->data)[idx];
+}
+
+static int container_index_tm(aql_State *L) {
+  const TValue *obj = aql_meta_index_arg(L, 1);
+  const TValue *key = aql_meta_index_arg(L, 2);
+  TValue result;
+
+  if (!ttiscontainer(obj)) {
+    aql_pushnil(L);
+    return 1;
+  }
+
+  AQL_ContainerBase *container = containervalue(obj);
+  int rc = -1;
+
+  switch (container->type) {
+    case CONTAINER_ARRAY:
+    case CONTAINER_SLICE:
+    case CONTAINER_VECTOR:
+      if (ttisinteger(key)) {
+        aql_Integer idx = ivalue(key);
+        if (idx >= 0) {
+          rc = acontainer_array_get(L, container, (size_t)idx, &result);
+        }
+      }
+      break;
+    case CONTAINER_DICT:
+      rc = acontainer_dict_get(L, container, key, &result);
+      break;
+    default:
+      rc = -1;
+      break;
+  }
+
+  if (rc == 0) {
+    setobj2s(L, L->top.p, &result);
+    L->top.p++;
+  } else {
+    aql_pushnil(L);
+  }
+  return 1;
+}
+
+static int container_newindex_tm(aql_State *L) {
+  const TValue *obj = aql_meta_index_arg(L, 1);
+  const TValue *key = aql_meta_index_arg(L, 2);
+  const TValue *value = aql_meta_index_arg(L, 3);
+
+  if (!ttiscontainer(obj)) {
+    return 0;
+  }
+
+  AQL_ContainerBase *container = containervalue(obj);
+  switch (container->type) {
+    case CONTAINER_ARRAY:
+    case CONTAINER_SLICE:
+    case CONTAINER_VECTOR:
+      if (ttisinteger(key)) {
+        aql_Integer idx = ivalue(key);
+        if (idx >= 0) {
+          cast_void(acontainer_array_set(L, container, (size_t)idx, value));
+        }
+      }
+      break;
+    case CONTAINER_DICT:
+      cast_void(acontainer_dict_set(L, container, key, value));
+      break;
+    default:
+      break;
+  }
+
+  return 0;
+}
+
+static int seq_equal(aql_State *L, const TValue *lhs, const TValue *rhs) {
+  AQL_ContainerBase *a = seq_container(lhs);
+  AQL_ContainerBase *b = seq_container(rhs);
+  size_t i;
+
+  if (a->length != b->length) {
+    return 0;
+  }
+
+  for (i = 0; i < a->length; i++) {
+    if (!aqlV_equalobj(L, container_slot(a, i), container_slot(b, i))) {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+static int seq_compare(aql_State *L, const TValue *lhs, const TValue *rhs,
+                       int allow_equal) {
+  AQL_ContainerBase *a = seq_container(lhs);
+  AQL_ContainerBase *b = seq_container(rhs);
+  size_t limit = (a->length < b->length) ? a->length : b->length;
+  size_t i;
+
+  for (i = 0; i < limit; i++) {
+    TValue *av = container_slot(a, i);
+    TValue *bv = container_slot(b, i);
+    if (aqlV_equalobj(L, av, bv)) {
+      continue;
+    }
+    return aqlV_lessthan(L, av, bv);
+  }
+
+  return allow_equal ? (a->length <= b->length) : (a->length < b->length);
+}
+
+static int seq_binary_value(aql_State *L, TMS event,
+                            const TValue *lhs, const TValue *rhs,
+                            TValue *out) {
+  aql_Integer i1, i2;
+  aql_Number n1, n2;
+
+  switch (event) {
+    case TM_SUB:
+      if (ttisinteger(lhs) && ttisinteger(rhs)) {
+        setivalue(out, ivalue(lhs) - ivalue(rhs));
+        return 1;
+      }
+      if (tonumberns(lhs, n1) && tonumberns(rhs, n2)) {
+        setfltvalue(out, n1 - n2);
+        return 1;
+      }
+      return 0;
+    case TM_MUL:
+      if (ttisinteger(lhs) && ttisinteger(rhs)) {
+        setivalue(out, ivalue(lhs) * ivalue(rhs));
+        return 1;
+      }
+      if (tonumberns(lhs, n1) && tonumberns(rhs, n2)) {
+        setfltvalue(out, n1 * n2);
+        return 1;
+      }
+      return 0;
+    case TM_DIV:
+      if (tonumberns(lhs, n1) && tonumberns(rhs, n2) && n2 != 0) {
+        setfltvalue(out, n1 / n2);
+        return 1;
+      }
+      return 0;
+    case TM_IDIV:
+      if (tointegerns(lhs, &i1) && tointegerns(rhs, &i2) && i2 != 0) {
+        setivalue(out, aqlV_idiv(L, i1, i2));
+        return 1;
+      }
+      return 0;
+    case TM_MOD:
+      if (ttisinteger(lhs) && ttisinteger(rhs) && ivalue(rhs) != 0) {
+        setivalue(out, ivalue(lhs) % ivalue(rhs));
+        return 1;
+      }
+      if (tonumberns(lhs, n1) && tonumberns(rhs, n2) && n2 != 0) {
+        setfltvalue(out, aqlV_modf(L, n1, n2));
+        return 1;
+      }
+      return 0;
+    case TM_POW:
+      if (tonumberns(lhs, n1) && tonumberns(rhs, n2)) {
+        setfltvalue(out, pow(n1, n2));
+        return 1;
+      }
+      return 0;
+    case TM_BAND:
+      if (tointegerns(lhs, &i1) && tointegerns(rhs, &i2)) {
+        setivalue(out, i1 & i2);
+        return 1;
+      }
+      return 0;
+    case TM_BOR:
+      if (tointegerns(lhs, &i1) && tointegerns(rhs, &i2)) {
+        setivalue(out, i1 | i2);
+        return 1;
+      }
+      return 0;
+    case TM_BXOR:
+      if (tointegerns(lhs, &i1) && tointegerns(rhs, &i2)) {
+        setivalue(out, i1 ^ i2);
+        return 1;
+      }
+      return 0;
+    case TM_SHL:
+      if (tointegerns(lhs, &i1) && tointegerns(rhs, &i2)) {
+        setivalue(out, aqlV_shiftl(i1, i2));
+        return 1;
+      }
+      return 0;
+    case TM_SHR:
+      if (tointegerns(lhs, &i1) && tointegerns(rhs, &i2)) {
+        setivalue(out, aqlV_shiftr(i1, i2));
+        return 1;
+      }
+      return 0;
+    default:
+      return 0;
+  }
+}
+
+static int seq_unary_value(aql_State *L, TMS event,
+                           const TValue *value, TValue *out) {
+  aql_Integer i;
+  aql_Number n;
+
+  switch (event) {
+    case TM_UNM:
+      if (ttisinteger(value)) {
+        setivalue(out, intop(-, 0, ivalue(value)));
+        return 1;
+      }
+      if (tonumberns(value, n)) {
+        setfltvalue(out, -n);
+        return 1;
+      }
+      return 0;
+    case TM_BNOT:
+      if (tointegerns(value, &i)) {
+        setivalue(out, ~i);
+        return 1;
+      }
+      return 0;
+    default:
+      return 0;
+  }
+}
+
+static int seq_binary_tm(aql_State *L, TMS event) {
+  const TValue *lhs = s2v(L->top.p - 2);
+  const TValue *rhs = s2v(L->top.p - 1);
+  AQL_ContainerBase *a = seq_container(lhs);
+  AQL_ContainerBase *b = seq_container(rhs);
+  AQL_ContainerBase *result;
+  size_t i;
+
+  if (a->length != b->length) {
+    aql_pushnil(L);
+    return 1;
+  }
+
+  result = acontainer_new(L, CONTAINER_ARRAY, AQL_DATA_TYPE_ANY, a->length);
+  if (result == NULL) {
+    aql_pushnil(L);
+    return 1;
+  }
+
+  result->length = a->length;
+  for (i = 0; i < a->length; i++) {
+    if (!seq_binary_value(L, event, container_slot(a, i), container_slot(b, i),
+                          container_slot(result, i))) {
+      acontainer_destroy(L, result);
+      aql_pushnil(L);
+      return 1;
+    }
+  }
+
+  aql_pushnil(L);
+  setcontainervalue(L, s2v(L->top.p - 1), result);
+  return 1;
+}
+
+static int seq_unary_tm(aql_State *L, TMS event) {
+  const TValue *value = s2v(L->top.p - 2);
+  AQL_ContainerBase *src = seq_container(value);
+  AQL_ContainerBase *result;
+  size_t i;
+
+  result = acontainer_new(L, CONTAINER_ARRAY, AQL_DATA_TYPE_ANY, src->length);
+  if (result == NULL) {
+    aql_pushnil(L);
+    return 1;
+  }
+
+  result->length = src->length;
+  for (i = 0; i < src->length; i++) {
+    if (!seq_unary_value(L, event, container_slot(src, i), container_slot(result, i))) {
+      acontainer_destroy(L, result);
+      aql_pushnil(L);
+      return 1;
+    }
+  }
+
+  aql_pushnil(L);
+  setcontainervalue(L, s2v(L->top.p - 1), result);
+  return 1;
+}
+
+static int seq_add_tm(aql_State *L) {
+  const TValue *lhs = s2v(L->top.p - 2);
+  const TValue *rhs = s2v(L->top.p - 1);
+  AQL_ContainerBase *a = seq_container(lhs);
+  AQL_ContainerBase *b = seq_container(rhs);
+  AQL_ContainerBase *result;
+  size_t i;
+
+  result = acontainer_new(L, CONTAINER_ARRAY, AQL_DATA_TYPE_ANY,
+                          a->length + b->length);
+  if (result == NULL) {
+    aql_pushnil(L);
+    return 1;
+  }
+
+  result->length = a->length + b->length;
+  for (i = 0; i < a->length; i++) {
+    *container_slot(result, i) = *container_slot(a, i);
+  }
+  for (i = 0; i < b->length; i++) {
+    *container_slot(result, a->length + i) = *container_slot(b, i);
+  }
+
+  aql_pushnil(L);
+  setcontainervalue(L, s2v(L->top.p - 1), result);
+  return 1;
+}
+
+static int seq_sub_tm(aql_State *L) {
+  return seq_binary_tm(L, TM_SUB);
+}
+
+static int seq_mul_tm(aql_State *L) {
+  return seq_binary_tm(L, TM_MUL);
+}
+
+static int seq_div_tm(aql_State *L) {
+  return seq_binary_tm(L, TM_DIV);
+}
+
+static int seq_idiv_tm(aql_State *L) {
+  return seq_binary_tm(L, TM_IDIV);
+}
+
+static int seq_mod_tm(aql_State *L) {
+  return seq_binary_tm(L, TM_MOD);
+}
+
+static int seq_pow_tm(aql_State *L) {
+  return seq_binary_tm(L, TM_POW);
+}
+
+static int seq_band_tm(aql_State *L) {
+  return seq_binary_tm(L, TM_BAND);
+}
+
+static int seq_bor_tm(aql_State *L) {
+  return seq_binary_tm(L, TM_BOR);
+}
+
+static int seq_bxor_tm(aql_State *L) {
+  return seq_binary_tm(L, TM_BXOR);
+}
+
+static int seq_shl_tm(aql_State *L) {
+  return seq_binary_tm(L, TM_SHL);
+}
+
+static int seq_shr_tm(aql_State *L) {
+  return seq_binary_tm(L, TM_SHR);
+}
+
+static int seq_unm_tm(aql_State *L) {
+  return seq_unary_tm(L, TM_UNM);
+}
+
+static int seq_bnot_tm(aql_State *L) {
+  return seq_unary_tm(L, TM_BNOT);
+}
+
+static int seq_eq_tm(aql_State *L) {
+  const TValue *lhs = s2v(L->top.p - 2);
+  const TValue *rhs = s2v(L->top.p - 1);
+  aql_pushboolean(L, seq_equal(L, lhs, rhs));
+  return 1;
+}
+
+static int seq_lt_tm(aql_State *L) {
+  const TValue *lhs = s2v(L->top.p - 2);
+  const TValue *rhs = s2v(L->top.p - 1);
+  aql_pushboolean(L, seq_compare(L, lhs, rhs, 0));
+  return 1;
+}
+
+static int seq_le_tm(aql_State *L) {
+  const TValue *lhs = s2v(L->top.p - 2);
+  const TValue *rhs = s2v(L->top.p - 1);
+  aql_pushboolean(L, seq_compare(L, lhs, rhs, 1));
+  return 1;
+}
+
+static void init_container_metatable(aql_State *L, int tt) {
+  Table *mt = aqlH_new(L);
+  settmfield(L, mt, TM_INDEX, container_index_tm);
+  settmfield(L, mt, TM_NEWINDEX, container_newindex_tm);
+  settmfield(L, mt, TM_ADD, seq_add_tm);
+  settmfield(L, mt, TM_SUB, seq_sub_tm);
+  settmfield(L, mt, TM_MUL, seq_mul_tm);
+  settmfield(L, mt, TM_DIV, seq_div_tm);
+  settmfield(L, mt, TM_IDIV, seq_idiv_tm);
+  settmfield(L, mt, TM_MOD, seq_mod_tm);
+  settmfield(L, mt, TM_POW, seq_pow_tm);
+  settmfield(L, mt, TM_BAND, seq_band_tm);
+  settmfield(L, mt, TM_BOR, seq_bor_tm);
+  settmfield(L, mt, TM_BXOR, seq_bxor_tm);
+  settmfield(L, mt, TM_SHL, seq_shl_tm);
+  settmfield(L, mt, TM_SHR, seq_shr_tm);
+  settmfield(L, mt, TM_UNM, seq_unm_tm);
+  settmfield(L, mt, TM_BNOT, seq_bnot_tm);
+  settmfield(L, mt, TM_EQ, seq_eq_tm);
+  settmfield(L, mt, TM_LT, seq_lt_tm);
+  settmfield(L, mt, TM_LE, seq_le_tm);
+  mt->flags = 0;
+  G(L)->mt[tt] = mt;
+}
+
+void aqlT_initmetamethods(aql_State *L) {
+  int i;
+
+  for (i = 0; i < TM_N; i++) {
+    G(L)->tmname[i] = aqlStr_newlstr(L, aqlT_eventname[i],
+                                     strlen(aqlT_eventname[i]));
+  }
+
+  init_container_metatable(L, AQL_TARRAY);
+  init_container_metatable(L, AQL_TSLICE);
+  init_container_metatable(L, AQL_TVECTOR);
+  init_container_metatable(L, AQL_TDICT);
+}
+
+const TValue *aqlT_gettm(aql_State *L, Table *events, TMS event) {
+  const TValue *tm = aqlH_getshortstr(events, G(L)->tmname[event]);
+
+  if (ttisnil(tm)) {
+    if (event <= TM_EQ) {
+      events->flags |= cast_byte(1u << event);
+    }
+    return NULL;
+  }
+
+  return tm;
+}
+
+const TValue *aqlT_gettmbyobj(aql_State *L, const TValue *o, TMS event) {
+  Table *mt;
+
+  switch (ttype(o)) {
+    case AQL_TTABLE:
+      mt = hvalue(o)->metatable;
+      break;
+    case AQL_TUSERDATA:
+      mt = uvalue(o)->metatable;
+      break;
+    default:
+      mt = G(L)->mt[ttype(o)];
+      break;
+  }
+
+  return (mt != NULL) ? aqlH_getshortstr(mt, G(L)->tmname[event])
+                      : &G(L)->nilvalue;
+}
+
+void aqlT_callTM(aql_State *L, const TValue *f, const TValue *p1,
+                 const TValue *p2, const TValue *p3) {
+  StkId oldtop = L->top.p;
+  StkId func = oldtop;
+
+  setobj2s(L, func, f);
+  setobj2s(L, func + 1, p1);
+  setobj2s(L, func + 2, p2);
+  setobj2s(L, func + 3, p3);
+  L->top.p = func + 4;
+
+  if (ttisCclosure(s2v(func))) {
+    CClosure *ccl = clCvalue(s2v(func));
+    cast_void(ccl->f(L));
+    L->top.p = oldtop;
+    return;
+  }
+  if (ttislcf(s2v(func))) {
+    aql_CFunction cfn = fvalue(s2v(func));
+    cast_void(cfn(L));
+    L->top.p = oldtop;
+    return;
+  }
+
+  aqlD_callnoyield(L, func, 0);
+  L->top.p = oldtop;
+}
+
+int aqlT_callTMres(aql_State *L, const TValue *f, const TValue *p1,
+                   const TValue *p2, StkId res) {
+  ptrdiff_t result = savestack(L, res);
+  StkId oldtop = L->top.p;
+  StkId func = oldtop;
+  const TValue *src = &G(L)->nilvalue;
+
+  setobj2s(L, func, f);
+  setobj2s(L, func + 1, p1);
+  setobj2s(L, func + 2, p2);
+  L->top.p = func + 3;
+
+  if (ttisCclosure(s2v(func))) {
+    CClosure *ccl = clCvalue(s2v(func));
+    int nres = ccl->f(L);
+    if (nres > 0) {
+      src = s2v(L->top.p - nres);
+    }
+  }
+  else if (ttislcf(s2v(func))) {
+    aql_CFunction cfn = fvalue(s2v(func));
+    int nres = cfn(L);
+    if (nres > 0) {
+      src = s2v(L->top.p - nres);
+    }
+  }
+  else {
+    aqlD_callnoyield(L, func, 1);
+    src = s2v(func);
+  }
+
+  res = restorestack(L, result);
+  setobj2s(L, res, src);
+  L->top.p = oldtop;
+  return ttypetag(s2v(res));
+}
+
+static int callbinTM(aql_State *L, const TValue *p1, const TValue *p2,
+                     StkId res, TMS event) {
+  const TValue *tm = aqlT_gettmbyobj(L, p1, event);
+
+  if (ttisnil(tm)) {
+    tm = aqlT_gettmbyobj(L, p2, event);
+  }
+  if (ttisnil(tm)) {
+    return -1;
+  }
+
+  return aqlT_callTMres(L, tm, p1, p2, res);
+}
+
+void aqlT_trybinTM(aql_State *L, const TValue *p1, const TValue *p2,
+                   StkId res, TMS event) {
+  if (callbinTM(L, p1, p2, res, event) < 0) {
+    setnilvalue(s2v(res));
+  }
+}
+
+void aqlT_trybinassocTM(aql_State *L, const TValue *p1, const TValue *p2,
+                        int flip, StkId res, TMS event) {
+  if (flip) {
+    aqlT_trybinTM(L, p2, p1, res, event);
+  } else {
+    aqlT_trybinTM(L, p1, p2, res, event);
+  }
+}
+
+void aqlT_trybiniTM(aql_State *L, const TValue *p1, aql_Integer i2,
+                    int flip, StkId res, TMS event) {
+  TValue aux;
+  setivalue(&aux, i2);
+  aqlT_trybinassocTM(L, p1, &aux, flip, res, event);
+}
+
+int aqlT_callorderTM(aql_State *L, const TValue *p1, const TValue *p2,
+                     TMS event) {
+  int tag = callbinTM(L, p1, p2, L->top.p, event);
+
+  if (tag >= 0) {
+    return !l_isfalse(s2v(L->top.p));
+  }
+
+  return aqlG_ordererror(L, p1, p2);
+}
+
+int aqlT_callorderiTM(aql_State *L, const TValue *p1, int v2,
+                      int flip, int isfloat, TMS event) {
+  TValue aux;
+  const TValue *p2;
+
+  if (isfloat) {
+    setfltvalue(&aux, cast_num(v2));
+  } else {
+    setivalue(&aux, v2);
+  }
+
+  if (flip) {
+    p2 = p1;
+    p1 = &aux;
+  } else {
+    p2 = &aux;
+  }
+
+  return aqlT_callorderTM(L, p1, p2, event);
 }
 
 void aqlG_runerror (aql_State *L, const char *fmt, ...) {
@@ -531,4 +1168,4 @@ void aqlO_chunkid (char *out, const char *source, size_t srclen) {
     memcpy(out, "[string]", 8);
     out[8] = '\0';
   }
-} 
+}

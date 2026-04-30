@@ -1,0 +1,9 @@
+let a = [2, -3]
+let b = -a
+print(b[0])
+print(b[1])
+
+let c = [0, 5]
+let d = ~c
+print(d[0])
+print(d[1])

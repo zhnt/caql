@@ -1,0 +1,19 @@
+# open_alias_before_close.by
+# 在显式 CLOSE 之前，闭包应看到外层局部变量的最新值
+
+.main
+.code
+LOADI     R0, 1
+CLOSURE   R1, 0
+LOADI     R0, 5
+CALL      R1, 1, 2
+RETURN1   R1
+.end
+
+.function reader 0
+.upvalues 1
+.upvalue 0 "x" instack 0
+.code
+GETUPVAL  R0, 0
+RETURN1   R0
+.end

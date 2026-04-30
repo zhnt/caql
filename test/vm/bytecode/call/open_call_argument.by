@@ -1,0 +1,23 @@
+# open_call_argument.by
+# 验证 open call (CALL C=0 / CALL B=0) 能把前一个调用结果传给外层调用
+# 预期结果: 41
+
+.main
+.code
+CLOSURE     R0, 0         # R0 = id2
+CLOSURE     R1, 1         # R1 = id
+LOADI       R2, 41        # R2 = 41
+CALL        R1, 2, 0      # id(41), open results left after R1
+CALL        R0, 0, 2      # id2(id(41)), B=0 consumes open args
+RETURN1     R0
+.end
+
+.function id2 1
+.code
+RETURN1     R0
+.end
+
+.function id 1
+.code
+RETURN1     R0
+.end

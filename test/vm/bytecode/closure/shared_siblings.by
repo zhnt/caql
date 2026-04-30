@@ -1,0 +1,40 @@
+# shared_siblings.by
+# 同一次 factory 返回的两个闭包共享同一个 upvalue
+
+.main
+.code
+CLOSURE   R0, 0
+LOADI     R1, 5
+CALL      R0, 2, 3
+CALL      R0, 1, 2
+CALL      R1, 1, 2
+RETURN1   R1
+.end
+
+.function makePair 1
+.code
+MOVE      R1, R0
+CLOSURE   R2, 0
+CLOSURE   R3, 1
+RETURN    R2, 3, 1
+.end
+
+.function inc 0
+.upvalues 1
+.upvalue 0 "count" instack 1
+.code
+GETUPVAL  R0, 0
+ADDI      R0, R0, 1
+MMBINI    R0, 1, 6, 0
+SETUPVAL  R0, 0
+GETUPVAL  R0, 0
+RETURN1   R0
+.end
+
+.function read 0
+.upvalues 1
+.upvalue 0 "count" instack 1
+.code
+GETUPVAL  R0, 0
+RETURN1   R0
+.end

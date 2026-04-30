@@ -302,6 +302,7 @@ static int f_aqlopen (aql_State *L, void *ud) {
     stack_init(L, L);  /* init stack */
     init_registry(L, g);
     aqlStr_init(L);  /* init string system */
+    aqlT_initmetamethods(L);  /* init metamethod names and builtin metatables */
     /* Skip subsystem initialization for MVP */
     g->gcemergency = 0;  /* allow gc */
     setnilvalue(&g->nilvalue);  /* now state is complete */

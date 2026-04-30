@@ -1,0 +1,8 @@
+function make_reader(x) {
+    return function() {
+        return x
+    }
+}
+
+let reader = make_reader(41)
+print(reader())

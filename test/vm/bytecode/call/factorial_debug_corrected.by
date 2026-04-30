@@ -1,6 +1,6 @@
 # factorial_debug_corrected.by
-# 修正的阶乘测试，factorial(3) = 6
-# 预期结果: 6
+# 修正的阶乘测试，factorial(5) = 120
+# 预期结果: 120
 
 .main
 K0 STRING "factorial"
@@ -11,7 +11,7 @@ CLOSURE   R0, 0            # R0 = factorial函数
 SETTABUP  0, K0, R0        # _ENV["factorial"] = R0
 GETTABUP  R1, 0, K0        # R1 = _ENV["factorial"]  
 LOADI     R2, 5            # R2 = 5 (参数)
-CALL      R1, 2, 2         # factorial(3)
+CALL      R1, 2, 2         # factorial(5)
 RETURN1   R1               # 返回结果
 .end
 

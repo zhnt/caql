@@ -1,0 +1,17 @@
+# 数组取负元方法测试
+# 测试: -[2, -3] 触发 __unm，结果数组的第1个元素为 3
+
+.code
+NEWOBJECT R0, 0, 2
+LOADI     R10, 0
+LOADI     R11, 1
+LOADI     R12, 2
+LOADI     R13, -3
+SETPROP   R0, R10, R12
+SETPROP   R0, R11, R13
+
+UNM       R1, R0
+
+GETPROP   R2, R1, R11
+RETURN1   R2
+.end

@@ -93,6 +93,9 @@ struct aql_longjmp {
   volatile int status;  /* error code */
 };
 
+/* type of protected functions, to be ran by 'runprotected' */
+typedef void (*Pfunc) (aql_State *L, void *ud);
+
 AQL_API void aqlD_seterrorobj(aql_State *L, int errcode, StkId oldtop);
 AQL_API int aqlD_protectedparser(aql_State *L, ZIO *z, const char *name,
                                 const char *mode);
@@ -105,15 +108,12 @@ AQL_API int aqlD_pretailcall(aql_State *L, CallInfo *ci, StkId func,
 AQL_API struct CallInfo *aqlD_precall(aql_State *L, StkId func, int nResults);
 AQL_API void aqlD_call(aql_State *L, StkId func, int nResults);
 AQL_API void aqlD_callnoyield(aql_State *L, StkId func, int nResults);
-AQL_API int aqlD_pcall(aql_State *L, aql_CFunction func, void *u,
+AQL_API int aqlD_pcall(aql_State *L, Pfunc func, void *u,
                        ptrdiff_t oldtop, ptrdiff_t ef);
 AQL_API int aqlD_poscall(aql_State *L, CallInfo *ci, int nres);
 AQL_API int aqlD_growstack(aql_State *L, int n, int raiseerror);
 AQL_API void aqlD_shrinkstack(aql_State *L);
 AQL_API void aqlD_inctop(aql_State *L);
-
-/* type of protected functions, to be ran by 'runprotected' */
-typedef void (*Pfunc) (aql_State *L, void *ud);
 
 AQL_API l_noret aqlD_throw(aql_State *L, int errcode);
 AQL_API int aqlD_rawrunprotected(aql_State *L, Pfunc f, void *ud);
@@ -151,7 +151,7 @@ static l_inline int stacksize_needed(int used, int needed) {
 
 AQL_API void aqlD_call(aql_State *L, StkId func, int nresults);
 AQL_API void aqlD_callnoyield(aql_State *L, StkId func, int nresults);
-AQL_API int aqlD_pcall(aql_State *L, aql_CFunction func, void *u,
+AQL_API int aqlD_pcall(aql_State *L, Pfunc func, void *u,
                        ptrdiff_t oldtop, ptrdiff_t ef);
 AQL_API int aqlD_pccall(aql_State *L, aql_CFunction func, void *u,
                         ptrdiff_t oldtop, ptrdiff_t ef);
@@ -244,4 +244,4 @@ AQL_API void aql_warning(aql_State *L, const char *msg, int tocont);
 
 /* }================================================================ */
 
-#endif /* ado_h */ 
+#endif /* ado_h */

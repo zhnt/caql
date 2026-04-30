@@ -1,0 +1,10 @@
+let reader = nil
+
+for i = 1, 4, 1 {
+    reader = function() {
+        return i
+    }
+    continue
+}
+
+print(reader())

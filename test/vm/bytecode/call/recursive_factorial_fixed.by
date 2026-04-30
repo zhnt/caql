@@ -23,20 +23,18 @@ K0 STRING "factorial"
 # R0 = n (参数)
 # 基础情况: 如果 n <= 1，返回 1
 LEI       R0, 1, 0         # n <= 1? 如果为真跳过JMP，为假执行JMP
-JMP       2                # 跳转到递归情况（跳过基础情况的2条指令）
+JMP       3                # 跳转到递归情况
 
 LOADI     R1, 1            # R1 = 1
 RETURN1   R1               # return 1
+JMP       7                # 跳过递归路径
 
-# 递归情况: factorial(n) = n * factorial(n-1)
-MOVE      R5, R0           # R5 = n (保存原始值)
-
+# 递归情况: return n * factorial(n-1)
 GETTABUP  R1, 0, K0        # R1 = _ENV["factorial"]
-ADDI      R2, R0, -1       # R2 = n - 1 (使用原始的R0)
-MMBINI    R0, 1, 7, 0      # __sub 元方法: R0 - 1, TM_SUB=7, flip=0 (结果存回R0)
-CALL      R1, 2, 2         # 递归调用 factorial(n-1)，参数在R2，结果到R1
-
-MUL       R6, R5, R1       # R6 = n * factorial(n-1) (使用保存的R5和递归结果R1)
-MMBIN     R5, R1, 8        # __mul 元方法（操作数R5,R1，结果到R6）
-RETURN1   R6               # 返回结果
+ADDI      R2, R0, -1       # R2 = n - 1
+MMBINI    R0, 1, 7, 0      # __sub 元方法: R0 - 1, TM_SUB=7, flip=0
+CALL      R1, 2, 2         # factorial(n-1)
+MUL       R3, R0, R1       # R3 = n * factorial(n-1)
+MMBIN     R0, R1, 13       # __mul 元方法
+RETURN1   R3               # 返回结果
 .end
