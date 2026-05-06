@@ -120,6 +120,18 @@ enum OpMode {iABC, ivABC, iABx, iAsBx, iAx, isJ};  /* basic instruction formats 
 #define MAXARG_C	INT_MAX
 #endif
 
+#if L_INTHASBITS(SIZE_vB)
+#define MAXARG_vB	((1<<SIZE_vB)-1)
+#else
+#define MAXARG_vB	INT_MAX
+#endif
+
+#if L_INTHASBITS(SIZE_vC)
+#define MAXARG_vC	((1<<SIZE_vC)-1)
+#else
+#define MAXARG_vC	INT_MAX
+#endif
+
 #define OFFSET_sC	(MAXARG_C >> 1)
 
 #define int2sC(i)	((i) + OFFSET_sC)
@@ -147,12 +159,16 @@ enum OpMode {iABC, ivABC, iABx, iAsBx, iAx, isJ};  /* basic instruction formats 
 #define SETARG_A(i,v)	setarg(i, v, POS_A, SIZE_A)
 
 #define GETARG_B(i)	getarg(i, POS_B, SIZE_B)
+#define GETARG_vB(i)	getarg(i, POS_vB, SIZE_vB)
 #define GETARG_sB(i)	sC2int(GETARG_B(i))
 #define SETARG_B(i,v)	setarg(i, v, POS_B, SIZE_B)
+#define SETARG_vB(i,v)	setarg(i, v, POS_vB, SIZE_vB)
 
 #define GETARG_C(i)	getarg(i, POS_C, SIZE_C)
+#define GETARG_vC(i)	getarg(i, POS_vC, SIZE_vC)
 #define GETARG_sC(i)	sC2int(GETARG_C(i))
 #define SETARG_C(i,v)	setarg(i, v, POS_C, SIZE_C)
+#define SETARG_vC(i,v)	setarg(i, v, POS_vC, SIZE_vC)
 
 #define TESTARG_k(i)	(cast_int(((i) & (1u << POS_k))))
 #define GETARG_k(i)	getarg(i, POS_k, 1)
@@ -398,6 +414,13 @@ enum OpArgMask {
   | (cast(Instruction, a)<<POS_A) \
   | (cast(Instruction, b)<<POS_B) \
   | (cast(Instruction, c)<<POS_C) \
+  | (cast(Instruction, k)<<POS_k))
+
+#define CREATE_vABCk(o,a,b,c,k) \
+  ((cast(Instruction, o)<<POS_OP) \
+  | (cast(Instruction, a)<<POS_A) \
+  | (cast(Instruction, b)<<POS_vB) \
+  | (cast(Instruction, c)<<POS_vC) \
   | (cast(Instruction, k)<<POS_k))
 
 #define CREATE_ABx(o,a,bc) \

@@ -79,7 +79,10 @@ rule.
 - Core opcode numbering, names, and opmodes in `src/aopcodes.h` are aligned to
   Lua 5.5.1 through `OP_EXTRAARG`.
 - The core instruction format enum includes Lua 5.5.1 `ivABC`; `OP_NEWTABLE`
-  and `OP_SETLIST` use the Lua-compatible `ivABC` opmode.
+  and `OP_SETLIST` use Lua-compatible `vB/vC` fields, including
+  `EXTRAARG _ vC` composition when the `k` bit is set. Coverage lives in
+  `test/vm/ivabc_55_test.c` and the `setlist_ivabc_*` bytecode fixtures under
+  `test/vm/bytecode/basic/table`.
 - AQL-only bytecodes start after the Lua core opcode range, so container and
   builtin extensions no longer collide with Lua 5.5.1 `OP_GETVARG` and
   `OP_ERRNNIL`.

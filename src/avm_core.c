@@ -1807,15 +1807,15 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
       }
       
       vmcase(OP_NEWTABLE) {
-        int b = GETARG_B(i);  /* log2(hash size) + 1 */
-        int c = GETARG_C(i);  /* array size */
+        int b = GETARG_vB(i);  /* log2(hash size) + 1 */
+        int c = GETARG_vC(i);  /* array size */
         Table *t;
         aql_debug("NEWTABLE: B=%d, C=%d, TESTARG_k=%d, GETARG_Ax(next)=%d", b, c, TESTARG_k(i), GETARG_Ax(*(pc)));
         if (b > 0)
           b = 1 << (b - 1);  /* size is 2^(b - 1) */
         aql_assert((!TESTARG_k(i)) == (GETARG_Ax(*pc) == 0));
         if (TESTARG_k(i)) {  /* non-zero extra argument? */
-          c += GETARG_Ax(*pc) * (MAXARG_C + 1);  /* add it to size */
+          c += GETARG_Ax(*pc) * (MAXARG_vC + 1);  /* add it to size */
           aql_debug("NEWTABLE: 使用EXTRAARG参数，新的C=%d", c);
         }
         pc++;  /* skip extra argument (always, like Lua) */
@@ -2368,8 +2368,8 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
       }
       
       vmcase(OP_SETLIST) {
-        int n = GETARG_B(i);
-        unsigned int last = GETARG_C(i);
+        int n = GETARG_vB(i);
+        unsigned int last = GETARG_vC(i);
         Table *h = hvalue(s2v(ra));
         if (n == 0)
           n = cast_int(L->top.p - ra) - 1;  /* get up to the top */
@@ -2377,7 +2377,7 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
           L->top.p = ra + n + 1;  /* previous call may change the top */
         last += n;
         if (TESTARG_k(i)) {
-          last += GETARG_Ax(*pc) * (MAXARG_C + 1);
+          last += GETARG_Ax(*pc) * (MAXARG_vC + 1);
           pc++;
         }
         if (last > aqlH_realasize(h))  /* needs more space? */

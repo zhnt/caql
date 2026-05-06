@@ -1,0 +1,16 @@
+# SETLIST uses Lua 5.5 ivABC: vC is 10 bits, not the legacy 8-bit C field.
+
+.main
+.constants
+K0 INTEGER 301
+.code
+NEWTABLE  R0, 0, 0
+EXTRAARG  0
+
+LOADI     R1, 123
+SETLIST   R0, 1, 300
+
+LOADK     R2, K0
+GETTABLE  R3, R0, R2
+RETURN1   R3
+.end

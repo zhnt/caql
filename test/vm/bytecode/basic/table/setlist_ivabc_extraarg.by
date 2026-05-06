@@ -1,0 +1,17 @@
+# SETLIST with k=1 concatenates EXTRAARG with vC, matching Lua 5.5 ivABC.
+
+.main
+.constants
+K0 INTEGER 1501
+.code
+NEWTABLE  R0, 0, 0
+EXTRAARG  0
+
+LOADI     R1, 456
+SETLIST   R0, 1, 476, 1
+EXTRAARG  1
+
+LOADK     R2, K0
+GETTABLE  R3, R0, R2
+RETURN1   R3
+.end

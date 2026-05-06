@@ -418,7 +418,6 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
         default:
             switch (mode) {
                 case iABC:
-                case ivABC:
                     if (args >= 3 && arg2) {
                         b = (arg2[0] == 'R') ? atoi(arg2 + 1) : atoi(arg2);
                     }
@@ -426,6 +425,19 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
                         c = (arg3[0] == 'R') ? atoi(arg3 + 1) : atoi(arg3);
                     }
                     *result = CREATE_ABC(op, a, b, c);
+                    return 1;
+
+                case ivABC:
+                    if (args >= 3 && arg2) {
+                        b = (arg2[0] == 'R') ? atoi(arg2 + 1) : atoi(arg2);
+                    }
+                    if (args >= 4 && arg3) {
+                        c = (arg3[0] == 'R') ? atoi(arg3 + 1) : atoi(arg3);
+                    }
+                    if (args >= 5 && arg4) {
+                        k = atoi(arg4);
+                    }
+                    *result = CREATE_vABCk(op, a, b, c, k);
                     return 1;
                     
                 case iABx:
