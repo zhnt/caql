@@ -1,0 +1,11 @@
+# ITER_INIT/ITER_NEXT 测试 - array 第一个元素
+
+.code
+NEWOBJECT R0, 0, 2
+LOADI     R1, 42
+LOADI     R2, 0
+SETPROP   R0, R2, R1
+ITER_INIT R3, R0, 0
+ITER_NEXT R3, R4, R5
+RETURN1   R5
+.end

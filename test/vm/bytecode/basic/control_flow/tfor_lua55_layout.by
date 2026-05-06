@@ -1,0 +1,35 @@
+# Lua 5.5 generic-for register layout smoke test.
+# Expected loop:
+#   iterator(limit=3, control) returns (1,10), (2,20), (3,30), then nil.
+#   TFORPREP must swap control/closing slots, TFORCALL returns into R[A+3],
+#   and TFORLOOP must test R[A+3].
+
+.main
+.code
+LOADI     R0, 0
+CLOSURE   R1, 0
+LOADI     R2, 3
+LOADI     R3, 0
+LOADNIL   R4, 0
+TFORPREP  R1, 4
+ADD       R0, R0, R4
+MMBIN     R0, R4, 6
+ADD       R0, R0, R5
+MMBIN     R0, R5, 6
+TFORCALL  R1, 0, 2
+TFORLOOP  R1, 6
+RETURN1   R0
+.end
+
+.function next_pair 2
+.code
+ADDI      R2, R1, 1
+MMBINI    R1, 1, 6, 0
+LT        R0, R2, 0
+JMP       2
+LOADNIL   R3, 0
+RETURN1   R3
+MULI      R3, R2, 10
+MMBINI    R2, 10, 8, 0
+RETURN    R2, 3, 0
+.end

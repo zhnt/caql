@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "../../src/aql.h"
+#include "../../src/ado.h"
 #include "../../src/aobject.h"
 #include "../../src/astate.h"
 #include "../../src/atable.h"
@@ -25,6 +26,8 @@ static int table_rank(const TValue *o) {
 }
 
 static int lt_call_count = 0;
+static TValue protected_lhs;
+static TValue protected_rhs;
 
 static int lt_must_not_be_called(aql_State *L) {
   lt_call_count++;
@@ -75,6 +78,11 @@ static int assert_int(const char *name, int actual, int expected) {
   return 1;
 }
 
+static void run_lessequal(aql_State *L, void *ud) {
+  (void)ud;
+  (void)aqlV_lessequal(L, &protected_lhs, &protected_rhs);
+}
+
 int main(void) {
   TValue lhs;
   TValue rhs;
@@ -89,8 +97,10 @@ int main(void) {
   set_tm(L, lt_only_mt, TM_LT, lt_must_not_be_called);
   sethvalue(L, &lhs, new_ranked_table(L, lt_only_mt, 1));
   sethvalue(L, &rhs, new_ranked_table(L, lt_only_mt, 2));
-  ok &= assert_int("Lua 5.5 <= does not fall back to __lt",
-                   aqlV_lessequal(L, &lhs, &rhs), 0);
+  setobj(L, &protected_lhs, &lhs);
+  setobj(L, &protected_rhs, &rhs);
+  ok &= assert_int("Lua 5.5 <= without __le raises order error",
+                   aqlD_rawrunprotected(L, run_lessequal, NULL), AQL_ERRRUN);
   ok &= assert_int("__lt was not called for <=",
                    lt_call_count, 0);
 

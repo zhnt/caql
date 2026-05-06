@@ -66,6 +66,8 @@ AQL_API AQL_ContainerBase *acontainer_new(aql_State *L, ContainerType type,
             c->u.dict.hash_mask = capacity - 1;
             c->u.dict.load_factor = 0.75;
             break;
+        case CONTAINER_NONE:
+            break;
     }
     
     return c;

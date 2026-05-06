@@ -1,0 +1,10 @@
+# CALLBUILTIN 测试 - 直接调用 len builtin
+
+.code
+NEWOBJECT   R3, 0, 2
+LOADI       R4, 42
+LOADI       R5, 0
+SETPROP     R3, R5, R4
+CALLBUILTIN R2, 1, 2
+RETURN1     R2
+.end

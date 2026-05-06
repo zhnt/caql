@@ -91,7 +91,7 @@ PROBLEM_SOURCES = \
 HEADERS = $(wildcard $(SRC_DIR)/*.h)
 
 # Default target
-.PHONY: all both debug release aqlm clean dirs test test_metamethod_le_55 test_phase1 test_phase2 test_phase3 test_phase4
+.PHONY: all both debug release aqlm clean dirs test test_metamethod_le_55 test_runtime_error_55 test_tbc_close_55 test_phase1 test_phase2 test_phase3 test_phase4
 
 all: both
 
@@ -159,13 +159,33 @@ test: debug
 	./$(TARGET_DEBUG) --test
 
 METAMETHOD_LE_55_TEST = $(BIN_DIR)/test/metamethod_le_55_test
+RUNTIME_ERROR_55_TEST = $(BIN_DIR)/test/runtime_error_55_test
+TBC_CLOSE_55_TEST = $(BIN_DIR)/test/tbc_close_55_test
 
 test_metamethod_le_55: $(METAMETHOD_LE_55_TEST)
 	@echo "Running Lua 5.5 metamethod <= test..."
 	@./$(METAMETHOD_LE_55_TEST)
 
+test_runtime_error_55: $(RUNTIME_ERROR_55_TEST)
+	@echo "Running Lua 5.5 runtime error test..."
+	@./$(RUNTIME_ERROR_55_TEST)
+
+test_tbc_close_55: $(TBC_CLOSE_55_TEST)
+	@echo "Running Lua 5.5 to-be-closed test..."
+	@./$(TBC_CLOSE_55_TEST)
+
 $(METAMETHOD_LE_55_TEST): $(TEST_DIR)/vm/metamethod_le_55_test.c $(VM_SOURCES) | dirs
 	@echo "Building Lua 5.5 metamethod <= test..."
+	@mkdir -p $(BIN_DIR)/test
+	$(CC) $(DEBUG_CFLAGS) $< $(VM_SOURCES) -o $@ $(LDFLAGS)
+
+$(RUNTIME_ERROR_55_TEST): $(TEST_DIR)/vm/runtime_error_55_test.c $(VM_SOURCES) | dirs
+	@echo "Building Lua 5.5 runtime error test..."
+	@mkdir -p $(BIN_DIR)/test
+	$(CC) $(DEBUG_CFLAGS) $< $(VM_SOURCES) -o $@ $(LDFLAGS)
+
+$(TBC_CLOSE_55_TEST): $(TEST_DIR)/vm/tbc_close_55_test.c $(VM_SOURCES) | dirs
+	@echo "Building Lua 5.5 to-be-closed test..."
 	@mkdir -p $(BIN_DIR)/test
 	$(CC) $(DEBUG_CFLAGS) $< $(VM_SOURCES) -o $@ $(LDFLAGS)
 

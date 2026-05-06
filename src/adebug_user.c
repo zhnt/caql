@@ -684,6 +684,8 @@ const char *aqlD_opcode_name(int opcode) {
         case OP_BXOR: return "BXOR";
         case OP_SHL: return "SHL";
         case OP_SHR: return "SHR";
+        case OP_SHLI: return "SHLI";
+        case OP_SHRI: return "SHRI";
         case OP_BNOT: return "BNOT";
         case OP_NOT: return "NOT";
         case OP_EQ: return "EQ";
@@ -701,6 +703,9 @@ const char *aqlD_opcode_name(int opcode) {
         case OP_FORPREP: return "FORPREP";
         case OP_CLOSURE: return "CLOSURE";
         case OP_VARARG: return "VARARG";
+        case OP_GETVARG: return "GETVARG";
+        case OP_ERRNNIL: return "ERRNNIL";
+        case OP_VARARGPREP: return "VARARGPREP";
         default: return "UNKNOWN";
     }
 }

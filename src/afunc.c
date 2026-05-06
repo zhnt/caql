@@ -117,18 +117,38 @@ UpVal *aqlF_findupval (aql_State *L, StkId level) {
 ** (This function assumes EXTRA_STACK.)
 */
 static void callclosemethod (aql_State *L, TValue *obj, TValue *err, int yy) {
-  StkId top = L->top.p;
-  /* TODO: implement metamethod support */
-  /* const TValue *tm = aqlT_gettmbyobj(L, obj, TM_CLOSE); */
-  /* setobj2s(L, top, tm); */
-  /* setobj2s(L, top + 1, obj); */
-  /* setobj2s(L, top + 2, err); */
-  /* L->top = top + 3; */
-  /* if (yy)
-    aqlD_call(L, top, 0);
-  else
-    aqlD_callnoyield(L, top, 0); */
-  (void)L; (void)obj; (void)err; (void)yy; (void)top; /* avoid warnings */
+  StkId oldtop = L->top.p;
+  StkId func = oldtop;
+  const TValue *tm = aqlT_gettmbyobj(L, obj, TM_CLOSE);
+
+  if (ttisnil(tm))
+    return;
+
+  setobj2s(L, func, tm);
+  setobj2s(L, func + 1, obj);
+  if (err != NULL) {
+    setobj2s(L, func + 2, err);
+    L->top.p = func + 3;
+  }
+  else {
+    L->top.p = func + 2;
+  }
+
+  if (ttisCclosure(s2v(func))) {
+    CClosure *ccl = clCvalue(s2v(func));
+    cast_void(ccl->f(L));
+  }
+  else if (ttislcf(s2v(func))) {
+    aql_CFunction cfn = fvalue(s2v(func));
+    cast_void(cfn(L));
+  }
+  else if (yy) {
+    aqlD_call(L, func, 0);
+  }
+  else {
+    aqlD_callnoyield(L, func, 0);
+  }
+  L->top.p = oldtop;
 }
 
 
@@ -137,15 +157,9 @@ static void callclosemethod (aql_State *L, TValue *obj, TValue *err, int yy) {
 ** an error if not.
 */
 static void checkclosemth (aql_State *L, StkId level) {
-  /* TODO: implement metamethod support */
-  /* const TValue *tm = aqlT_gettmbyobj(L, s2v(level), TM_CLOSE); */
-  /* if (ttisnil(tm)) { */
-    /* int idx = cast_int(level - L->ci->func); */
-    /* const char *vname = aqlG_findlocal(L, L->ci, idx, NULL); */
-    /* if (vname == NULL) vname = "?"; */
-    /* aqlG_runerror(L, "variable '%s' got a non-closable value", vname); */
-  /* } */
-  (void)L; (void)level; /* avoid warnings */
+  const TValue *tm = aqlT_gettmbyobj(L, s2v(level), TM_CLOSE);
+  if (ttisnil(tm))
+    aqlG_runerror(L, "variable got a non-closable value");
 }
 
 
@@ -157,8 +171,21 @@ static void checkclosemth (aql_State *L, StkId level) {
 ** won't be used again.
 */
 static void prepcallclosemth (aql_State *L, StkId level, int status, int yy) {
-  /* TODO: implement close method support when needed */
-  (void)L; (void)level; (void)status; (void)yy; /* avoid warnings */
+  TValue *uv = s2v(level);
+  TValue *errobj;
+  switch (status) {
+    case AQL_OK:
+      L->top.p = level + 1;
+      /* FALLTHROUGH */
+    case CLOSEKTOP:
+      errobj = NULL;
+      break;
+    default:
+      errobj = s2v(level + 1);
+      aqlD_seterrorobj(L, status, level + 1);
+      break;
+  }
+  callclosemethod(L, uv, errobj, yy);
 }
 
 
@@ -175,8 +202,16 @@ static void prepcallclosemth (aql_State *L, StkId level, int status, int yy) {
 ** Insert a variable in the list of to-be-closed variables.
 */
 void aqlF_newtbcupval (aql_State *L, StkId level) {
-  /* TODO: implement to-be-closed variables support when needed */
-  (void)L; (void)level; /* avoid warnings */
+  if (l_isfalse(s2v(level)))
+    return;
+
+  checkclosemth(L, level);
+  while (cast_sizet(level - L->tbclist.p) > MAXDELTA) {
+    L->tbclist.p += MAXDELTA;
+    L->tbclist.p->tbclist.delta = 0;
+  }
+  level->tbclist.delta = cast(unsigned short, level - L->tbclist.p);
+  L->tbclist.p = level;
 }
 
 
@@ -225,8 +260,12 @@ void aqlF_closeupval (aql_State *L, StkId level) {
 ** Remove first element from the tbclist plus its dummy nodes.
 */
 static void poptbclist (aql_State *L) {
-  /* TODO: implement to-be-closed variables support when needed */
-  (void)L; /* avoid warnings */
+  StkId tbc = L->tbclist.p;
+  aql_assert(tbc->tbclist.delta > 0);
+  tbc -= tbc->tbclist.delta;
+  while (tbc > L->stack.p && tbc->tbclist.delta == 0)
+    tbc -= MAXDELTA;
+  L->tbclist.p = tbc;
 }
 
 
@@ -237,15 +276,12 @@ static void poptbclist (aql_State *L) {
 StkId aqlF_close (aql_State *L, StkId level, int status, int yy) {
   ptrdiff_t levelrel = savestack(L, level);
   aqlF_closeupval(L, level);  /* first, close the upvalues */
-  /* TODO: implement to-be-closed variables support when needed
   while (L->tbclist.p >= level) {
     StkId tbc = L->tbclist.p;
     poptbclist(L);
     prepcallclosemth(L, tbc, status, yy);
     level = restorestack(L, levelrel);
   }
-  */
-  (void)status; (void)yy; /* avoid warnings */
   return restorestack(L, levelrel);
 }
 

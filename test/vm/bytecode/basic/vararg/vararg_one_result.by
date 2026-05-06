@@ -1,0 +1,16 @@
+# VARARG指令测试 - 请求一个结果时返回第一个额外参数
+
+.main
+.code
+CLOSURE R0, 0
+LOADI   R1, 41
+LOADI   R2, 42
+CALL    R0, 3, 2
+RETURN1 R0
+.end
+
+.function first_extra 0
+.code
+VARARG  R3, 0, 2
+RETURN1 R3
+.end

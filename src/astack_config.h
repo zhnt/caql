@@ -101,9 +101,17 @@
 ** Backward Compatibility Macros
 ** (for existing code that uses the old names)
 */
+#ifndef BASIC_STACK_SIZE
 #define BASIC_STACK_SIZE            AQL_BASIC_STACK_SIZE
+#endif
+#ifndef EXTRA_STACK
 #define EXTRA_STACK                 AQL_EXTRA_STACK
+#endif
+#ifndef AQLAI_MAXSTACK
 #define AQLAI_MAXSTACK              AQL_MAXSTACK_SIZE
+#endif
+#ifndef AQLAI_MAXCCALLS
 #define AQLAI_MAXCCALLS             AQL_MAXCCALLS
+#endif
 
 #endif /* astack_config_h */

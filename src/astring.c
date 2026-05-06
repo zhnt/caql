@@ -233,11 +233,13 @@ void aqlStr_init(aql_State *L) {
     int i, j;
     
     aqlStr_resize(L, MINSTRTABSIZE);
+    g->memerrmsg = aqlStr_newlstr(L, MEMERRMSG, sizeof(MEMERRMSG) - 1);
+    aqlC_fix(L, obj2gco(g->memerrmsg));
     
-    /* 清除字符串缓存 */
+    /* Seed the cache with a fixed string, matching Lua's OOM-safe setup. */
     for (i = 0; i < STRCACHE_N; i++) {
         for (j = 0; j < STRCACHE_M; j++) {
-            g->strcache[i][j] = NULL;
+            g->strcache[i][j] = g->memerrmsg;
         }
     }
 }

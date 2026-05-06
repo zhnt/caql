@@ -83,7 +83,12 @@ void aqlT_add_variable(TypeInfer *ti, const char *name, TypeInfo type) {
 ** Get variable type from scope chain
 */
 TypeInfo aqlT_get_variable_type(TypeInfer *ti, const char *name) {
-    TypeInfo unknown = {TYPENONE, 0, 0, {0}};
+    TypeInfo unknown = {
+        .category = TYPENONE,
+        .confidence = 0,
+        .inferred = 0,
+        .info.array_info = {0}
+    };
     
     if (ti == NULL || name == NULL) return unknown;
     
@@ -107,7 +112,12 @@ TypeInfo aqlT_get_variable_type(TypeInfer *ti, const char *name) {
 ** Convert TValue to TypeInfo
 */
 TypeInfo aqlT_value_to_type(const TValue *val) {
-    TypeInfo type = {TYPENONE, 100, 1, {0}};
+    TypeInfo type = {
+        .category = TYPENONE,
+        .confidence = 100,
+        .inferred = 1,
+        .info.array_info = {0}
+    };
     
     if (val == NULL) {
         type.category = TYPEANY;

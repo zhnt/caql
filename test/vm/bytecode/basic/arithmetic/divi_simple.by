@@ -1,0 +1,8 @@
+# DIVI指令测试 - 立即数除法
+
+.code
+LOADI R0, 84
+DIVI  R1, R0, 2
+MMBINI R0, 2, 11, 0
+RETURN1 R1
+.end

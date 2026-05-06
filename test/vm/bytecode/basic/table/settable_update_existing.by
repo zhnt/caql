@@ -1,0 +1,21 @@
+# SETTABLE should update an existing table slot instead of corrupting the value.
+
+.main
+.constants
+K0 STRING "key1"
+K1 STRING "value1"
+K2 STRING "value2"
+.code
+NEWTABLE  R0, 0, 0
+EXTRAARG  0
+
+LOADK     R1, K0
+LOADK     R2, K1
+SETTABLE  R0, R1, R2
+
+LOADK     R3, K2
+SETTABLE  R0, R1, R3
+
+GETTABLE  R4, R0, R1
+RETURN1   R4
+.end

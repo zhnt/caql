@@ -1,0 +1,8 @@
+# ERRNNIL指令测试 - nil 值不触发错误
+
+.code
+LOADNIL  R0, 0
+ERRNNIL  R0, 0
+LOADI    R1, 7
+RETURN1  R1
+.end

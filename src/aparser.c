@@ -753,8 +753,9 @@ static void leaveblock (FuncState *fs) {
   
   if (bl->isloop)  /* has to fix pending breaks? */
     hasclose = 1;  /* simplified: assume we need close for loops */
-  if (!hasclose && bl->previous && bl->upval)  /* still need a 'close'? */
-    /* emit close instruction if needed */;
+  if (!hasclose && bl->previous && bl->upval) {
+    /* TODO: emit close instruction once full to-be-closed locals are wired. */
+  }
   
   /* CRITICAL FIX: Proper register management for nested blocks */
   if (bl->isloop && stklevel > 0) {
@@ -2073,11 +2074,10 @@ static void inferredstat (LexState *ls) {
   /* inferredstat -> NAME ':=' expr */
   FuncState *fs = ls->fs;
   expdesc e;
-  int vidx;
   TString *varname;
   
   varname = str_checkname(ls);  /* variable name */
-  vidx = new_localvar(ls, varname);
+  new_localvar(ls, varname);
   
   checknext(ls, TK_ASSIGN);  /* check ':=' */
   expr(ls, &e);  /* parse initialization expression */

@@ -74,15 +74,58 @@ When a Lua test cannot be ported directly because AQL lacks syntax or library
 surface, add the smallest VM or C-level fixture that exercises the same runtime
 rule.
 
+## Current VM Status
+
+- Core opcode numbering, names, and opmodes in `src/aopcodes.h` are aligned to
+  Lua 5.5.1 through `OP_EXTRAARG`.
+- The core instruction format enum includes Lua 5.5.1 `ivABC`; `OP_NEWTABLE`
+  and `OP_SETLIST` use the Lua-compatible `ivABC` opmode.
+- AQL-only bytecodes start after the Lua core opcode range, so container and
+  builtin extensions no longer collide with Lua 5.5.1 `OP_GETVARG` and
+  `OP_ERRNNIL`.
+- `OP_GETVARG` and `OP_ERRNNIL` have minimal VM bytecode coverage under
+  `test/vm/bytecode/basic/vararg`.
+- Fixed-result `OP_VARARG` follows Lua result semantics instead of returning an
+  AQL container for the single-result case.
+- `TFORPREP`, `TFORCALL`, and `TFORLOOP` now use Lua 5.5.1's generic-for
+  register layout: `TFORPREP` swaps the control and closing slots, iterator
+  calls start at `R[A+3]`, and `TFORLOOP` tests the first returned value in
+  `R[A+3]`. Minimal coverage lives in
+  `test/vm/bytecode/basic/control_flow/tfor_lua55_layout.by`.
+- `OP_TBC`, `OP_CLOSE`, and the `TFORPREP` closing slot now share Lua 5.5.1
+  to-be-closed behavior: nil/false closing values are no-ops, non-closable
+  values raise runtime errors, `__close` methods run in reverse registration
+  order, and error objects are passed to `__close` on error paths. C-level
+  coverage also checks protected close recovery continuing after a closing
+  error. These tests live in `test/vm/tbc_close_55_test.c`; bytecode-level nil
+  `TBC` coverage lives in `test/vm/bytecode/basic/close/tbc_nil_noop.by`.
+- AQL extension dispatch now includes `DIVI`, `ITER_INIT`, `ITER_NEXT`, and
+  `CALLBUILTIN` so bytecode execution no longer silently skips these opcodes.
+- Runtime error helpers `aqlG_runerror`, `aqlG_typeerror`, and
+  `aqlG_ordererror` now throw `AQL_ERRRUN` through the protected-call machinery
+  instead of returning to the VM. They also leave a string error object on the
+  stack, and `aqlD_pcall` moves that object to the protected-call `oldtop`.
+  Type names used in these messages now follow AQL's public tag numbering
+  (`AQL_TSTRING`, `AQL_TTABLE`, containers, builtins, and ranges), avoiding
+  Lua-style diagnostics that report the wrong value category.
+  Memory errors reuse the precreated `G(L)->memerrmsg` string, following Lua's
+  allocation-error path instead of allocating a fresh message while handling
+  `AQL_ERRMEM`.
+  When the active frame is an AQL closure with debug source/line information,
+  `aqlG_runerror` prefixes messages with `source:line`, matching Lua's
+  diagnostic shape.
+  Minimal coverage lives in
+  `test/vm/runtime_error_55_test.c`.
+- Vararg execution still uses AQL's current frame layout; full Lua 5.5.1 vararg
+  table optimization and `adjustvarargs` migration remain pending.
+
 ## Current Priorities
 
-1. Implement real runtime errors for `aqlG_runerror`, `aqlG_typeerror`, and
-   `aqlG_ordererror`; many Lua 5.5 behaviors depend on errors rather than false
-   results.
+1. Improve Lua-compatible diagnostics by adding variable/function context
+   (`varinfo`, object names, and call-site names) to type and order errors.
 2. Complete metatable and metamethod coverage with tests for missing-method
    errors and successful dispatch.
-3. Align `TFORPREP`, `TFORCALL`, `TFORLOOP`, `TBC`, and `__close` with Lua 5.5.1.
-4. Align varargs, open results, and any missing Lua 5.5 opcodes used by the
-   local reference.
-5. Keep container and future AQL syntax work on top of the Lua-aligned runtime
+3. Complete varargs and open-result alignment, including Lua 5.5.1 vararg table
+   handling and `VARARGPREP`/`GETVARG` frame behavior.
+4. Keep container and future AQL syntax work on top of the Lua-aligned runtime
    instead of replacing the runtime rules.

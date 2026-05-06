@@ -59,9 +59,12 @@ extern CallInfo *aqlE_extendCI(aql_State *L);
 AQL_API void aqlD_seterrorobj(aql_State *L, int errcode, StkId oldtop) {
   switch (errcode) {
     case AQL_ERRMEM: {  /* memory error? */
-      /* For now, just set a simple error message */
-      /* In full implementation, would use preregistered message */
-      setnilvalue(s2v(oldtop));
+      if (G(L)->memerrmsg != NULL) {
+        setsvalue2s(L, oldtop, G(L)->memerrmsg);
+      }
+      else {
+        setnilvalue(s2v(oldtop));
+      }
       break;
     }
     case AQL_OK: {  /* special case only for closing upvalues */
@@ -69,8 +72,12 @@ AQL_API void aqlD_seterrorobj(aql_State *L, int errcode, StkId oldtop) {
       break;
     }
     default: {
-      /* For other errors, set nil for now */
-      setnilvalue(s2v(oldtop));
+      if (L->top.p > oldtop) {
+        setobjs2s(L, oldtop, L->top.p - 1);
+      }
+      else {
+        setnilvalue(s2v(oldtop));
+      }
       break;
     }
   }
@@ -166,6 +173,7 @@ static void relstack(aql_State *L) {
   
   /* Convert main stack pointers to offsets - Lua style */
   L->top.offset = savestack(L, L->top.p);
+  L->tbclist.offset = savestack(L, L->tbclist.p);
   L->stack_last.offset = savestack(L, L->stack_last.p);
   aql_debug("[DEBUG] relstack: L->top offset = %ld\n", (long)L->top.offset);
   
@@ -207,6 +215,7 @@ static void correctstack(aql_State *L, int newsize) {
   
   /* Convert main stack offsets back to pointers - Lua style */
   L->top.p = restorestack(L, L->top.offset);
+  L->tbclist.p = restorestack(L, L->tbclist.offset);
   L->stack_last.p = restorestack(L, L->stack_last.offset);
   aql_debug("[DEBUG] correctstack: restored L->top = %p\n", (void*)L->top.p);
   

@@ -662,6 +662,7 @@ typedef struct RangeObject RangeObject;
       case CONTAINER_SLICE: settt_(io, ctb(AQL_VSLICE)); break; \
       case CONTAINER_DICT: settt_(io, ctb(AQL_VDICT)); break; \
       case CONTAINER_VECTOR: settt_(io, ctb(AQL_VVECTOR)); break; \
+      case CONTAINER_NONE: setnilvalue(io); break; \
     } \
     checkliveness(L,io); }
 

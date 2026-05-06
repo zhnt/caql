@@ -23,10 +23,11 @@
         3 3 2 2 2 2 2 2 2 2 2 2 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0
         1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
 iABC          C(8)     |      B(8)     |k|     A(8)     |   Op(7)     |
-iABCk         C(8)     |      B(8)     |k|     A(8)     |   Op(7)     |
-iABx                Bx(17)              |k|     A(8)     |   Op(7)     |
-iAsBx              sBx (signed)(17)     |k|     A(8)     |   Op(7)     |
+ivABC         vC(10)   |     vB(6)     |k|     A(8)     |   Op(7)     |
+iABx                Bx(17)              |     A(8)     |   Op(7)     |
+iAsBx              sBx (signed)(17)     |     A(8)     |   Op(7)     |
 iAx                           Ax(25)                     |   Op(7)     |
+isJ                           sJ (signed)(25)            |   Op(7)     |
 
   A signed argument is represented in excess K: the represented value is
   the written unsigned value minus K, where K is half the maximum for the
@@ -34,11 +35,11 @@ iAx                           Ax(25)                     |   Op(7)     |
 ===========================================================================
 */
 
-enum OpMode {iABC, iABx, iAsBx, iAx, isJ};  /* basic instruction formats */
+enum OpMode {iABC, ivABC, iABx, iAsBx, iAx, isJ};  /* basic instruction formats */
 
 /*
 ** size and position of opcode arguments.
-** 完全兼容 Lua 5.4 的指令格式:
+** 完全兼容 Lua 5.5.1 的指令格式:
 ** - OP: 7 bits (0-127 opcodes)
 ** - A: 8 bits (0-255 registers)  
 ** - B: 8 bits (0-255 registers/constants)
@@ -46,7 +47,9 @@ enum OpMode {iABC, iABx, iAsBx, iAx, isJ};  /* basic instruction formats */
 ** - k: 1 bit (boolean flag)
 */
 #define SIZE_C		8
+#define SIZE_vC		10
 #define SIZE_B		8
+#define SIZE_vB		6
 #define SIZE_Bx		(SIZE_C + SIZE_B + 1)
 #define SIZE_A		8
 #define SIZE_Ax		(SIZE_Bx + SIZE_A)
@@ -59,7 +62,9 @@ enum OpMode {iABC, iABx, iAsBx, iAx, isJ};  /* basic instruction formats */
 #define POS_A		(POS_OP + SIZE_OP)
 #define POS_k		(POS_A + SIZE_A)
 #define POS_B		(POS_k + 1)
+#define POS_vB		(POS_k + 1)
 #define POS_C		(POS_B + SIZE_B)
+#define POS_vC		(POS_vB + SIZE_vB)
 
 #define POS_Bx		POS_k
 #define POS_Ax		POS_A
@@ -195,10 +200,10 @@ enum OpMode {iABC, iABx, iAsBx, iAx, isJ};  /* basic instruction formats */
 */
 
 /*
-** AQL操作码枚举 - 与Lua 5.4完全兼容
+** AQL操作码枚举 - 与Lua 5.5.1核心指令兼容
 */
 typedef enum {
-  /* === Lua 5.4 Compatible Opcodes (0-82) === */
+  /* === Lua 5.5.1 Compatible Opcodes (0-84) === */
   OP_MOVE,        /* 0   A B     R[A] := R[B] */
   OP_LOADI,       /* 1   A sBx   R[A] := sBx */
   OP_LOADF,       /* 2   A sBx   R[A] := (lua_Number)sBx */
@@ -231,8 +236,8 @@ typedef enum {
   OP_BANDK,       /* 29  A B C   R[A] := R[B] & K[C]:integer */
   OP_BORK,        /* 30  A B C   R[A] := R[B] | K[C]:integer */
   OP_BXORK,       /* 31  A B C   R[A] := R[B] ~ K[C]:integer */
-  OP_SHRI,        /* 32  A B sC  R[A] := R[B] >> sC */
-  OP_SHLI,        /* 33  A B sC  R[A] := sC << R[B] */
+  OP_SHLI,        /* 32  A B sC  R[A] := sC << R[B] */
+  OP_SHRI,        /* 33  A B sC  R[A] := R[B] >> sC */
   OP_ADD,         /* 34  A B C   R[A] := R[B] + R[C] */
   OP_SUB,         /* 35  A B C   R[A] := R[B] - R[C] */
   OP_MUL,         /* 36  A B C   R[A] := R[B] * R[C] */
@@ -279,22 +284,24 @@ typedef enum {
   OP_TFORLOOP,    /* 77  A Bx    if R[A+2] ~= nil then { R[A]=R[A+2]; pc -= Bx } */
   OP_SETLIST,     /* 78  A B C k R[A][C+i] := R[A+i], 1 <= i <= B */
   OP_CLOSURE,     /* 79  A Bx    R[A] := closure(KPROTO[Bx]) */
-  OP_VARARG,      /* 80  A C     R[A], R[A+1], ..., R[A+C-2] = vararg */
-  OP_VARARGPREP,  /* 81  A       (adjust vararg parameters) */
-  OP_EXTRAARG,    /* 82  Ax      extra (larger) argument for previous opcode */
+  OP_VARARG,      /* 80  A B C k R[A], R[A+1], ..., R[A+C-2] = vararg */
+  OP_GETVARG,     /* 81  A B C   R[A] := R[B][R[C]], R[B] is vararg parameter */
+  OP_ERRNNIL,     /* 82  A Bx    raise error if R[A] ~= nil (K[Bx - 1] is global name) */
+  OP_VARARGPREP,  /* 83  A       (adjust vararg parameters) */
+  OP_EXTRAARG,    /* 84  Ax      extra (larger) argument for previous opcode */
 
-  /* === AQL Extensions (83+) === */
-  OP_NEWOBJECT,   /* 83  A B C   R[A] := new_object(type[B], size[C]) */
-  OP_GETPROP,     /* 84  A B C   R[A] := R[B].property[C] or R[B][R[C]] */
-  OP_SETPROP,     /* 85  A B C   R[A].property[B] := R[C] or R[A][R[B]] := R[C] */
-  OP_INVOKE,      /* 86  A B C   R[A] := R[B]:method[C](args...) */
-  OP_ITER_INIT,   /* 87  A B     R[A] := iter_init(R[B]) */
-  OP_ITER_NEXT,   /* 88  A B C   R[C] := iter_next(R[A], R[B]) */
-  OP_LOADBUILTIN, /* 89  A B     R[A] := builtin_func[B] */
-  OP_CALLBUILTIN, /* 90  A B C   call builtin_func[A] with B args, C results */
-  OP_SUBI,        /* 91  A B sC  R[A] := R[B] - sC */
-  OP_MULI,        /* 92  A B sC  R[A] := R[B] * sC */
-  OP_DIVI,        /* 93  A B sC  R[A] := R[B] / sC */
+  /* === AQL Extensions (85+) === */
+  OP_NEWOBJECT,   /* 85  A B C   R[A] := new_object(type[B], size[C]) */
+  OP_GETPROP,     /* 86  A B C   R[A] := R[B].property[C] or R[B][R[C]] */
+  OP_SETPROP,     /* 87  A B C   R[A].property[B] := R[C] or R[A][R[B]] := R[C] */
+  OP_INVOKE,      /* 88  A B C   R[A] := R[B]:method[C](args...) */
+  OP_ITER_INIT,   /* 89  A B     R[A] := iter_init(R[B]) */
+  OP_ITER_NEXT,   /* 90  A B C   R[C] := iter_next(R[A], R[B]) */
+  OP_LOADBUILTIN, /* 91  A B     R[A] := builtin_func[B] */
+  OP_CALLBUILTIN, /* 92  A B C   call builtin_func[A] with B args, C results */
+  OP_SUBI,        /* 93  A B sC  R[A] := R[B] - sC */
+  OP_MULI,        /* 94  A B sC  R[A] := R[B] * sC */
+  OP_DIVI,        /* 95  A B sC  R[A] := R[B] / sC */
 } OpCode;
 
 #define NUM_OPCODES	((int)(OP_DIVI) + 1)
@@ -351,7 +358,7 @@ enum OpArgMask {
 #define cast_uint(i)	cast(aql_Unsigned, (i))
 
 /*
-** Macros to create opmode values - 完全兼容 Lua 5.4
+** Macros to create opmode values - 完全兼容 Lua 5.5.1
 ** 参数：mm(metamethod), ot(out_top), it(in_top), test, seta, mode
 */
 #define aqlOpMode(mm,ot,it,t,a,m)  \
@@ -427,7 +434,7 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
 
 /* 操作码名称数组 - 与 OpCode enum 顺序完全一致 */
 static const char *const aql_opnames[NUM_OPCODES+1] = {
-  /* === Lua 5.4 Compatible Opcodes (0-82) === */
+  /* === Lua 5.5.1 Compatible Opcodes (0-84) === */
   "MOVE",         /* 0   A B     R[A] := R[B] */
   "LOADI",        /* 1   A sBx   R[A] := sBx */
   "LOADF",        /* 2   A sBx   R[A] := (lua_Number)sBx */
@@ -460,8 +467,8 @@ static const char *const aql_opnames[NUM_OPCODES+1] = {
   "BANDK",        /* 29  A B C   R[A] := R[B] & K[C]:integer */
   "BORK",         /* 30  A B C   R[A] := R[B] | K[C]:integer */
   "BXORK",        /* 31  A B C   R[A] := R[B] ~ K[C]:integer */
-  "SHRI",         /* 32  A B sC  R[A] := R[B] >> sC */
-  "SHLI",         /* 33  A B sC  R[A] := sC << R[B] */
+  "SHLI",         /* 32  A B sC  R[A] := sC << R[B] */
+  "SHRI",         /* 33  A B sC  R[A] := R[B] >> sC */
   "ADD",          /* 34  A B C   R[A] := R[B] + R[C] */
   "SUB",          /* 35  A B C   R[A] := R[B] - R[C] */
   "MUL",          /* 36  A B C   R[A] := R[B] * R[C] */
@@ -508,28 +515,30 @@ static const char *const aql_opnames[NUM_OPCODES+1] = {
   "TFORLOOP",     /* 77  A Bx    if R[A+2] ~= nil then { R[A]=R[A+2]; pc -= Bx } */
   "SETLIST",      /* 78  A B C k R[A][C+i] := R[A+i], 1 <= i <= B */
   "CLOSURE",      /* 79  A Bx    R[A] := closure(KPROTO[Bx]) */
-  "VARARG",       /* 80  A C     R[A], R[A+1], ..., R[A+C-2] = vararg */
-  "VARARGPREP",   /* 81  A       (adjust vararg parameters) */
-  "EXTRAARG",     /* 82  Ax      extra (larger) argument for previous opcode */
+  "VARARG",       /* 80  A B C k R[A], R[A+1], ..., R[A+C-2] = vararg */
+  "GETVARG",      /* 81  A B C   R[A] := R[B][R[C]], R[B] is vararg parameter */
+  "ERRNNIL",      /* 82  A Bx    raise error if R[A] ~= nil */
+  "VARARGPREP",   /* 83  A       (adjust vararg parameters) */
+  "EXTRAARG",     /* 84  Ax      extra (larger) argument for previous opcode */
 
-  /* === AQL Extensions (83+) === */
-  "NEWOBJECT",    /* 83  A B C   R[A] := new_object(type[B], size[C]) */
-  "GETPROP",      /* 84  A B C   R[A] := R[B].property[C] or R[B][R[C]] */
-  "SETPROP",      /* 85  A B C   R[A].property[B] := R[C] or R[A][R[B]] := R[C] */
-  "INVOKE",       /* 86  A B C   R[A] := R[B]:method[C](args...) */
-  "ITER_INIT",    /* 87  A B     R[A] := iter_init(R[B]) */
-  "ITER_NEXT",    /* 88  A B C   R[C] := iter_next(R[A], R[B]) */
-  "LOADBUILTIN",  /* 89  A B     R[A] := builtin_func[B] */
-  "CALLBUILTIN",  /* 90  A B C   call builtin_func[A] with B args, C results */
-  "SUBI",         /* 91  A B sC  R[A] := R[B] - sC */
-  "MULI",         /* 92  A B sC  R[A] := R[B] * sC */
-  "DIVI",         /* 93  A B sC  R[A] := R[B] / sC */
+  /* === AQL Extensions (85+) === */
+  "NEWOBJECT",    /* 85  A B C   R[A] := new_object(type[B], size[C]) */
+  "GETPROP",      /* 86  A B C   R[A] := R[B].property[C] or R[B][R[C]] */
+  "SETPROP",      /* 87  A B C   R[A].property[B] := R[C] or R[A][R[B]] := R[C] */
+  "INVOKE",       /* 88  A B C   R[A] := R[B]:method[C](args...) */
+  "ITER_INIT",    /* 89  A B     R[A] := iter_init(R[B]) */
+  "ITER_NEXT",    /* 90  A B C   R[C] := iter_next(R[A], R[B]) */
+  "LOADBUILTIN",  /* 91  A B     R[A] := builtin_func[B] */
+  "CALLBUILTIN",  /* 92  A B C   call builtin_func[A] with B args, C results */
+  "SUBI",         /* 93  A B sC  R[A] := R[B] - sC */
+  "MULI",         /* 94  A B sC  R[A] := R[B] * sC */
+  "DIVI",         /* 95  A B sC  R[A] := R[B] / sC */
   NULL
 };
 
-/* 操作码模式数组 - 与 Lua 5.4 完全兼容 */
+/* 操作码模式数组 - 与 Lua 5.5.1 完全兼容 */
 static const aql_byte aql_opmode[NUM_OPCODES] = {
-  /* === Lua 5.4 Compatible Opcodes (0-82) === */
+  /* === Lua 5.5.1 Compatible Opcodes (0-84) === */
   aqlOpMode(0, 0, 0, 0, 1, iABC),    /* OP_MOVE */
   aqlOpMode(0, 0, 0, 0, 1, iAsBx),   /* OP_LOADI */
   aqlOpMode(0, 0, 0, 0, 1, iAsBx),   /* OP_LOADF */
@@ -549,7 +558,7 @@ static const aql_byte aql_opmode[NUM_OPCODES] = {
   aqlOpMode(0, 0, 0, 0, 0, iABC),    /* OP_SETTABLE */
   aqlOpMode(0, 0, 0, 0, 0, iABC),    /* OP_SETI */
   aqlOpMode(0, 0, 0, 0, 0, iABC),    /* OP_SETFIELD */
-  aqlOpMode(0, 0, 0, 0, 1, iABC),    /* OP_NEWTABLE */
+  aqlOpMode(0, 0, 0, 0, 1, ivABC),   /* OP_NEWTABLE */
   aqlOpMode(0, 0, 0, 0, 1, iABC),    /* OP_SELF */
   aqlOpMode(0, 0, 0, 0, 1, iABC),    /* OP_ADDI */
   aqlOpMode(0, 0, 0, 0, 1, iABC),    /* OP_ADDK */
@@ -562,8 +571,8 @@ static const aql_byte aql_opmode[NUM_OPCODES] = {
   aqlOpMode(0, 0, 0, 0, 1, iABC),    /* OP_BANDK */
   aqlOpMode(0, 0, 0, 0, 1, iABC),    /* OP_BORK */
   aqlOpMode(0, 0, 0, 0, 1, iABC),    /* OP_BXORK */
-  aqlOpMode(0, 0, 0, 0, 1, iABC),    /* OP_SHRI */
   aqlOpMode(0, 0, 0, 0, 1, iABC),    /* OP_SHLI */
+  aqlOpMode(0, 0, 0, 0, 1, iABC),    /* OP_SHRI */
   aqlOpMode(0, 0, 0, 0, 1, iABC),    /* OP_ADD */
   aqlOpMode(0, 0, 0, 0, 1, iABC),    /* OP_SUB */
   aqlOpMode(0, 0, 0, 0, 1, iABC),    /* OP_MUL */
@@ -608,13 +617,15 @@ static const aql_byte aql_opmode[NUM_OPCODES] = {
   aqlOpMode(0, 0, 0, 0, 0, iABx),    /* OP_TFORPREP */
   aqlOpMode(0, 0, 0, 0, 0, iABC),    /* OP_TFORCALL */
   aqlOpMode(0, 0, 0, 0, 1, iABx),    /* OP_TFORLOOP */
-  aqlOpMode(0, 0, 1, 0, 0, iABC),    /* OP_SETLIST */
+  aqlOpMode(0, 0, 1, 0, 0, ivABC),   /* OP_SETLIST */
   aqlOpMode(0, 0, 0, 0, 1, iABx),    /* OP_CLOSURE */
   aqlOpMode(0, 1, 0, 0, 1, iABC),    /* OP_VARARG */
-  aqlOpMode(0, 0, 1, 0, 1, iABC),    /* OP_VARARGPREP */
+  aqlOpMode(0, 0, 0, 0, 1, iABC),    /* OP_GETVARG */
+  aqlOpMode(0, 0, 0, 0, 0, iABx),    /* OP_ERRNNIL */
+  aqlOpMode(0, 0, 1, 0, 0, iABC),    /* OP_VARARGPREP */
   aqlOpMode(0, 0, 0, 0, 0, iAx),     /* OP_EXTRAARG */
 
-  /* === AQL Extensions (83+) === */
+  /* === AQL Extensions (85+) === */
   aqlOpMode(0, 0, 0, 0, 1, iABC),    /* OP_NEWOBJECT */
   aqlOpMode(0, 0, 0, 0, 1, iABC),    /* OP_GETPROP */
   aqlOpMode(0, 0, 0, 0, 0, iABC),    /* OP_SETPROP */
@@ -635,4 +646,4 @@ static const aql_byte aql_opmode[NUM_OPCODES] = {
 #define testOTMode(m)   (aql_opmode[m] & (1 << 6))
 #define testMMMode(m)   (aql_opmode[m] & (1 << 7))
 
-#endif /* aopcodes_h */ 
+#endif /* aopcodes_h */

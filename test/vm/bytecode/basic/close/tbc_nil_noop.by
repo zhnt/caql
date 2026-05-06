@@ -1,0 +1,8 @@
+# TBC指令测试 - 当前最小行为：nil to-be-closed 标记不影响执行
+
+.code
+LOADNIL R0, 0
+TBC     R0
+LOADI   R1, 7
+RETURN1 R1
+.end

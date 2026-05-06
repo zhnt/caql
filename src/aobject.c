@@ -28,6 +28,7 @@
 #define restorestack(L_,n_) ((StkId)((char *)(L_)->stack.p + (n_)))
 
 AQL_API void aqlD_callnoyield(aql_State *L, StkId func, int nResults);
+AQL_API l_noret aqlD_throw(aql_State *L, int errcode);
 
 /* Temporary math function implementations */
 static aql_Number aql_numpow(aql_State *L, aql_Number v1, aql_Number v2) {
@@ -52,9 +53,9 @@ static aql_Number aql_numidiv(aql_State *L, aql_Number v1, aql_Number v2) {
 ** Type names for debugging
 */
 static const char *const typenames[AQL_NUMTYPES] = {
-  "nil", "boolean", "lightuserdata", "number", "integer", 
-  "string", "table", "function", "userdata", "thread",
-  "array", "slice", "dict", "vector"
+  "nil", "boolean", "lightuserdata", "number", "string",
+  "table", "function", "userdata", "thread",
+  "array", "slice", "dict", "builtin", "vector", "range", "unknown"
 };
 
 const char *aqlO_typename (const TValue *o) {
@@ -726,11 +727,52 @@ int aqlT_callorderiTM(aql_State *L, const TValue *p1, int v2,
   return aqlT_callorderTM(L, p1, p2, event);
 }
 
+static int aqlG_currentpc(CallInfo *ci, Proto *p) {
+  if (ci == NULL || p == NULL || p->code == NULL || ci->u.l.savedpc == NULL)
+    return -1;
+  return cast_int(ci->u.l.savedpc - p->code) - 1;
+}
+
+static int aqlG_currentline(CallInfo *ci, Proto *p) {
+  int pc = aqlG_currentpc(ci, p);
+  if (pc >= 0 && pc < p->sizelineinfo && p->lineinfo != NULL)
+    return p->lineinfo[pc];
+  return p ? p->linedefined : 0;
+}
+
+static const char *aqlG_addinfo(aql_State *L, const char *msg, TString *src,
+                                int line) {
+  if (src == NULL) {
+    return aqlO_pushfstring(L, "?:?: %s", msg);
+  }
+  else {
+    char buff[AQL_IDXLEN];
+    aqlO_chunkid(buff, getstr(src), tsslen(src));
+    return aqlO_pushfstring(L, "%s:%d: %s", buff, line, msg);
+  }
+}
+
 void aqlG_runerror (aql_State *L, const char *fmt, ...) {
-  /* Placeholder - simplified error handling */
-  UNUSED(L); UNUSED(fmt);
-  /* In a real implementation, this would format the error message
-     and throw a runtime error */
+  CallInfo *ci = L->ci;
+  va_list argp;
+  const char *msg;
+  char msgcopy[BUFVFS];
+  TString *errmsg;
+  va_start(argp, fmt);
+  msg = aqlO_pushvfstring(L, fmt, argp);
+  va_end(argp);
+  strncpy(msgcopy, msg, sizeof(msgcopy) - 1);
+  msgcopy[sizeof(msgcopy) - 1] = '\0';
+  msg = msgcopy;
+  if (ci != NULL && !(ci->callstatus & CIST_C) && ttisLclosure(s2v(ci->func.p))) {
+    LClosure *cl = clLvalue(s2v(ci->func.p));
+    if (cl != NULL && cl->p != NULL)
+      msg = aqlG_addinfo(L, msg, cl->p->source, aqlG_currentline(ci, cl->p));
+  }
+  errmsg = aqlStr_newlstr(L, msg, strlen(msg));
+  setsvalue2s(L, L->top.p, errmsg);
+  L->top.p++;
+  aqlD_throw(L, AQL_ERRRUN);
 }
 
 /* aqlStr_newlstr 现在在 astring.c 中实现 */
@@ -739,23 +781,22 @@ void aqlG_runerror (aql_State *L, const char *fmt, ...) {
 ** Additional VM support functions (placeholders)
 */
 void aqlG_typeerror (aql_State *L, const TValue *o, const char *op) {
-  /* Placeholder - simplified type error */
-  UNUSED(L); UNUSED(o); UNUSED(op);
-  /* In a real implementation, this would format and throw a type error */
+  aqlG_runerror(L, "attempt to %s a %s value", op, aqlL_typename(L, o));
 }
 
 int aqlG_ordererror (aql_State *L, const TValue *p1, const TValue *p2) {
-  /* Placeholder - simplified order error */
-  UNUSED(L); UNUSED(p1); UNUSED(p2);
-  /* In a real implementation, this would format and throw an order error */
+  const char *t1 = aqlL_typename(L, p1);
+  const char *t2 = aqlL_typename(L, p2);
+  if (strcmp(t1, t2) == 0)
+    aqlG_runerror(L, "attempt to compare two %s values", t1);
+  else
+    aqlG_runerror(L, "attempt to compare %s with %s", t1, t2);
   return 0;
 }
 
 const char *aqlL_typename (aql_State *L, const TValue *o) {
-  /* Placeholder - simplified typename */
-  UNUSED(L); UNUSED(o);
-  /* In a real implementation, this would return the type name */
-  return "unknown";
+  UNUSED(L);
+  return aqlO_typename(o);
 }
 
 TString *aqlS_createlngstrobj (aql_State *L, size_t l) {

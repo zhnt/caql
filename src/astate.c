@@ -209,6 +209,7 @@ static void stack_init (aql_State *L1, aql_State *L) {
     for (i = 0; i < BASIC_STACK_SIZE + EXTRA_STACK; i++)
         setnilvalue(s2v(L1->stack.p + i));  /* erase new stack */
     L1->top.p = L1->stack.p;
+    L1->tbclist.p = L1->stack.p;
     L1->stack_last.p = L1->stack.p + BASIC_STACK_SIZE;
     /* initialize first ci */
     ci = &L1->base_ci;
@@ -316,6 +317,7 @@ static int f_aqlopen (aql_State *L, void *ud) {
 static void preinit_thread (aql_State *L, global_State *g) {
     G(L) = g;
     L->stack.p = NULL;
+    L->tbclist.p = NULL;
     L->ci = NULL;
     L->nci = 0;
     L->twups = L;  /* thread has no upvalues */
@@ -444,6 +446,7 @@ AQL_API aql_State *aql_newstate (aql_Alloc f, void *ud) {
     g->gcemergency = GCSTPGC;  /* no GC while building state */
     g->strt.size = g->strt.nuse = 0;
     g->strt.hash = NULL;
+    g->memerrmsg = NULL;
     setnilvalue(&g->l_registry);
     g->panic = NULL;
     g->gcstate = GCSpause;
@@ -512,10 +515,31 @@ void aqlD_errerr(aql_State *L) {
     aqlG_runerror(L, "error in error handling");
 }
 
+struct CloseP {
+    StkId level;
+    int status;
+};
+
+static int closepaux(aql_State *L, void *ud) {
+    struct CloseP *pcl = cast(struct CloseP *, ud);
+    aqlF_close(L, pcl->level, pcl->status, 0);
+    return 0;
+}
+
 /* Protected close */
 int aqlD_closeprotected(aql_State *L, ptrdiff_t level, int status) {
-    UNUSED(L); UNUSED(level);
-    return status;  /* Simplified - no actual closing */
+    CallInfo *old_ci = L->ci;
+    aql_byte old_allowhooks = L->allowhook;
+    for (;;) {
+        struct CloseP pcl;
+        pcl.level = cast(StkId, cast(char *, L->stack.p) + level);
+        pcl.status = status;
+        status = aqlD_rawrunprotected(L, closepaux, &pcl);
+        if (l_likely(status == AQL_OK))
+            return pcl.status;
+        L->ci = old_ci;
+        L->allowhook = old_allowhooks;
+    }
 }
 
 /* Error object setting moved to ado.c */

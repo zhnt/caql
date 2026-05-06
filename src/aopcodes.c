@@ -217,8 +217,11 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
             }
             break;
             
-        // ADDI系列指令 - A B sC 格式
+        // immediate arithmetic instructions - A B sC format
         case OP_ADDI:
+        case OP_SUBI:
+        case OP_MULI:
+        case OP_DIVI:
             if (args >= 4) {
                 b = (arg2[0] == 'R') ? atoi(arg2 + 1) : atoi(arg2);
                 int sc = atoi(arg3);  // 有符号立即数
@@ -415,6 +418,7 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
         default:
             switch (mode) {
                 case iABC:
+                case ivABC:
                     if (args >= 3 && arg2) {
                         b = (arg2[0] == 'R') ? atoi(arg2 + 1) : atoi(arg2);
                     }
@@ -444,6 +448,14 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
                     if (args >= 2) {
                         int ax = atoi(arg1);
                         *result = CREATE_Ax(op, ax);
+                        return 1;
+                    }
+      break;
+
+                case isJ:
+                    if (args >= 2 && arg1 && is_numeric_token(arg1)) {
+                        int offset = atoi(arg1);
+                        *result = CREATE_sJ(op, offset, 0);
                         return 1;
                     }
       break;

@@ -17,6 +17,11 @@
 #define aqlS_hash(str) ((str)->hash)
 
 /*
+** Fixed message reused for memory-allocation errors.
+*/
+#define MEMERRMSG "not enough memory"
+
+/*
 ** Sizes for string table
 */
 #if !defined(MINSTRTABSIZE)
@@ -192,4 +197,4 @@ AQL_API int aqlS_lt_mm(aql_State *L);    /* __lt */
 AQL_API int aqlS_le_mm(aql_State *L);    /* __le */
 AQL_API int aqlS_concat_mm(aql_State *L); /* __concat */
 
-#endif /* astring_h */ 
+#endif /* astring_h */
