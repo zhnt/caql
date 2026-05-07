@@ -1,40 +1,41 @@
 // Complete variadic function tests with actual sum calculation
 
 function sum_all(...) {
-    let args = ...
+    let n = select("#", ...)
     let total = 0
     let i = 0
-    while i < len(args) {
-        total = total + args[i]
+    while i < n {
+        total = total + select(i + 1, ...)
         i = i + 1
     }
     return total
 }
 
 function multiply_all(...) {
-    let args = ...
-    if len(args) == 0 {
+    let n = select("#", ...)
+    if n == 0 {
         return 1
     }
     let product = 1
     let i = 0
-    while i < len(args) {
-        product = product * args[i]
+    while i < n {
+        product = product * select(i + 1, ...)
         i = i + 1
     }
     return product
 }
 
 function max_of(...) {
-    let args = ...
-    if len(args) == 0 {
+    let n = select("#", ...)
+    if n == 0 {
         return 0
     }
-    let maximum = args[0]
+    let maximum = select(1, ...)
     let i = 1
-    while i < len(args) {
-        if args[i] > maximum {
-            maximum = args[i]
+    while i < n {
+        let value = select(i + 1, ...)
+        if value > maximum {
+            maximum = value
         }
         i = i + 1
     }

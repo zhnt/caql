@@ -34,7 +34,7 @@ const char *const aql_opnames[NUM_OPCODES+1] = {
   "SETI",         /* 17  A B C   R[A][B] := RK(C)                                */
   "SETFIELD",     /* 18  A B C   R[A][K[B]:shortstring] := RK(C)                 */
   "NEWTABLE",     /* 19  A B C k R[A] := {}                                      */
-  "SELF",         /* 20  A B C   R[A+1] := R[B]; R[A] := R[B][RK(C):string]     */
+  "SELF",         /* 20  A B C   R[A+1] := R[B]; R[A] := R[B][K[C]:shortstring] */
   "ADDI",         /* 21  A B sC  R[A] := R[B] + sC                               */
   "ADDK",         /* 22  A B C   R[A] := R[B] + K[C]:number                      */
   "SUBK",         /* 23  A B C   R[A] := R[B] - K[C]:number                      */
@@ -366,6 +366,6 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
             }
             break;
     }
-    
+
     return 0; // 解析失败
-} 
+}

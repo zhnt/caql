@@ -9,8 +9,9 @@ CALL    R0, 3, 2
 RETURN1 R0
 .end
 
-.function first_extra 0
+.function first_extra 0 vararg
 .code
+VARARGPREP 0
 VARARG  R3, 0, 2
-RETURN1 R3
+RETURN  R3, 2, 1, 0
 .end

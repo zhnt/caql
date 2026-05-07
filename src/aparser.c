@@ -812,6 +812,11 @@ static void statlist (LexState *ls) {
 /*
 ** Simple expression parsing - basic literals and variables
 */
+static void freereg_if_top (FuncState *fs, int reg) {
+  if (reg >= fs->nactvar && reg == fs->freereg - 1)
+    fs->freereg--;
+}
+
 static void simpleexp (LexState *ls, expdesc *v) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | NAME | '(' expr ')' */
   switch (ls->t.token) {
@@ -887,10 +892,11 @@ static void simpleexp (LexState *ls, expdesc *v) {
           
           check_match(ls, ']', '[', line);
           
-          /* Generate OP_GETPROP instruction for array access */
-          int result_reg = ls->fs->freereg++;
-          aqlK_codeABC(ls->fs, OP_GETPROP, result_reg, obj_reg, index_reg);
-          init_exp(v, VNONRELOC, result_reg);
+          /* Generate relocatable GETPROP and release object/index temporaries. */
+          int pc = aqlK_codeABC(ls->fs, OP_GETPROP, 0, obj_reg, index_reg);
+          freereg_if_top(ls->fs, index_reg);
+          freereg_if_top(ls->fs, obj_reg);
+          init_exp(v, VRELOC, pc);
           
         }
       }
@@ -949,7 +955,7 @@ static void simpleexp (LexState *ls, expdesc *v) {
       return;
     }
     case TK_DOTS: {
-      /* Variadic arguments access: ... */
+      /* Variadic arguments access: Lua-style multi-result expression. */
       FuncState *fs = ls->fs;
       
       /* Check if we're in a variadic function */
@@ -959,12 +965,8 @@ static void simpleexp (LexState *ls, expdesc *v) {
       
       aqlX_next(ls);  /* skip '...' */
       
-      /* Generate OP_VARARG instruction to load all varargs */
-      /* A = target register, C = 0 means load all available varargs */
-      int target_reg = fs->freereg++;
-      aqlK_codeABC(fs, OP_VARARG, target_reg, 0, 0);  /* C=0 means all varargs */
-      
-      init_exp(v, VVARARG, target_reg);
+      init_exp(v, VVARARG,
+               aqlK_codeABC(fs, OP_VARARG, 0, fs->f->numparams, 1));
       return;
     }
     default: {
@@ -1224,6 +1226,11 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line) {
 /*
 ** Parameter list: [ param {, param} ]
 */
+static void setvararg (FuncState *fs) {
+  fs->f->is_vararg = 1;
+  aqlK_codeABC(fs, OP_VARARGPREP, 0, 0, 0);
+}
+
 static void parlist (LexState *ls) {
   /* parlist -> [ {NAME ','} [NAME | '...'] ] */
   FuncState *fs = ls->fs;
@@ -1258,7 +1265,10 @@ static void parlist (LexState *ls) {
   
   adjustlocalvars(ls, nparams);
   f->numparams = cast_byte(nparams);  /* Use nparams instead of fs->nactvar */
-  f->is_vararg = cast_byte(is_vararg);  /* Set vararg flag */
+  if (is_vararg)
+    setvararg(fs);
+  else
+    f->is_vararg = 0;
   aqlK_reserveregs(fs, nparams);  /* reserve registers for parameters */
   
 }
@@ -1357,7 +1367,7 @@ static void retstat (LexState *ls) {
 static void funcargs (LexState *ls, expdesc *f) {
   FuncState *fs = ls->fs;
   expdesc args;
-  int base, nparams, nargs = 0;
+  int base, nparams = 0, nargs = 0;
   int line = ls->linenumber;
 
   aql_assert(f->k == VNONRELOC);
@@ -1377,15 +1387,30 @@ static void funcargs (LexState *ls, expdesc *f) {
         args.k = VVOID;
       else {
         int target = base + 1;
-        do {
+        for (;;) {
           expr(ls, &args);
-          if (hasmultret(args.k))
-            aqlK_setoneret(fs, &args);
-          aqlK_exp2reg(fs, &args, target);
-          nargs++;
-          target++;
-          fs->freereg = target;
-        } while (testnext(ls, ','));
+          if (testnext(ls, ',')) {
+            if (hasmultret(args.k))
+              aqlK_setoneret(fs, &args);
+            aqlK_exp2reg(fs, &args, target);
+            nargs++;
+            target++;
+            fs->freereg = target;
+          }
+          else {
+            if (hasmultret(args.k)) {
+              aqlK_setmultret(fs, &args);
+              nparams = AQL_MULTRET;
+            }
+            else {
+              aqlK_exp2reg(fs, &args, target);
+              nargs++;
+              fs->freereg = target + 1;
+              nparams = nargs;
+            }
+            break;
+          }
+        }
       }
       checknext(ls, TK_RPAREN);
       break;
@@ -1396,10 +1421,11 @@ static void funcargs (LexState *ls, expdesc *f) {
   }
   aql_debug("[DEBUG] funcargs: base=%d, args.k=%d, hasmultret=%d, freereg=%d\n", 
                base, args.k, hasmultret(args.k), fs->freereg);
-  if (hasmultret(args.k))
+  if (args.k == VVOID)
+    nparams = 0;
+  else if (hasmultret(args.k))
     nparams = AQL_MULTRET;  /* open call */
   else {
-    nparams = nargs;
     aql_debug("[DEBUG] funcargs: after calculation, nparams=%d (nargs=%d, freereg=%d, base=%d)\n",
                  nparams, nargs, fs->freereg, base);
   }
@@ -2303,7 +2329,7 @@ static void mainfunc (LexState *ls, FuncState *fs) {
   BlockCnt bl;
   Upvaldesc *env;
   open_func(ls, fs, &bl);
-  fs->f->is_vararg = 1;  /* main function is always declared vararg */
+  setvararg(fs);  /* main function is always declared vararg */
   env = allocupvalue(fs);  /* ...set environment upvalue */
   env->instack = 1;
   env->idx = 0;
@@ -2496,6 +2522,7 @@ static const struct {
   {"string", 3},    /* alias for tostring */
   {"tonumber", 4},
   {"range", 5},
+  {"select", 6},
   {"print2", 99},   /* experimental Lua-style parameter access */
   {NULL, -1}  /* sentinel */
 };

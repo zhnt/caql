@@ -17,7 +17,7 @@ RETURN1   R1
 .code
 MOVE      R1, R0
 CLOSURE   R2, 0
-RETURN    R2, 2, 1
+RETURN    R2, 2, 0, 1
 .end
 
 .function counter 0

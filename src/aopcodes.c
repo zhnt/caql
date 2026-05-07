@@ -45,6 +45,25 @@ static int is_numeric_token(const char *s) {
     return 1;
 }
 
+static int parse_index_token(const char *s) {
+    if (s == NULL || *s == '\0') {
+        return 0;
+    }
+    if (s[0] == 'R' || s[0] == 'K') {
+        return atoi(s + 1);
+    }
+    return atoi(s);
+}
+
+static int parse_rk_operand_token(const char *s, int *k) {
+    if (s != NULL && s[0] == 'K') {
+        *k = 1;
+        return atoi(s + 1);
+    }
+    *k = 0;
+    return parse_index_token(s);
+}
+
 /*
 ** 获取指令格式描述
 */
@@ -314,15 +333,21 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
             break;
             
         case OP_RETURN:
-            // OP_RETURN R0, nvalues, k  -> 返回多个值
+            // OP_RETURN R0, nvalues, nparams1, k -> Lua 5.5 A B C k
             if (args >= 3) {
                 b = atoi(arg2);  // 返回值数量+1 (Lua风格)
-                c = (args >= 4) ? atoi(arg3) : 0;  // k标志 (可选)
-                if (args >= 4 && c != 0) {
-                    *result = CREATE_ABCk(op, a, b, 0, c);
-                } else {
-                    *result = CREATE_ABC(op, a, b, c);
-                }
+                c = (args >= 4) ? atoi(arg3) : 0;  // vararg nparams+1
+                k = (args >= 5) ? atoi(arg4) : 0;  // close-upvalue flag
+                *result = CREATE_ABCk(op, a, b, c, k);
+                return 1;
+            }
+            break;
+
+        case OP_VARARGPREP:
+            if (args >= 1) {
+                if (args >= 2 && arg1)
+                    a = (arg1[0] == 'R') ? atoi(arg1 + 1) : atoi(arg1);
+                *result = CREATE_ABC(op, a, 0, 0);
                 return 1;
             }
             break;
@@ -346,16 +371,9 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
         case OP_GETTABUP:
             // GETTABUP R0, upvalue_index, key_index  -> 从upvalue表获取值
             if (args >= 4) {
-                b = atoi(arg2);  // upvalue索引
-                if (arg3[0] == 'K') {
-                    // 常量访问：K0 -> c=0, k=1
-                    c = atoi(arg3 + 1);  // 跳过'K'字符
-                    *result = CREATE_ABCk(op, a, b, c, 1);  // 设置k=1标志
-                } else {
-                    // 寄存器访问：R0 -> c=0, k=0  
-                    c = atoi(arg3 + 1);  // 跳过'R'字符
-                    *result = CREATE_ABCk(op, a, b, c, 0);  // 设置k=0标志
-                }
+                b = parse_index_token(arg2);  // upvalue索引
+                c = parse_index_token(arg3);  // key常量索引
+                *result = CREATE_ABC(op, a, b, c);
                 return 1;
             }
             break;
@@ -363,25 +381,20 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
         case OP_SETTABUP:
             // SETTABUP upvalue_index, key_index, value  -> 向upvalue表设置值
             if (args >= 4) {
-                if (arg2[0] == 'K') {
-                    // key是常量：K0 -> b=0, k位在key
-                    b = atoi(arg2 + 1);  // 跳过'K'字符
-                } else {
-                    // key是寄存器：R0 -> b=0
-                    b = atoi(arg2 + 1);  // 跳过'R'字符
-                }
-                
-                if (arg3[0] == 'R') {
-                    // value是寄存器：R2 -> c=2
-                    c = atoi(arg3 + 1);  // 跳过'R'字符
-                } else if (arg3[0] == 'K') {
-                    // value是常量：K2 -> c=2, 需要设置常量标志
-                    c = atoi(arg3 + 1) | 0x100;  // 设置常量标志位
-                } else {
-                    c = atoi(arg3);
-                }
-                
-                *result = CREATE_ABC(op, a, b, c);
+                b = parse_index_token(arg2);
+                c = parse_rk_operand_token(arg3, &k);
+                *result = CREATE_ABCk(op, a, b, c, k);
+                return 1;
+            }
+            break;
+
+        case OP_SETTABLE:
+        case OP_SETI:
+        case OP_SETFIELD:
+            if (args >= 4) {
+                b = parse_index_token(arg2);
+                c = parse_rk_operand_token(arg3, &k);
+                *result = CREATE_ABCk(op, a, b, c, k);
                 return 1;
             }
             break;
@@ -389,8 +402,18 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
         case OP_GETFIELD:
             // GETFIELD R0, table_reg, key_index  -> 从表获取字段
             if (args >= 4) {
-                b = atoi(arg2);  // 表寄存器
-                c = atoi(arg3);  // 常量表中的key索引
+                b = parse_index_token(arg2);  // 表寄存器
+                c = parse_index_token(arg3);  // 常量表中的key索引
+                *result = CREATE_ABC(op, a, b, c);
+                return 1;
+            }
+            break;
+
+        case OP_SELF:
+            // SELF R0, table_reg, key_index  -> R[A+1] = R[B]; R[A] = R[B][K[C]]
+            if (args >= 4) {
+                b = parse_index_token(arg2);
+                c = parse_index_token(arg3);
                 *result = CREATE_ABC(op, a, b, c);
                 return 1;
             }

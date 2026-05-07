@@ -382,6 +382,15 @@ void aql_vt_arithk_before(const char *op_name);
 void aql_vt_arithk_after(const char *op_name);
 void aql_vt_arithi_before(const char *op_name);
 void aql_vt_arithi_after(const char *op_name);
+void aql_vt_debug_getupval(aql_State *L, CallInfo *ci, Instruction i,
+                           const Instruction *pc, LClosure *cl,
+                           StkId base, const char *func_name);
+void aql_vt_debug_setupval(aql_State *L, CallInfo *ci, Instruction i,
+                           const Instruction *pc, LClosure *cl,
+                           StkId base, const char *func_name);
+void aql_vt_debug_mulk(aql_State *L, CallInfo *ci, Instruction i,
+                       const Instruction *pc, LClosure *cl,
+                       StkId base, const char *func_name);
 
 /* 指令特定调试宏定义 */
 #define AQL_INFO_VT_LOADI_BEFORE() \
@@ -723,8 +732,22 @@ void aql_vt_arithi_after(const char *op_name);
         } \
     } while(0)
 
+#ifndef DEBUG_GETUPVAL
+#define DEBUG_GETUPVAL(L, ci, i, pc, cl, base, func_name) \
+    aql_vt_debug_getupval((L), (ci), (i), (pc), (cl), (base), (func_name))
+#endif
+#ifndef DEBUG_SETUPVAL
+#define DEBUG_SETUPVAL(L, ci, i, pc, cl, base, func_name) \
+    aql_vt_debug_setupval((L), (ci), (i), (pc), (cl), (base), (func_name))
+#endif
+#ifndef DEBUG_MULK
+#define DEBUG_MULK(L, ci, i, pc, cl, base, func_name) \
+    aql_vt_debug_mulk((L), (ci), (i), (pc), (cl), (base), (func_name))
+#endif
+
 #else
 /* 生产版本：所有指令特定调试宏为空 */
+#define aql_vt_set_context(L, ci, i, pc, cl, base, func_name) ((void)0)
 #define AQL_INFO_VT_LOADI_BEFORE()    ((void)0)
 #define AQL_INFO_VT_LOADI_AFTER()     ((void)0)
 #define AQL_INFO_VT_ADD_BEFORE()      ((void)0)
@@ -793,6 +816,9 @@ void aql_vt_arithi_after(const char *op_name);
 #define AQL_INFO_VT_SUBI_AFTER()      ((void)0)
 #define AQL_INFO_VT_MULI_BEFORE()     ((void)0)
 #define AQL_INFO_VT_MULI_AFTER()      ((void)0)
+#define DEBUG_GETUPVAL(L, ci, i, pc, cl, base, func_name) ((void)0)
+#define DEBUG_SETUPVAL(L, ci, i, pc, cl, base, func_name) ((void)0)
+#define DEBUG_MULK(L, ci, i, pc, cl, base, func_name) ((void)0)
 #endif
 
-#endif /* avm_h */ 
+#endif /* avm_h */

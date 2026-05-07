@@ -68,7 +68,6 @@ AQL_API void aqlK_setmultret(FuncState *fs, struct expdesc *e);
 AQL_API void aqlK_int(FuncState *fs, int reg, aql_Integer i);
 AQL_API void aqlK_float(FuncState *fs, int reg, aql_Number f);
 AQL_API int aqlK_numberK(FuncState *fs, aql_Number r);
-AQL_API int aqlK_exp2RK(FuncState *fs, struct expdesc *e);
 AQL_API void aqlK_storevar(FuncState *fs, struct expdesc *var, struct expdesc *e);
 AQL_API void aqlK_self(FuncState *fs, struct expdesc *e, struct expdesc *key);
 AQL_API void aqlK_indexed(FuncState *fs, struct expdesc *t, struct expdesc *k);
@@ -223,9 +222,6 @@ AQL_API void aqlK_warning(FuncState *fs, const char *msg);
 ** Constants and limits
 */
 #define MAXSTACK        MAXREGS
-/* Use existing definitions from aopcodes.h */
-#define RK_CONSTANT     (1 << (SIZE_B - 1))
-#define RK_REGISTER     0
 
 /*
 ** Debugging support

@@ -15,15 +15,6 @@
 #include "alex.h"
 #include "arange.h"
 
-/* Global debug state */
-int aql_debug_flags = AQL_DEBUG_NONE;
-int aql_debug_enabled = 0;
-
-/* Early exit flags for -s* parameters */
-int aql_stop_after_lex = 0;
-int aql_stop_after_parse = 0;
-int aql_stop_after_compile = 0;
-
 /* Performance profiling state */
 static AQL_ProfileEntry *profile_entries = NULL;
 static int profile_count = 0;
@@ -33,22 +24,23 @@ static int profile_capacity = 0;
 ** Debug system initialization and control
 */
 void aqlD_init_debug(void) {
-    aql_debug_enabled = 0;
-    aql_debug_flags = AQL_DEBUG_NONE;
+    aql_debug_disable_all();
+    aql_stop_after_lex = 0;
+    aql_stop_after_parse = 0;
+    aql_stop_after_compile = 0;
     profile_count = 0;
 }
 
 void aqlD_set_debug_flags(int flags) {
-    aql_debug_flags = flags;
-    aql_debug_enabled = (flags != AQL_DEBUG_NONE);
+    aql_debug_set_flags(flags);
 }
 
 int aqlD_get_debug_flags(void) {
-    return aql_debug_flags;
+    return (int)aql_debug_get_flags();
 }
 
 void aqlD_enable_debug(int enable) {
-    aql_debug_enabled = enable;
+    aql_debug_set_enabled(enable);
 }
 
 const char *aqlD_flags_to_string(int flags) {

@@ -26,7 +26,7 @@ K0 STRING "worker"
 MOVE      R1, R0
 CLOSURE   R2, 0
 SETTABUP  0, K0, R2
-RETURN    R2, 2, 1
+RETURN    R2, 2, 0, 1
 .end
 
 .function worker 1

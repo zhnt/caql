@@ -1,7 +1,7 @@
 /*
 ** $Id: avm_core.c $
 ** AQL Virtual Machine Core - Lua Compatible Implementation
-** Lua 5.5.1-aligned virtual machine implementation
+** Lua 5.5.0-aligned virtual machine implementation
 ** See Copyright Notice in aql.h
 */
 
@@ -184,17 +184,44 @@ static const TValue aqlO_nilobject_ = {{NULL}, AQL_VNIL};
   checkliveness(L,io); } while(0)
 #define aqlC_barrier    aqlC_barrier_
 #define aql_threadyield(L) ((void)0)  /* 空操作 */
-#define aqlT_adjustvarargs(L,nfixparams,ci,p) ((void)0)  /* 空操作 */
+
+static void aqlT_adjustvarargs (aql_State *L, CallInfo *ci, const Proto *p) {
+  int totalargs = cast_int(L->top.p - ci->func.p) - 1;
+  int nfixparams = p->numparams;
+  int nextra = totalargs - nfixparams;
+  if (nextra < 0)
+    nextra = 0;
+
+  int needed = nfixparams + 1;
+  if (L->top.p + needed > L->stack_last.p) {
+    ptrdiff_t top = savestack(L, L->top.p);
+    ptrdiff_t func = savestack(L, ci->func.p);
+    if (!aqlD_growstack(L, needed, 0)) {
+      aqlG_runerror(L, "stack overflow while preparing varargs");
+      return;
+    }
+    L->top.p = restorestack(L, top);
+    ci->func.p = restorestack(L, func);
+  }
+
+  ci->u.l.nextraargs = nextra;
+
+  setobjs2s(L, L->top.p++, ci->func.p);
+  for (int i = 1; i <= nfixparams; i++) {
+    setobjs2s(L, L->top.p++, ci->func.p + i);
+    setnilvalue(s2v(ci->func.p + i));
+  }
+
+  ci->func.p += totalargs + 1;
+  ci->top.p += totalargs + 1;
+}
 
 static void aqlT_getvararg (CallInfo *ci, StkId ra, TValue *rc) {
-  LClosure *cl = clLvalue(s2v(ci->func.p));
-  Proto *p = cl->p;
   int nextra = ci->u.l.nextraargs;
-  StkId vararg = ci->func.p + 1 + p->numparams;
   aql_Integer n;
   if (tointegerns(rc, &n)) {
     if (n >= 1 && n <= cast(aql_Integer, nextra)) {
-      StkId slot = vararg + cast_int(n) - 1;
+      StkId slot = ci->func.p - nextra + cast_int(n) - 1;
       setobjs2s(NULL, ra, slot);
       return;
     }
@@ -207,22 +234,76 @@ static void aqlT_getvararg (CallInfo *ci, StkId ra, TValue *rc) {
 }
 
 static void aqlT_getvarargs (aql_State *L, CallInfo *ci, StkId ra, int n) {
-  LClosure *cl = clLvalue(s2v(ci->func.p));
-  Proto *p = cl->p;
   int nextra = ci->u.l.nextraargs;
-  StkId vararg = ci->func.p + 1 + p->numparams;
 
   if (n < 0)
     n = nextra;
   for (int i = 0; i < n; i++) {
     if (i < nextra) {
-      setobjs2s(L, ra + i, vararg + i);
+      setobjs2s(L, ra + i, ci->func.p - nextra + i);
     }
     else {
       setnilvalue(s2v(ra + i));
     }
   }
   L->top.p = ra + n;
+}
+
+static void aqlV_builtin_select (aql_State *L, StkId ra, StkId args_base,
+                                 int nparams, int nresults) {
+  if (nresults == 0)
+    return;
+
+  if (nparams < 1) {
+    if (nresults < 0)
+      L->top.p = ra;
+    else
+      setnilvalue(s2v(ra));
+    return;
+  }
+
+  TValue *selector = s2v(args_base);
+  int available = nparams - 1;
+
+  if (ttisstring(selector) && vslen(selector) == 1 && svalue(selector)[0] == '#') {
+    setivalue(s2v(ra), available);
+    if (nresults < 0)
+      L->top.p = ra + 1;
+    return;
+  }
+
+  aql_Integer idx;
+  if (!tointegerns(selector, &idx)) {
+    if (nresults < 0)
+      L->top.p = ra;
+    else
+      setnilvalue(s2v(ra));
+    return;
+  }
+
+  if (idx < 0)
+    idx = cast(aql_Integer, available) + idx + 1;
+
+  if (idx < 1 || idx > cast(aql_Integer, available)) {
+    if (nresults < 0)
+      L->top.p = ra;
+    else
+      setnilvalue(s2v(ra));
+    return;
+  }
+
+  int start = cast_int(idx);
+  int count = available - start + 1;
+  int wanted = (nresults < 0) ? count : nresults;
+  int copied = (count < wanted) ? count : wanted;
+
+  for (int i = 0; i < copied; i++)
+    setobjs2s(L, ra + i, args_base + start + i);
+  for (int i = copied; i < wanted; i++)
+    setnilvalue(s2v(ra + i));
+
+  if (nresults < 0)
+    L->top.p = ra + wanted;
 }
 
 /*
@@ -849,7 +930,7 @@ void aqlV_objlen (aql_State *L, StkId ra, const TValue *rb) {
 #define l_gti(a,b)	(a > b)
 #define l_gei(a,b)	(a >= b)
 
-/* VM 执行宏 - 与 Lua 5.5.1 对齐 */
+/* VM 执行宏 - 与 Lua 5.5.0 对齐 */
 #define vmfetch()	{ \
   if (l_unlikely(trap)) { \
     /* trap = aqlG_traceexec(L, pc); */ /* TODO: implement hook handling */ \
@@ -897,7 +978,7 @@ void aqlV_objlen (aql_State *L, StkId ra, const TValue *rb) {
 ** 算术操作宏 - 与 aql 完全一致
 */
 
-/* Arithmetic operations with immediate operand - 与 Lua 5.5.1 对齐 */
+/* Arithmetic operations with immediate operand - 与 Lua 5.5.0 对齐 */
 #define op_arithI(L,iop,fop) { \
   StkId ra = RA(i); \
   TValue *v1 = vRB(i); \
@@ -1251,7 +1332,7 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
   /* 主执行循环 */
   aql_debug("进入主执行循环");
   
-  /* 主循环开始前初始化 pc - 与 Lua 5.5.1 一致 */
+  /* 主循环开始前初始化 pc - 与 Lua 5.5.0 一致 */
   pc = ci->u.l.savedpc;
   
   for (;;) {
@@ -1270,7 +1351,7 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
     
     vmfetch();
     
-    /* 同步 savedpc 与 pc，保持与 Lua 5.5.1 的兼容性 */
+    /* 同步 savedpc 与 pc，保持与 Lua 5.5.0 的兼容性 */
     ci->u.l.savedpc = pc;
     
     aql_debug("vmfetch完成: i=0x%08lX", (unsigned long)i);
@@ -1395,11 +1476,16 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
               printf("\n");
             if (nresults != 0)
               setnilvalue(s2v(ra));
+            if (nresults < 0)
+              L->top.p = ra;
             break;
           }
           case 2: {  /* len */
-            if (nparams == 1 && nresults != 0)
+            if (nparams == 1 && nresults != 0) {
               aqlV_objlen(L, ra, s2v(args_base));
+              if (nresults < 0)
+                L->top.p = ra + 1;
+            }
             else if (nresults != 0)
               setnilvalue(s2v(ra));
             break;
@@ -1430,6 +1516,8 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
               snprintf(buffer, sizeof(buffer), "(type %d)", ttype(arg));
               setsvalue(L, s2v(ra), aqlStr_new(L, buffer));
             }
+            if (nresults < 0)
+              L->top.p = ra + 1;
             break;
           }
           case 5: {  /* range */
@@ -1477,6 +1565,12 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
               setnilvalue(s2v(ra));
             else
               setrangevalue(L, s2v(ra), range);
+            if (nresults < 0)
+              L->top.p = ra + 1;
+            break;
+          }
+          case 6: {  /* select */
+            aqlV_builtin_select(L, ra, args_base, nparams, nresults);
             break;
           }
           default:
@@ -1841,7 +1935,7 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
       vmcase(OP_SELF) {
         const TValue *slot;
         TValue *rb = vRB(i);
-        TValue *rc = RKC(i);
+        TValue *rc = KC(i);
         TString *key = tsvalue(rc);  /* key must be a string */
         setobj2s(L, ra + 1, rb);
         if (aqlV_fastget(L, rb, key, slot, aqlH_getstr)) {
@@ -1906,6 +2000,8 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
               if (nparams > 0)
                 printf("\n");
               setnilvalue(s2v(func));
+              if (nresults < 0)
+                L->top.p = func;
               break;
             }
             case 2: {  /* len */
@@ -1914,6 +2010,8 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
                 break;
               }
               aqlV_objlen(L, func, s2v(args_base));
+              if (nresults < 0)
+                L->top.p = func + 1;
               break;
             }
             case 3: {  /* string/tostring */
@@ -1944,6 +2042,8 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
                 snprintf(buffer, sizeof(buffer), "(type %d)", ttype(arg));
                 setsvalue(L, result, aqlStr_new(L, buffer));
               }
+              if (nresults < 0)
+                L->top.p = func + 1;
               break;
             }
             case 5: {  /* range */
@@ -1993,6 +2093,12 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
               } else {
                 setrangevalue(L, s2v(func), range);
               }
+              if (nresults < 0)
+                L->top.p = func + 1;
+              break;
+            }
+            case 6: {  /* select */
+              aqlV_builtin_select(L, func, args_base, nparams, nresults);
               break;
             }
             default:
@@ -2107,11 +2213,14 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
         } else {
           aql_debug("🔍 [RETURN] 没有k位，不关闭upvalues\n");
         }
+
+        if (nparams1) {  /* hidden vararg frame: restore caller-visible func */
+          ci->func.p -= ci->u.l.nextraargs + nparams1;
+          base = ci->func.p + 1;
+        }
         
         if (l_unlikely(L->hookmask)) {
           aql_debug("🔍 [RETURN] 使用 hook 模式处理返回值\n");
-          if (nparams1)  /* vararg function? */
-            ci->func.p -= ci->u.l.nextraargs + nparams1;
           L->top.p = ra + n;  /* set call for 'aqlD_poscall' */
           aqlD_poscall(L, ci, n);
           updatetrap(ci);
@@ -2418,7 +2527,7 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
       }
       
       vmcase(OP_VARARGPREP) {
-        ProtectNT(aqlT_adjustvarargs(L, GETARG_A(i), ci, cl->p));
+        ProtectNT(aqlT_adjustvarargs(L, ci, cl->p));
         if (l_unlikely(trap)) {  /* previous "Protect" updated trap */
           // aqlD_hookcall(L, ci);  // TODO: implement hook call
           L->oldpc = 1;  /* next opcode will be seen as a "new" line */
@@ -2763,7 +2872,7 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
       }
       
       vmcase(OP_TEST) {
-        /* OP_TEST A k: Lua 5.5.1 compatible implementation */
+        /* OP_TEST A k: Lua 5.5.0 compatible implementation */
         StkId ra = RA(i);
         int cond = !l_isfalse(s2v(ra));  /* cond = not R[A] */
         
@@ -2840,7 +2949,7 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
                  GETARG_A(i), container_type, size_or_capacity, (void*)ra);
         
         /* 映射到现有容器类型 */
-        ContainerType ctype;
+        ContainerType ctype = CONTAINER_ARRAY;
         switch (container_type) {
           case 0: ctype = CONTAINER_ARRAY; break;   /* AQL_CONTAINER_ARRAY */
           case 1: ctype = CONTAINER_SLICE; break;   /* AQL_CONTAINER_SLICE */

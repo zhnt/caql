@@ -7,7 +7,7 @@ TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT
 
 SCRIPT_FILE="$TMPDIR/expr.aql"
-printf '1 + 2\n' > "$SCRIPT_FILE"
+printf 'print(1 + 2)\n' > "$SCRIPT_FILE"
 
 file_output="$("$BIN_PATH" "$SCRIPT_FILE" 2>&1)"
 if [[ "$file_output" != "3" ]]; then

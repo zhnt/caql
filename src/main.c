@@ -183,7 +183,7 @@ int main(int argc, char *argv[]) {
     int show_jit_stats = 0;
     
     /* Debug configuration */
-    int debug_flags = AQL_DEBUG_NONE;
+    AQLDebugMask debug_flags = AQL_DBG_NONE;
     
     /* Early exit configuration */
     int stop_after_lex = 0;
@@ -198,37 +198,10 @@ int main(int argc, char *argv[]) {
         } else if (strcmp(argv[i], "--version") == 0) {
             print_version();
             return 0;
-        } else if (strcmp(argv[i], "-v") == 0) {
-            // 详细模式 (词法+ AST +字节码 + 执行跟踪)
-            debug_flags = AQL_DEBUG_LEX | AQL_DEBUG_PARSE | AQL_DEBUG_CODE | AQL_DEBUG_VM;
-        } else if (strcmp(argv[i], "-vb") == 0) {
-            // 只输出字节码 (类似 luac -l)
-            debug_flags = AQL_DEBUG_CODE;
-        } else if (strcmp(argv[i], "-vast") == 0) {
-            // 只输出 AST
-            debug_flags = AQL_DEBUG_PARSE;
-        } else if (strcmp(argv[i], "-vt") == 0) {
-            // 输出执行跟踪
-            debug_flags = AQL_DEBUG_VM;
-        } else if (strcmp(argv[i], "-vl") == 0) {
-            // 输出词流
-            debug_flags = AQL_DEBUG_LEX;
-        } else if (strcmp(argv[i], "-vd") == 0) {
-            // 详细日志输出 (print_debug激活+ -v模式)
-            debug_flags = AQL_DEBUG_ALL;
         } else if (strcmp(argv[i], "-compare") == 0) {
             // 与 Lua 字节码对比 (暂时标记，后续实现)
             printf("Lua bytecode comparison not yet implemented\n");
             return 1;
-        } else if (strcmp(argv[i], "-st") == 0) {
-            debug_flags |= AQL_DEBUG_LEX;
-            stop_after_lex = 1;
-        } else if (strcmp(argv[i], "-sa") == 0) {
-            debug_flags |= AQL_DEBUG_LEX | AQL_DEBUG_PARSE;
-            stop_after_parse = 1;
-        } else if (strcmp(argv[i], "-sb") == 0) {
-            debug_flags |= AQL_DEBUG_LEX | AQL_DEBUG_PARSE | AQL_DEBUG_CODE;
-            stop_after_compile = 1;
         } else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--interactive") == 0) {
             interactive = 1;
         } else if (strcmp(argv[i], "--test") == 0) {
@@ -248,19 +221,32 @@ int main(int argc, char *argv[]) {
                 return 1;
             }
             expression = argv[++i];
-        } else if (argv[i][0] != '-') {
-            if (filename) {
-                fprintf(stderr, "Error: Multiple files specified\n");
+        } else {
+            AQLDebugParseResult debug_parse =
+                aql_debug_parse_option(AQL_DEBUG_TOOL_AQL, argv[i], &debug_flags,
+                                       &stop_after_lex, &stop_after_parse,
+                                       &stop_after_compile);
+            if (debug_parse == AQL_DEBUG_PARSE_MATCH) {
+                continue;
+            }
+            if (debug_parse == AQL_DEBUG_PARSE_ERROR) {
+                fprintf(stderr, "Error: Invalid debug option '%s'\n", argv[i]);
                 return 1;
             }
-            filename = argv[i];
-        } else {
-            fprintf(stderr, "Error: Unknown option '%s'\n", argv[i]);
-            print_usage(progname);
-            return 1;
+            if (argv[i][0] != '-') {
+                if (filename) {
+                    fprintf(stderr, "Error: Multiple files specified\n");
+                    return 1;
+                }
+                filename = argv[i];
+            } else {
+                fprintf(stderr, "Error: Unknown option '%s'\n", argv[i]);
+                print_usage(progname);
+                return 1;
+            }
         }
     }
-    
+
     /* Create AQL state */
     aql_State *L = aql_newstate(test_alloc, NULL);
     if (L == NULL) {
@@ -271,6 +257,9 @@ int main(int argc, char *argv[]) {
     /* Initialize debug system */
     aqlD_init_debug();
     aqlD_set_debug_flags(debug_flags);
+    aql_stop_after_lex = stop_after_lex;
+    aql_stop_after_parse = stop_after_parse;
+    aql_stop_after_compile = stop_after_compile;
     
     /* Initialize JIT if enabled */
     #if AQL_USE_JIT

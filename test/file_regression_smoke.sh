@@ -31,5 +31,6 @@ run_case "./test/regression/control_flow/for_numeric_negative.aql" "./test/regre
 run_case "./test/regression/control_flow/for_numeric_sum.aql" "./test/regression/control_flow/for_numeric_sum.expected"
 run_case "./test/regression/control_flow/for_range.aql" "./test/regression/control_flow/for_range.expected"
 run_case "./test/regression/control_flow/for_range_variables.aql" "./test/regression/control_flow/for_range_variables.expected"
+run_case "./test/regression/functions/func_varargs_sum.aql" "./test/regression/functions/func_varargs_sum.expected"
 
 echo "file regression smoke passed"

@@ -1,7 +1,7 @@
 /*
 ** VM 字节码测试运行器
 ** 类似于 make rtest，但专门测试字节码执行
-** 调用 aqlm 执行 .by 文件，并对比 .expected 结果
+** 调用 aqlvm 执行 .by 文件，并对比 .expected 结果
 */
 
 #include <stdio.h>
@@ -37,16 +37,16 @@ typedef struct {
 ** 显示帮助信息
 */
 static void show_help(void) {
-    printf("用法: vmtest <bytecode_dir> <aqlm_path> [选项]\n");
+    printf("用法: vmtest <bytecode_dir> <aqlvm_path> [选项]\n");
     printf("选项:\n");
     printf("  -h, --help     显示此帮助信息\n");
     printf("  -v, --verbose  显示详细输出\n");
     printf("  -t <test>      只运行指定的测试\n");
     printf("\n");
     printf("示例:\n");
-    printf("  vmtest test/vm/bytecode bin/aqlm\n");
-    printf("  vmtest test/vm/bytecode bin/aqlm -v\n");
-    printf("  vmtest test/vm/bytecode bin/aqlm -t simple\n");
+    printf("  vmtest test/vm/bytecode bin/aqlvm\n");
+    printf("  vmtest test/vm/bytecode bin/aqlvm -v\n");
+    printf("  vmtest test/vm/bytecode bin/aqlvm -t simple\n");
 }
 
 /*
@@ -79,11 +79,11 @@ static char* read_file(const char *filename) {
 }
 
 /*
-** 执行aqlm并获取输出
+** 执行 aqlvm 并获取输出
 */
-static char* run_aqlm(const char *aqlm_path, const char *bytecode_file) {
+static char* run_aqlvm(const char *aqlvm_path, const char *bytecode_file) {
     char command[1024];
-    snprintf(command, sizeof(command), "%s %s 2>/dev/null", aqlm_path, bytecode_file);
+    snprintf(command, sizeof(command), "%s %s 2>/dev/null", aqlvm_path, bytecode_file);
     
     FILE *pipe = popen(command, "r");
     if (!pipe) return NULL;
@@ -149,7 +149,7 @@ static void find_tests_recursive(const char *dir_path, char tests[][256], int *t
 /*
 ** 运行单个测试（支持相对路径）
 */
-static int run_test_with_path(const char *test_path, const char *aqlm_path, int verbose) {
+static int run_test_with_path(const char *test_path, const char *aqlvm_path, int verbose) {
     char bytecode_file[512];
     char expected_file[512];
     
@@ -181,7 +181,7 @@ static int run_test_with_path(const char *test_path, const char *aqlm_path, int 
     }
     
     // 执行字节码
-    char *actual = run_aqlm(aqlm_path, bytecode_file);
+    char *actual = run_aqlvm(aqlvm_path, bytecode_file);
     if (!actual) {
         if (verbose) {
             printf("  ❌ 执行失败\n");
@@ -235,7 +235,7 @@ int main(int argc, char *argv[]) {
     }
     
     const char *bytecode_dir = argv[1];
-    const char *aqlm_path = argv[2];
+    const char *aqlvm_path = argv[2];
     const char *single_test = NULL;
     int verbose = 0;
     
@@ -253,14 +253,14 @@ int main(int argc, char *argv[]) {
     
     printf("🚀 开始 VM 字节码测试...\n");
     printf("📁 测试目录: %s\n", bytecode_dir);
-    printf("🔧 使用VM: %s\n", aqlm_path);
+    printf("🔧 使用VM: %s\n", aqlvm_path);
     printf("\n");
     
     TestStats stats = {0, 0, 0, 0};
     
     if (single_test) {
         // 运行单个测试
-        int result = run_test_with_path(single_test, aqlm_path, verbose);
+        int result = run_test_with_path(single_test, aqlvm_path, verbose);
         if (result > 0) {
             stats.passed = 1;
             stats.total = 1;
@@ -280,7 +280,7 @@ int main(int argc, char *argv[]) {
         printf("📋 找到 %d 个测试文件\n\n", test_count);
         
         for (int i = 0; i < test_count; i++) {
-            int result = run_test_with_path(tests[i], aqlm_path, verbose);
+            int result = run_test_with_path(tests[i], aqlvm_path, verbose);
             if (result > 0) {
                 stats.passed++;
                 stats.total++;

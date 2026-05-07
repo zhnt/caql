@@ -17,6 +17,7 @@
 
 #include "aconf.h"
 #include "aobject.h"
+#include "adebug.h"
 
 /*
 ** AQL Unified Debug System
@@ -28,19 +29,19 @@
 ** - Command-line controlled debug categories
 */
 
-/* Debug categories for fine-grained control */
-typedef enum {
-    AQL_DEBUG_NONE    = 0x00,    /* No debug output */
-    AQL_DEBUG_LEX     = 0x01,    /* Lexical analysis (-vt) */
-    AQL_DEBUG_PARSE   = 0x02,    /* Abstract syntax tree (-va) */
-    AQL_DEBUG_CODE    = 0x04,    /* Bytecode instructions (-vb) */
-    AQL_DEBUG_VM      = 0x08,    /* VM execution trace (-ve) */
-    AQL_DEBUG_REG     = 0x10,    /* Register values (-vr) */
-    AQL_DEBUG_MEM     = 0x20,    /* Memory management (-vm) */
-    AQL_DEBUG_GC      = 0x40,    /* Garbage collection (-vg) */
-    AQL_DEBUG_REPL    = 0x80,    /* REPL operations (-vd) */
-    AQL_DEBUG_ALL     = 0xFF     /* All debug info (-v) */
-} AQL_DebugFlags;
+/* Compatibility names mapped onto the canonical adebug flags. */
+typedef AQLDebugMask AQL_DebugFlags;
+
+#define AQL_DEBUG_NONE  AQL_DBG_NONE
+#define AQL_DEBUG_LEX   AQL_DBG_LEX
+#define AQL_DEBUG_PARSE AQL_DBG_AST
+#define AQL_DEBUG_CODE  AQL_DBG_CODE
+#define AQL_DEBUG_VM    AQL_DBG_VMTRACE
+#define AQL_DEBUG_REG   AQL_DBG_REG
+#define AQL_DEBUG_MEM   AQL_DBG_MEM
+#define AQL_DEBUG_GC    AQL_DBG_GC
+#define AQL_DEBUG_REPL  AQL_DBG_REPL
+#define AQL_DEBUG_ALL   AQL_DBG_ALL
 
 /* Global debug state */
 extern int aql_debug_flags;

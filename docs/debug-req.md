@@ -22,7 +22,7 @@ AQL 采用分层调试系统，通过编译时宏控制和运行时标志位，�
   - 性能最优，体积最小
   - 使用宏定义方式，编译时零开销
 
-### aqlm - 字节码执行工具
+### aqlvm - 字节码执行工具
 - **目标**：辅助调试验证avm_core.c和指令正确性
 - **编译标志**：`-DAQL_DEBUG_BUILD`（与aqld相同）
 - **特点**：
@@ -65,13 +65,13 @@ AQL 采用分层调试系统，通过编译时宏控制和运行时标志位，�
 aql script.aql                    # 纯执行，无任何调试输出
 ```
 
-### aqlm (字节码工具)
+### aqlvm (字节码工具)
 ```bash
-aqlm script.by                    # 基础执行
-aqlm -v script.by                 # 全部调试信息 (vd + vt + vast + vl + vb)
-aqlm -vt script.by                # 仅执行跟踪
-aqlm -vd script.by                # 仅详细调试信息
-aqlm -vb script.by                # 仅字节码输出
+aqlvm script.by                   # 基础执行
+aqlvm -v script.by                # 全部调试信息 (vd + vt + vast + vl + vb)
+aqlvm -vt script.by               # 仅执行跟踪
+aqlvm -vd script.by               # 仅详细调试信息
+aqlvm -vb script.by               # 仅字节码输出
 ```
 
 ### aqld (调试版本)
@@ -317,7 +317,7 @@ PC=0 [func@0x7f8990406010] MUL BEFORE: A=[R2=?], B=[R0=5], C=[R1=3]
 
 #### 实现要求
 - **生产版本 (aql)**：`-DAQL_PRODUCTION_BUILD`，所有调试宏编译为空操作
-- **调试版本 (aqlm/aqld)**：`-DAQL_DEBUG_BUILD`，根据运行时标志控制输出
+- **调试版本 (aqlvm/aqld)**：`-DAQL_DEBUG_BUILD`，根据运行时标志控制输出
 
 #### 运行时标志检查机制
 
@@ -425,7 +425,7 @@ switch (GET_OPCODE(i)) {
 - **仅错误信息**
 - **编译时零开销**
 
-### Level 1: VM工具 (aqlm)
+### Level 1: VM工具 (aqlvm)
 - **基础执行信息**
 - **指令级跟踪 (-vt)**
 - **详细调试信息 (-vd)**
@@ -534,7 +534,7 @@ switch (GET_OPCODE(i)) {
 ### 版本定位
 
 - **aql**：生产版本，高效执行，零调试开销
-- **aqlm**：VM工具，验证指令正确性，基础调试功能
+- **aqlvm**：VM工具，验证指令正确性，基础调试功能
 - **aqld**：开发版本，完整调试支持，全功能调试
 
 ### 关键特性

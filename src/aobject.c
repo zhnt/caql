@@ -675,7 +675,33 @@ static int callbinTM(aql_State *L, const TValue *p1, const TValue *p2,
 void aqlT_trybinTM(aql_State *L, const TValue *p1, const TValue *p2,
                    StkId res, TMS event) {
   if (callbinTM(L, p1, p2, res, event) < 0) {
-    setnilvalue(s2v(res));
+    switch (event) {
+      case TM_BAND: case TM_BOR: case TM_BXOR:
+      case TM_SHL: case TM_SHR: case TM_BNOT: {
+        aql_Integer temp;
+        if (ttisnumber(p1) && ttisnumber(p2)) {
+          if (!tointegerns(p1, &temp))
+            aqlG_runerror(L, "number has no integer representation");
+          else
+            aqlG_runerror(L, "number has no integer representation");
+        }
+        else {
+          const TValue *bad = ttisnumber(p1) ? p2 : p1;
+          aqlG_typeerror(L, bad, "perform bitwise operation on");
+        }
+        return;
+      }
+      case TM_CONCAT: {
+        const TValue *bad = (ttisstring(p1) || ttisnumber(p1)) ? p2 : p1;
+        aqlG_typeerror(L, bad, "concatenate");
+        return;
+      }
+      default: {
+        const TValue *bad = ttisnumber(p1) ? p2 : p1;
+        aqlG_typeerror(L, bad, "perform arithmetic on");
+        return;
+      }
+    }
   }
 }
 

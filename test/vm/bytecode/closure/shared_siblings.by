@@ -16,7 +16,7 @@ RETURN1   R1
 MOVE      R1, R0
 CLOSURE   R2, 0
 CLOSURE   R3, 1
-RETURN    R2, 3, 1
+RETURN    R2, 3, 0, 1
 .end
 
 .function inc 0

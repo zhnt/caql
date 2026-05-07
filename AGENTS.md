@@ -4,7 +4,7 @@ Guidance for coding agents working in this repository.
 
 ## Project Direction
 
-AQL uses Lua 5.5.1 as the baseline for VM and runtime semantics, while keeping
+AQL uses Lua 5.5.0 as the baseline for VM and runtime semantics, while keeping
 AQL containers, static typing, class/self/method syntax, and future AI workflow
 syntax as explicit extensions.
 
@@ -12,11 +12,11 @@ Read `docs/lua55-alignment.md` before changing VM, runtime, bytecode,
 metamethod, call, closure, table, iterator, or error behavior.
 
 The local Lua reference source is the workspace sibling directory:
-`../lua`.
+`../lua5.5`.
 
 ## Alignment Rules
 
-- Follow Lua 5.5.1 for core VM/runtime behavior unless an AQL semantic choice is
+- Follow Lua 5.5.0 for core VM/runtime behavior unless an AQL semantic choice is
   explicitly documented.
 - Do not silently change Lua-defined behavior to support AQL extensions.
 - Keep AQL extensions visible as extensions: containers, `NEWOBJECT`,
@@ -24,7 +24,7 @@ The local Lua reference source is the workspace sibling directory:
   `class/self/method`, and future agentic syntax.
 - Prefer reusing Lua mechanisms for extensions where practical, especially
   metatables and metamethods.
-- If local behavior differs from Lua 5.5.1, add or update documentation and add
+- If local behavior differs from Lua 5.5.0, add or update documentation and add
   a regression test naming the semantic target.
 
 ## Current VM Priorities
@@ -32,8 +32,8 @@ The local Lua reference source is the workspace sibling directory:
 1. Implement real runtime errors for `aqlG_runerror`, `aqlG_typeerror`, and
    `aqlG_ordererror`.
 2. Complete metatable and metamethod coverage, including missing-method errors.
-3. Align `TFORPREP`, `TFORCALL`, `TFORLOOP`, `TBC`, and `__close` with Lua 5.5.1.
-4. Align varargs, open results, and any missing Lua 5.5.1 opcode behavior.
+3. Align `TFORPREP`, `TFORCALL`, `TFORLOOP`, `TBC`, and `__close` with Lua 5.5.0.
+4. Align varargs, open results, and any missing Lua 5.5.0 opcode behavior.
 5. Keep container and future AQL syntax work layered on top of the Lua-aligned
    runtime.
 
@@ -47,7 +47,7 @@ The local Lua reference source is the workspace sibling directory:
 - `src/atable.c`: table implementation.
 - `test/vm/bytecode/`: text bytecode fixtures run by `bin/vmtest`.
 - `test/vm/*.c`: focused C-level VM/runtime regression tests.
-- `docs/lua55-alignment.md`: Lua 5.5.1 baseline and AQL extension policy.
+- `docs/lua55-alignment.md`: Lua 5.5.0 baseline and AQL extension policy.
 
 ## Build And Test
 
@@ -60,8 +60,8 @@ cd /home/dev/aqlworkspace/caql
 Common checks:
 
 ```bash
-make aqlm
-./bin/vmtest test/vm/bytecode ./bin/aqlm -v
+make aqlvm
+./bin/vmtest test/vm/bytecode ./bin/aqlvm -v
 make test_metamethod_le_55
 ```
 
@@ -101,4 +101,4 @@ For targeted VM work, add the smallest fixture that proves the runtime rule:
 - Prefer concise engineering updates.
 - State which verification commands were run and whether they passed.
 - When comparing with Lua, cite the local reference file and behavior, for
-  example `../lua/lvm.c` for VM execution semantics.
+  example `../lua5.5/src/lvm.c` for VM execution semantics.

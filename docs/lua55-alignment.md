@@ -1,19 +1,19 @@
-# Lua 5.5.1 Alignment Policy
+# Lua 5.5.0 Alignment Policy
 
 ## Goal
 
-AQL uses Lua 5.5.1 as the baseline for VM and runtime semantics. AQL is not a
+AQL uses Lua 5.5.0 as the baseline for VM and runtime semantics. AQL is not a
 plain Lua clone: containers, static types, class/self/method syntax, and future
 AI workflow syntax remain first-class AQL extensions. The rule is that an
 extension must be explicit and must not silently change behavior already defined
-by Lua 5.5.1.
+by Lua 5.5.0.
 
 The current local Lua reference lives in the workspace sibling directory:
-`../lua`.
+`../lua5.5`.
 
 ## Baseline Surface
 
-These areas should follow Lua 5.5.1 unless a document explicitly marks a
+These areas should follow Lua 5.5.0 unless a document explicitly marks a
 different AQL semantic choice:
 
 - VM opcode behavior, including instruction operands, open result conventions,
@@ -52,11 +52,11 @@ must be described as container behavior rather than Lua table behavior.
 
 ## Conflict Rule
 
-When Lua 5.5.1 defines behavior, AQL follows Lua 5.5.1 by default. If AQL needs
+When Lua 5.5.0 defines behavior, AQL follows Lua 5.5.0 by default. If AQL needs
 a different behavior, the difference must be documented and tested as an AQL
 semantic choice.
 
-Example: Lua 5.5.1 `<=` uses `__le` directly and does not fall back to reverse
+Example: Lua 5.5.0 `<=` uses `__le` directly and does not fall back to reverse
 `__lt`. AQL therefore follows that behavior in core comparison. Containers may
 still define their own `__le`, but missing `__le` must not silently call `__lt`
 under the Lua-compatible path.
@@ -65,7 +65,7 @@ under the Lua-compatible path.
 
 Tests should be split by intent:
 
-- Lua-alignment tests verify behavior against Lua 5.5.1 source and tests.
+- Lua-alignment tests verify behavior against Lua 5.5.0 source and tests.
 - AQL-extension tests verify containers, typed operations, and future syntax.
 - Regression tests should name the semantic target when behavior is subtle,
   such as `metamethod_le_55_test`.
@@ -77,25 +77,33 @@ rule.
 ## Current VM Status
 
 - Core opcode numbering, names, and opmodes in `src/aopcodes.h` are aligned to
-  Lua 5.5.1 through `OP_EXTRAARG`.
-- The core instruction format enum includes Lua 5.5.1 `ivABC`; `OP_NEWTABLE`
+  Lua 5.5.0 through `OP_EXTRAARG`.
+- Text bytecode parsing distinguishes Lua 5.5.0 key operands from value
+  operands: `GETTABUP`/`GETFIELD` keep key constants in their plain operand
+  fields, while `SETTABUP`, `SETTABLE`, `SETI`, and `SETFIELD` encode constant
+  values through the separate `k` bit. `SELF` also treats C as `K[C]`, matching
+  Lua. The source code generator emits the corresponding Lua table
+  getter/setter family (`GETTABLE`/`SETTABLE`, `GETI`/`SETI`,
+  `GETFIELD`/`SETFIELD`, and `GETTABUP`/`SETTABUP`) instead of collapsing
+  indexed writes into `SETTABUP`.
+- The core instruction format enum includes Lua 5.5.0 `ivABC`; `OP_NEWTABLE`
   and `OP_SETLIST` use Lua-compatible `vB/vC` fields, including
   `EXTRAARG _ vC` composition when the `k` bit is set. Coverage lives in
   `test/vm/ivabc_55_test.c` and the `setlist_ivabc_*` bytecode fixtures under
   `test/vm/bytecode/basic/table`.
 - AQL-only bytecodes start after the Lua core opcode range, so container and
-  builtin extensions no longer collide with Lua 5.5.1 `OP_GETVARG` and
+  builtin extensions no longer collide with Lua 5.5.0 `OP_GETVARG` and
   `OP_ERRNNIL`.
 - `OP_GETVARG` and `OP_ERRNNIL` have minimal VM bytecode coverage under
   `test/vm/bytecode/basic/vararg`.
 - Fixed-result `OP_VARARG` follows Lua result semantics instead of returning an
   AQL container for the single-result case.
-- `TFORPREP`, `TFORCALL`, and `TFORLOOP` now use Lua 5.5.1's generic-for
+- `TFORPREP`, `TFORCALL`, and `TFORLOOP` now use Lua 5.5.0's generic-for
   register layout: `TFORPREP` swaps the control and closing slots, iterator
   calls start at `R[A+3]`, and `TFORLOOP` tests the first returned value in
   `R[A+3]`. Minimal coverage lives in
   `test/vm/bytecode/basic/control_flow/tfor_lua55_layout.by`.
-- `OP_TBC`, `OP_CLOSE`, and the `TFORPREP` closing slot now share Lua 5.5.1
+- `OP_TBC`, `OP_CLOSE`, and the `TFORPREP` closing slot now share Lua 5.5.0
   to-be-closed behavior: nil/false closing values are no-ops, non-closable
   values raise runtime errors, `__close` methods run in reverse registration
   order, and error objects are passed to `__close` on error paths. C-level
@@ -119,8 +127,16 @@ rule.
   diagnostic shape.
   Minimal coverage lives in
   `test/vm/runtime_error_55_test.c`.
-- Vararg execution still uses AQL's current frame layout; full Lua 5.5.1 vararg
-  table optimization and `adjustvarargs` migration remain pending.
+- Hidden vararg frames now follow Lua 5.5.0's `VARARGPREP`/`VARARG`/`GETVARG`
+  shape. Vararg functions adjust the call frame before execution, retrieve
+  fixed and open vararg results from hidden slots, and restore `ci->func` on
+  `RETURN`/`TAILCALL`. Minimal coverage lives under
+  `test/vm/bytecode/basic/vararg` and
+  `test/regression/functions/func_varargs_sum.aql`.
+- Missing arithmetic, bitwise, and concat metamethods now raise runtime errors
+  instead of silently producing `nil`, matching Lua 5.5.0's
+  `luaT_trybinTM` behavior. Coverage lives in
+  `test/vm/metamethod_missing_55_test.c`.
 
 ## Current Priorities
 
@@ -128,7 +144,7 @@ rule.
    (`varinfo`, object names, and call-site names) to type and order errors.
 2. Complete metatable and metamethod coverage with tests for missing-method
    errors and successful dispatch.
-3. Complete varargs and open-result alignment, including Lua 5.5.1 vararg table
-   handling and `VARARGPREP`/`GETVARG` frame behavior.
+3. Continue validating varargs and open-result alignment against additional
+   source-level and bytecode-level fixtures.
 4. Keep container and future AQL syntax work on top of the Lua-aligned runtime
    instead of replacing the runtime rules.

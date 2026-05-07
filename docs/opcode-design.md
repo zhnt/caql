@@ -224,18 +224,22 @@ enum OpMode {iABC, iABx, iAsBx, iAx};
 #define SETARG_sBx(i,b)  SETARG_Bx((i),cast(unsigned int, (b)+MAXARG_sBx))
 ```
 
-### 4.4 RK编码机制 (寄存器/常量复用)
+### 4.4 RK编码机制 (历史兼容)
 ```c
-// RK编码: 最高位区分寄存器和常量
-#define BITRK        (1 << (SIZE_B - 1))  // 0x100 (第9位)
+// 旧RK编码: 最高位区分寄存器和常量
+#define BITRK        (1 << (SIZE_B - 1))
 #define ISK(x)       ((x) & BITRK)        // 测试是否为常量
 #define INDEXK(r)    ((int)(r) & ~BITRK)  // 获取常量索引
 #define RKASK(x)     ((x) | BITRK)        // 标记为常量索引
-#define MAXINDEXRK   (BITRK - 1)          // 最大RK索引值 (255)
+#define MAXINDEXRK   (BITRK - 1)          // 最大旧RK索引值
 
 // 无效寄存器标记
 #define NO_REG       MAXARG_A             // 255 (8位最大值)
 ```
+
+Lua 5.5 的核心 `SETTABUP`/`SETTABLE`/`SETI`/`SETFIELD` 等 ABCk 指令不再把
+常量标记混入 B/C 操作数字段，而是使用独立的 `k` 位表示值操作数来自常量表。
+旧 RK 宏只保留给兼容和调试路径，不能用于发射 Lua 5.5 对齐的核心字节码。
 
 ### 4.5 指令创建宏
 ```c

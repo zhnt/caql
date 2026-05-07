@@ -1,7 +1,8 @@
 /*
-** AQL VM (aqlm) - AQL 字节码虚拟机
+** AQL VM CLI (aqlvm) - AQL 字节码虚拟机命令行工具
 ** 类似于 aqld，但专门用于加载和执行 .by 字节码文件
-** 用法: aqlm script.by
+** VM core lives in avm_core.c.
+** 用法: aqlvm script.by
 */
 
 #include <stdio.h>
@@ -127,7 +128,7 @@ static void *test_alloc(void *ud, void *ptr, size_t osize, size_t nsize) {
 ** 打印使用说明
 */
 static void print_usage(const char *program_name) {
-    printf("AQL 字节码虚拟机 (aqlm) - 执行 .by 字节码文件\n");
+    printf("AQL 字节码虚拟机 (aqlvm) - 执行 .by 字节码文件\n");
     printf("用法: %s [选项] <script.by>\n", program_name);
     printf("\n选项:\n");
     printf("  -h, --help           显示此帮助信息\n");
@@ -441,8 +442,12 @@ static int load_multi_function_bytecode(const char *filename, FunctionProto **fu
                     // 解析参数数量
                     char func_name[64];
                     int params = 0;
-                    if (sscanf(trimmed, ".function %s %d", func_name, &params) >= 2) {
+                    char vararg_flag[32] = "";
+                    if (sscanf(trimmed, ".function %s %d %31s", func_name, &params, vararg_flag) >= 2) {
                         func_array[current_func].num_params = params;
+                        func_array[current_func].is_vararg =
+                            (strcmp(vararg_flag, "vararg") == 0 ||
+                             strcmp(vararg_flag, "...") == 0);
                     }
                     
                     aql_debug("[DEBUG] 创建函数 %d: %s, 参数数量: %d\n", current_func, func_name, params);
@@ -1125,34 +1130,37 @@ static int execute_single_function_bytecode(Instruction *code, int code_size, vo
 int main(int argc, char *argv[]) {
     
     const char *filename = NULL;
+    AQLDebugMask debug_flags = AQL_DBG_NONE;
     
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             print_usage(argv[0]);
             return 0;
-        } else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0) {
-            aql_debug_enable_verbose_all();  // 启用所有详细信息
-        } else if (strcmp(argv[i], "-vt") == 0 || strcmp(argv[i], "--verbose-trace") == 0) {
-            aql_debug_enable_flag(AQL_FLAG_VT);  // 仅启用执行跟踪
-        } else if (strcmp(argv[i], "-vd") == 0 || strcmp(argv[i], "--verbose-debug") == 0) {
-            aql_debug_enable_flag(AQL_FLAG_VD);  // 仅启用详细调试
-        } else if (strcmp(argv[i], "-vb") == 0 || strcmp(argv[i], "--verbose-bytecode") == 0) {
-            aql_debug_enable_flag(AQL_FLAG_VB);  // 仅启用字节码输出
-        } else if (strcmp(argv[i], "-q") == 0 || strcmp(argv[i], "--quiet") == 0) {
-            aql_debug_disable_all();  // 静默模式
         } else if (argv[i][0] == '-') {
-            aql_debug("❌ 未知选项: %s\n", argv[i]);
+            AQLDebugParseResult debug_parse =
+                aql_debug_parse_option(AQL_DEBUG_TOOL_AQLVM, argv[i], &debug_flags,
+                                       NULL, NULL, NULL);
+            if (debug_parse == AQL_DEBUG_PARSE_MATCH) {
+                continue;
+            }
+            if (debug_parse == AQL_DEBUG_PARSE_ERROR) {
+                printf("❌ 无效调试选项: %s\n", argv[i]);
+                return 1;
+            }
+            printf("❌ 未知选项: %s\n", argv[i]);
             print_usage(argv[0]);
             return 1;
         } else {
             if (filename) {
-                aql_debug("❌ 只能指定一个字节码文件\n");
+                printf("❌ 只能指定一个字节码文件\n");
                 print_usage(argv[0]);
                 return 1;
             }
             filename = argv[i];
         }
     }
+
+    aql_debug_set_flags((int)debug_flags);
     
     if (!filename) {
         printf("❌ 请指定字节码文件\n");

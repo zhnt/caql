@@ -39,7 +39,7 @@ enum OpMode {iABC, ivABC, iABx, iAsBx, iAx, isJ};  /* basic instruction formats 
 
 /*
 ** size and position of opcode arguments.
-** 完全兼容 Lua 5.5.1 的指令格式:
+** 完全兼容 Lua 5.5.0 的指令格式:
 ** - OP: 7 bits (0-127 opcodes)
 ** - A: 8 bits (0-255 registers)  
 ** - B: 8 bits (0-255 registers/constants)
@@ -187,7 +187,9 @@ enum OpMode {iABC, ivABC, iABx, iAsBx, iAx, isJ};  /* basic instruction formats 
 #define SETARG_sJ(i,j)	setarg(i, cast_uint((j)+OFFSET_sJ), POS_sJ, SIZE_sJ)
 
 /*
-** K operands in instructions
+** Legacy RK operand helpers. Lua 5.5 core ABCk instructions use the separate
+** 'k' bit for value operands; keep these macros only for compatibility with
+** old/debug paths.
 */
 #define BITRK		(1 << (SIZE_B - 1))
 
@@ -212,14 +214,14 @@ enum OpMode {iABC, ivABC, iABx, iAsBx, iAx, isJ};  /* basic instruction formats 
 /*
 ** R(x) - register
 ** K(x) - constant (in constant table)
-** RK(x) == if ISK(x) then K(INDEXK(x)) else R(x)
+** Legacy RK(x) == if ISK(x) then K(INDEXK(x)) else R(x)
 */
 
 /*
-** AQL操作码枚举 - 与Lua 5.5.1核心指令兼容
+** AQL操作码枚举 - 与Lua 5.5.0核心指令兼容
 */
 typedef enum {
-  /* === Lua 5.5.1 Compatible Opcodes (0-84) === */
+  /* === Lua 5.5.0 Compatible Opcodes (0-84) === */
   OP_MOVE,        /* 0   A B     R[A] := R[B] */
   OP_LOADI,       /* 1   A sBx   R[A] := sBx */
   OP_LOADF,       /* 2   A sBx   R[A] := (lua_Number)sBx */
@@ -240,7 +242,7 @@ typedef enum {
   OP_SETI,        /* 17  A B C   R[A][B] := RK(C) */
   OP_SETFIELD,    /* 18  A B C   R[A][K[B]:shortstring] := RK(C) */
   OP_NEWTABLE,    /* 19  A B C k R[A] := {} */
-  OP_SELF,        /* 20  A B C   R[A+1] := R[B]; R[A] := R[B][RK(C):string] */
+  OP_SELF,        /* 20  A B C   R[A+1] := R[B]; R[A] := R[B][K[C]:shortstring] */
   OP_ADDI,        /* 21  A B sC  R[A] := R[B] + sC */
   OP_ADDK,        /* 22  A B C   R[A] := R[B] + K[C]:number */
   OP_SUBK,        /* 23  A B C   R[A] := R[B] - K[C]:number */
@@ -374,7 +376,7 @@ enum OpArgMask {
 #define cast_uint(i)	cast(aql_Unsigned, (i))
 
 /*
-** Macros to create opmode values - 完全兼容 Lua 5.5.1
+** Macros to create opmode values - 完全兼容 Lua 5.5.0
 ** 参数：mm(metamethod), ot(out_top), it(in_top), test, seta, mode
 */
 #define aqlOpMode(mm,ot,it,t,a,m)  \
@@ -457,7 +459,7 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
 
 /* 操作码名称数组 - 与 OpCode enum 顺序完全一致 */
 static const char *const aql_opnames[NUM_OPCODES+1] = {
-  /* === Lua 5.5.1 Compatible Opcodes (0-84) === */
+  /* === Lua 5.5.0 Compatible Opcodes (0-84) === */
   "MOVE",         /* 0   A B     R[A] := R[B] */
   "LOADI",        /* 1   A sBx   R[A] := sBx */
   "LOADF",        /* 2   A sBx   R[A] := (lua_Number)sBx */
@@ -478,7 +480,7 @@ static const char *const aql_opnames[NUM_OPCODES+1] = {
   "SETI",         /* 17  A B C   R[A][B] := RK(C) */
   "SETFIELD",     /* 18  A B C   R[A][K[B]:shortstring] := RK(C) */
   "NEWTABLE",     /* 19  A B C k R[A] := {} */
-  "SELF",         /* 20  A B C   R[A+1] := R[B]; R[A] := R[B][RK(C):string] */
+  "SELF",         /* 20  A B C   R[A+1] := R[B]; R[A] := R[B][K[C]:shortstring] */
   "ADDI",         /* 21  A B sC  R[A] := R[B] + sC */
   "ADDK",         /* 22  A B C   R[A] := R[B] + K[C]:number */
   "SUBK",         /* 23  A B C   R[A] := R[B] - K[C]:number */
@@ -559,9 +561,9 @@ static const char *const aql_opnames[NUM_OPCODES+1] = {
   NULL
 };
 
-/* 操作码模式数组 - 与 Lua 5.5.1 完全兼容 */
+/* 操作码模式数组 - 与 Lua 5.5.0 完全兼容 */
 static const aql_byte aql_opmode[NUM_OPCODES] = {
-  /* === Lua 5.5.1 Compatible Opcodes (0-84) === */
+  /* === Lua 5.5.0 Compatible Opcodes (0-84) === */
   aqlOpMode(0, 0, 0, 0, 1, iABC),    /* OP_MOVE */
   aqlOpMode(0, 0, 0, 0, 1, iAsBx),   /* OP_LOADI */
   aqlOpMode(0, 0, 0, 0, 1, iAsBx),   /* OP_LOADF */

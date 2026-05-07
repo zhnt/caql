@@ -779,7 +779,7 @@ static void singlevar (LexState *ls, expdesc *var) {
     /* For global variables, we need to set up for both reading and writing */
     /* Store the table (env) and key information for later use in assignment */
     var->u.ind.t = var->u.info;  /* table is the environment upvalue */
-    var->u.ind.idx = aqlK_exp2RK(fs, &key);  /* key index */
+    var->u.ind.idx = aqlK_stringK(fs, varname);  /* key index */
     var->k = VINDEXUP;  /* mark as indexed upvalue for proper assignment handling */
     
   }

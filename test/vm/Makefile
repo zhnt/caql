@@ -8,7 +8,7 @@ ROOT_DIR = ../..
 BYTECODE_DIR = bytecode
 GENERATED_DIR = $(BYTECODE_DIR)/generated
 BYTECODE_GEN = bytecode_gen
-AQLM = $(ROOT_DIR)/bin/aqlm
+AQLVM = $(ROOT_DIR)/bin/aqlvm
 VMTEST = $(ROOT_DIR)/bin/vmtest
 
 .PHONY: all generate-tests vmtest vmtest-verbose clean help status
@@ -26,16 +26,16 @@ generate-tests: $(BYTECODE_GEN)
 	@echo "✅ 测试文件生成完成"
 
 vmtest: generate-tests
-	@echo "🔨 构建 aqlm 与 vmtest runner..."
-	@$(MAKE) -C $(ROOT_DIR) --no-print-directory aqlm bin/vmtest
+	@echo "🔨 构建 aqlvm 与 vmtest runner..."
+	@$(MAKE) -C $(ROOT_DIR) --no-print-directory aqlvm bin/vmtest
 	@echo "🚀 运行 VM 字节码测试..."
-	@$(VMTEST) $(GENERATED_DIR) $(AQLM)
+	@$(VMTEST) $(GENERATED_DIR) $(AQLVM)
 
 vmtest-verbose: generate-tests
-	@echo "🔨 构建 aqlm 与 vmtest runner..."
-	@$(MAKE) -C $(ROOT_DIR) --no-print-directory aqlm bin/vmtest
+	@echo "🔨 构建 aqlvm 与 vmtest runner..."
+	@$(MAKE) -C $(ROOT_DIR) --no-print-directory aqlvm bin/vmtest
 	@echo "🚀 运行 VM 字节码测试 (详细模式)..."
-	@$(VMTEST) $(GENERATED_DIR) $(AQLM) -v
+	@$(VMTEST) $(GENERATED_DIR) $(AQLVM) -v
 
 clean:
 	@echo "🧹 清理 VM 测试辅助产物..."
@@ -56,6 +56,6 @@ help:
 status:
 	@echo "📊 VM 测试状态:"
 	@echo "🏭 生成器: $(if $(wildcard $(BYTECODE_GEN)),✅ 已编译,❌ 未编译)"
-	@echo "🔧 aqlm: $(if $(wildcard $(AQLM)),✅ 已编译,❌ 未编译)"
+	@echo "🔧 aqlvm: $(if $(wildcard $(AQLVM)),✅ 已编译,❌ 未编译)"
 	@echo "🧪 vmtest runner: $(if $(wildcard $(VMTEST)),✅ 已编译,❌ 未编译)"
 	@echo "📝 文本测试数: $(shell find $(BYTECODE_DIR) -name '*.by' 2>/dev/null | wc -l)"

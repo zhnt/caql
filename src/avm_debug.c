@@ -98,6 +98,61 @@ static void aql_debug_print_value(TValue *val) {
     }
 }
 
+static TValue *debug_get_reg_value(aql_State *L, LClosure *cl, StkId base, int reg) {
+    if (!L || !cl || !cl->p || !base) return NULL;
+    if (reg < 0 || reg >= cl->p->maxstacksize) return NULL;
+    if (base + reg < L->stack.p || base + reg >= L->top.p) return NULL;
+    return s2v(base + reg);
+}
+
+static TValue *debug_get_const_value(LClosure *cl, int idx) {
+    if (!cl || !cl->p || idx < 0 || idx >= cl->p->sizek) return NULL;
+    return &cl->p->k[idx];
+}
+
+static TValue *debug_get_upval_value(LClosure *cl, int idx) {
+    if (!cl || idx < 0 || idx >= cl->nupvalues || !cl->upvals[idx]) return NULL;
+    return cl->upvals[idx]->v.p;
+}
+
+void aql_vt_debug_getupval(aql_State *L, CallInfo *ci, Instruction i,
+                           const Instruction *pc, LClosure *cl,
+                           StkId base, const char *func_name) {
+    if (!aql_debug_is_enabled(AQL_FLAG_VT)) return;
+    int a = GETARG_A(i), b = GETARG_B(i);
+    printf("PC=%d [%s] GETUPVAL R%d := UpValue[%d]",
+           (int)(pc - cl->p->code), func_name, a, b);
+    TValue *val = debug_get_upval_value(cl, b);
+    if (val) { printf(" ("); aql_debug_print_value(val); printf(")"); }
+    printf("\n");
+}
+
+void aql_vt_debug_setupval(aql_State *L, CallInfo *ci, Instruction i,
+                           const Instruction *pc, LClosure *cl,
+                           StkId base, const char *func_name) {
+    if (!aql_debug_is_enabled(AQL_FLAG_VT)) return;
+    int a = GETARG_A(i), b = GETARG_B(i);
+    printf("PC=%d [%s] SETUPVAL UpValue[%d] := R%d",
+           (int)(pc - cl->p->code), func_name, b, a);
+    TValue *val = debug_get_reg_value(L, cl, base, a);
+    if (val) { printf(" ("); aql_debug_print_value(val); printf(")"); }
+    printf("\n");
+}
+
+void aql_vt_debug_mulk(aql_State *L, CallInfo *ci, Instruction i,
+                       const Instruction *pc, LClosure *cl,
+                       StkId base, const char *func_name) {
+    if (!aql_debug_is_enabled(AQL_FLAG_VT)) return;
+    int a = GETARG_A(i), b = GETARG_B(i), c = GETARG_C(i);
+    printf("PC=%d [%s] MULK R%d := R%d * K%d",
+           (int)(pc - cl->p->code), func_name, a, b, c);
+    TValue *val_b = debug_get_reg_value(L, cl, base, b);
+    TValue *val_c = debug_get_const_value(cl, c);
+    if (val_b) { printf(" ("); aql_debug_print_value(val_b); printf(")"); }
+    if (val_c) { printf(" ("); aql_debug_print_value(val_c); printf(")"); }
+    printf("\n");
+}
+
 /* 通用加载指令调试函数 (LOADI, LOADF, LOADK, LOADKX, LOADFALSE, LOADTRUE, LOADNIL) */
 void aql_vt_load_before(const char *op_name) {
     if (!current_L || !aql_debug_is_enabled(AQL_FLAG_VT)) return;

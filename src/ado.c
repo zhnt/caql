@@ -617,7 +617,7 @@ AQL_API CallInfo *aqlD_precall(aql_State *L, StkId func, int nResults) {
     LClosure *cl = clLvalue(f);
     Proto *p = cl->p;
     int n = cast_int(L->top.p - func) - 1;  /* number of arguments */
-    int nextraargs = (n > p->numparams) ? (n - p->numparams) : 0;
+    int nextraargs = (p->is_vararg && n > p->numparams) ? (n - p->numparams) : 0;
     
     aql_debug("[DEBUG] aqlD_precall: AQL function, proto=%p, code=%p, nargs=%d, numparams=%d\n", 
                  (void*)p, (void*)p->code, n, p->numparams);

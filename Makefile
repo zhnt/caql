@@ -24,7 +24,8 @@ TEST_BIN_DIR = bin/test
 # Target executables
 TARGET_RELEASE = $(BIN_DIR)/aql
 TARGET_DEBUG = $(BIN_DIR)/aqld
-TARGET_VM = $(BIN_DIR)/aqlm
+TARGET_VM = $(BIN_DIR)/aqlvm
+TARGET_VM_COMPAT = $(BIN_DIR)/aqlm
 
 # Test executables
 TEST_RUNNER = $(TEST_BIN_DIR)/test_runner
@@ -71,7 +72,7 @@ CORE_SOURCES = \
     $(SRC_DIR)/aerror.c \
     $(SRC_DIR)/main.c
 
-# VM source files (for aqlm, excludes main.c, uses avm_core.c)
+# VM source files (for aqlvm, excludes main.c, uses avm_core.c)
 VM_SOURCES = $(filter-out $(SRC_DIR)/main.c, $(CORE_SOURCES))
 
 # Object files (replace .c with .o and move to build dir)
@@ -91,12 +92,12 @@ PROBLEM_SOURCES = \
 HEADERS = $(wildcard $(SRC_DIR)/*.h)
 
 # Default target
-.PHONY: all both debug release aqlm clean dirs test test_metamethod_le_55 test_runtime_error_55 test_tbc_close_55 test_ivabc_55 test_phase1 test_phase2 test_phase3 test_phase4
+.PHONY: all both debug release aqlvm aqlm clean dirs test test_metamethod_le_55 test_metamethod_missing_55 test_runtime_error_55 test_tbc_close_55 test_ivabc_55 test_phase1 test_phase2 test_phase3 test_phase4
 
 all: both
 
 # Build both debug and release versions
-both: dirs $(TARGET_DEBUG) $(TARGET_RELEASE) $(TARGET_VM)
+both: dirs $(TARGET_DEBUG) $(TARGET_RELEASE) $(TARGET_VM) $(TARGET_VM_COMPAT)
 
 # Build only debug version
 debug: dirs $(TARGET_DEBUG)
@@ -105,7 +106,10 @@ debug: dirs $(TARGET_DEBUG)
 release: dirs $(TARGET_RELEASE)
 
 # Build only VM version
-aqlm: dirs $(TARGET_VM)
+aqlvm: dirs $(TARGET_VM)
+
+# Compatibility alias for older scripts
+aqlm: dirs $(TARGET_VM_COMPAT)
 
 # Create necessary directories
 dirs:
@@ -124,11 +128,15 @@ $(TARGET_DEBUG): $(DEBUG_OBJECTS)
 	$(CC) $(DEBUG_OBJECTS) -o $@ $(LDFLAGS)
 	@echo "✅ Successfully built AQL Debug: $@"
 
-# Build VM version (aqlm - bytecode executor)
-$(TARGET_VM): $(SRC_DIR)/aqlm.c $(VM_SOURCES) | dirs
-	@echo "Building AQL VM (aqlm)..."
-	$(CC) $(DEBUG_CFLAGS) $(SRC_DIR)/aqlm.c $(VM_SOURCES) -o $@ $(LDFLAGS)
+# Build VM version (aqlvm - bytecode executor)
+$(TARGET_VM): $(SRC_DIR)/aqlvm.c $(VM_SOURCES) $(HEADERS) | dirs
+	@echo "Building AQL VM (aqlvm)..."
+	$(CC) $(DEBUG_CFLAGS) $(SRC_DIR)/aqlvm.c $(VM_SOURCES) -o $@ $(LDFLAGS)
 	@echo "✅ Successfully built AQL VM: $@"
+
+$(TARGET_VM_COMPAT): $(TARGET_VM) | dirs
+	@echo "Creating compatibility alias: $@ -> aqlvm"
+	@ln -sf aqlvm $@
 
 # Compile debug version
 $(DEBUG_BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
@@ -150,7 +158,7 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
 # Smart clean: remove main executables but keep object files (for faster rebuild)
 clean:
 	@echo "Smart cleaning: removing main executables but keeping object files..."
-	rm -f $(TARGET_DEBUG) $(TARGET_RELEASE) $(TARGET_VM)
+	rm -f $(TARGET_DEBUG) $(TARGET_RELEASE) $(TARGET_VM) $(TARGET_VM_COMPAT)
 	@echo "✅ Smart clean complete (objects preserved for faster rebuild)"
 
 # Test target (run the executable)
@@ -159,6 +167,7 @@ test: debug
 	./$(TARGET_DEBUG) --test
 
 METAMETHOD_LE_55_TEST = $(BIN_DIR)/test/metamethod_le_55_test
+METAMETHOD_MISSING_55_TEST = $(BIN_DIR)/test/metamethod_missing_55_test
 RUNTIME_ERROR_55_TEST = $(BIN_DIR)/test/runtime_error_55_test
 TBC_CLOSE_55_TEST = $(BIN_DIR)/test/tbc_close_55_test
 IVABC_55_TEST = $(BIN_DIR)/test/ivabc_55_test
@@ -166,6 +175,10 @@ IVABC_55_TEST = $(BIN_DIR)/test/ivabc_55_test
 test_metamethod_le_55: $(METAMETHOD_LE_55_TEST)
 	@echo "Running Lua 5.5 metamethod <= test..."
 	@./$(METAMETHOD_LE_55_TEST)
+
+test_metamethod_missing_55: $(METAMETHOD_MISSING_55_TEST)
+	@echo "Running Lua 5.5 missing metamethod error test..."
+	@./$(METAMETHOD_MISSING_55_TEST)
 
 test_runtime_error_55: $(RUNTIME_ERROR_55_TEST)
 	@echo "Running Lua 5.5 runtime error test..."
@@ -181,6 +194,11 @@ test_ivabc_55: $(IVABC_55_TEST)
 
 $(METAMETHOD_LE_55_TEST): $(TEST_DIR)/vm/metamethod_le_55_test.c $(VM_SOURCES) | dirs
 	@echo "Building Lua 5.5 metamethod <= test..."
+	@mkdir -p $(BIN_DIR)/test
+	$(CC) $(DEBUG_CFLAGS) $< $(VM_SOURCES) -o $@ $(LDFLAGS)
+
+$(METAMETHOD_MISSING_55_TEST): $(TEST_DIR)/vm/metamethod_missing_55_test.c $(VM_SOURCES) | dirs
+	@echo "Building Lua 5.5 missing metamethod error test..."
 	@mkdir -p $(BIN_DIR)/test
 	$(CC) $(DEBUG_CFLAGS) $< $(VM_SOURCES) -o $@ $(LDFLAGS)
 

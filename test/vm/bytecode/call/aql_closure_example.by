@@ -54,7 +54,7 @@ LOADI     R1, 0            # R1 = 0 (如果start为假)
 
 # 创建闭包
 CLOSURE   R2, 0            # R2 = counter函数
-RETURN    R2, 2, 1, 0     # 返回counter函数 (A=2, B=2, C=1, k=0，与Lua一致)
+RETURN    R2, 2, 0, 1     # 返回counter函数并关闭捕获的upvalue (Lua 5.5 A B C k)
 RETURN    R3, 1, 0        # 默认返回（fallback，返回0个值）
 .end
 

@@ -333,7 +333,7 @@ const char *get_function_name(LClosure *cl) {
 
 #### 方案B：从字节码解析器获取
 ```c
-// 在aqlm.c解析.upvalue时记录函数名
+// 在aqlvm.c解析.upvalue时记录函数名
 typedef struct {
     const char *name;
     LClosure *closure;
