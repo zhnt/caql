@@ -16,6 +16,7 @@
 #include <string.h>
 
 #include "aql.h"
+#include "abuiltin.h"
 #include "aopcodes.h"
 #include "avm.h"
 
@@ -32,6 +33,8 @@
 #include "aobject.h"
 
 extern Dict *get_globals_dict(aql_State *L);
+
+void aqlV_objlen(aql_State *L, StkId ra, const TValue *rb);
 
 /* 打印寄存器状态 */
 static void print_register_state(aql_State *L, StkId base, int max_registers) {
@@ -304,6 +307,211 @@ static void aqlV_builtin_select (aql_State *L, StkId ra, StkId args_base,
 
   if (nresults < 0)
     L->top.p = ra + wanted;
+}
+
+static void aqlB_finishresults(aql_State *L, StkId ra, int actual,
+                               int nresults) {
+  if (nresults < 0) {
+    L->top.p = ra + actual;
+    return;
+  }
+  for (int i = actual; i < nresults; i++)
+    setnilvalue(s2v(ra + i));
+}
+
+static void aqlB_tostring_result(aql_State *L, const TValue *arg,
+                                 TValue *result) {
+  if (ttisstring(arg)) {
+    setobj(L, result, arg);
+  }
+  else if (ttisinteger(arg)) {
+    char buffer[32];
+    snprintf(buffer, sizeof(buffer), "%lld", (long long)ivalue(arg));
+    setsvalue(L, result, aqlStr_new(L, buffer));
+  }
+  else if (ttisfloat(arg)) {
+    char buffer[32];
+    snprintf(buffer, sizeof(buffer), "%.14g", fltvalue(arg));
+    setsvalue(L, result, aqlStr_new(L, buffer));
+  }
+  else if (ttisboolean(arg)) {
+    setsvalue(L, result, aqlStr_new(L, bvalue(arg) ? "true" : "false"));
+  }
+  else if (ttisnil(arg)) {
+    setsvalue(L, result, aqlStr_new(L, "nil"));
+  }
+  else if (ttisrange(arg)) {
+    RangeObject *range = rangevalue(arg);
+    char buffer[96];
+    snprintf(buffer, sizeof(buffer), "range(%lld, %lld, %lld)",
+             (long long)range->start,
+             (long long)range->stop,
+             (long long)range->step);
+    setsvalue(L, result, aqlStr_new(L, buffer));
+  }
+  else {
+    char buffer[64];
+    snprintf(buffer, sizeof(buffer), "%s: %p", aqlO_typename(arg),
+             iscollectable(arg) ? (void *)gcvalue(arg) : NULL);
+    setsvalue(L, result, aqlStr_new(L, buffer));
+  }
+}
+
+static int aqlB_strlen_arg(aql_State *L, const TValue *arg, aql_Integer *len) {
+  TValue tmp;
+  if (ttisstring(arg)) {
+    *len = cast(aql_Integer, vslen(arg));
+    return 1;
+  }
+  if (ttisnumber(arg)) {
+    setobj(L, &tmp, arg);
+    aqlO_tostring(L, &tmp);
+    if (ttisstring(&tmp)) {
+      *len = cast(aql_Integer, vslen(&tmp));
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static void aqlB_callbuiltin(aql_State *L, int builtin_id, StkId ra,
+                             StkId args_base, int nparams, int nresults) {
+  switch (builtin_id) {
+    case AQL_BUILTIN_PRINT: {
+      for (int j = 0; j < nparams; j++) {
+        TValue out;
+        if (j > 0)
+          printf("\t");
+        aqlB_tostring_result(L, s2v(args_base + j), &out);
+        printf("%s", getstr(tsvalue(&out)));
+      }
+      printf("\n");
+      aqlB_finishresults(L, ra, 0, nresults);
+      break;
+    }
+    case AQL_BUILTIN_TYPE: {
+      if (nparams < 1 || nresults == 0) {
+        aqlB_finishresults(L, ra, 0, nresults);
+        break;
+      }
+      setsvalue(L, s2v(ra), aqlStr_new(L, aqlO_typename(s2v(args_base))));
+      aqlB_finishresults(L, ra, 1, nresults);
+      break;
+    }
+    case AQL_BUILTIN_LEN: {
+      if (nparams == 1 && nresults != 0) {
+        aqlV_objlen(L, ra, s2v(args_base));
+        aqlB_finishresults(L, ra, 1, nresults);
+      }
+      else {
+        aqlB_finishresults(L, ra, 0, nresults);
+      }
+      break;
+    }
+    case AQL_BUILTIN_TOSTRING: {
+      if (nparams != 1 || nresults == 0) {
+        aqlB_finishresults(L, ra, 0, nresults);
+        break;
+      }
+      aqlB_tostring_result(L, s2v(args_base), s2v(ra));
+      aqlB_finishresults(L, ra, 1, nresults);
+      break;
+    }
+    case AQL_BUILTIN_TONUMBER: {
+      if (nparams < 1 || nresults == 0) {
+        aqlB_finishresults(L, ra, 0, nresults);
+        break;
+      }
+      TValue *arg = s2v(args_base);
+      if (ttisnumber(arg)) {
+        setobj(L, s2v(ra), arg);
+      }
+      else if (ttisstring(arg)) {
+        size_t consumed = aqlO_str2num(getstr(tsvalue(arg)), s2v(ra));
+        if (consumed != tsslen(tsvalue(arg)) + 1)
+          setnilvalue(s2v(ra));
+      }
+      else {
+        setnilvalue(s2v(ra));
+      }
+      aqlB_finishresults(L, ra, 1, nresults);
+      break;
+    }
+    case AQL_BUILTIN_RANGE: {
+      aql_Integer start = 0;
+      aql_Integer stop = 0;
+      aql_Integer step = 1;
+      RangeObject *range;
+      if (nresults == 0) {
+        break;
+      }
+      if (nparams < 1 || nparams > 3) {
+        setnilvalue(s2v(ra));
+        aqlB_finishresults(L, ra, 1, nresults);
+        break;
+      }
+      if (nparams == 1) {
+        TValue *arg = s2v(args_base);
+        if (!ttisinteger(arg)) {
+          setnilvalue(s2v(ra));
+          aqlB_finishresults(L, ra, 1, nresults);
+          break;
+        }
+        stop = ivalue(arg);
+      }
+      else if (nparams == 2) {
+        TValue *arg1 = s2v(args_base);
+        TValue *arg2 = s2v(args_base + 1);
+        if (!ttisinteger(arg1) || !ttisinteger(arg2)) {
+          setnilvalue(s2v(ra));
+          aqlB_finishresults(L, ra, 1, nresults);
+          break;
+        }
+        start = ivalue(arg1);
+        stop = ivalue(arg2);
+        step = aqlR_infer_step(start, stop);
+      }
+      else {
+        TValue *arg1 = s2v(args_base);
+        TValue *arg2 = s2v(args_base + 1);
+        TValue *arg3 = s2v(args_base + 2);
+        if (!ttisinteger(arg1) || !ttisinteger(arg2) || !ttisinteger(arg3)) {
+          setnilvalue(s2v(ra));
+          aqlB_finishresults(L, ra, 1, nresults);
+          break;
+        }
+        start = ivalue(arg1);
+        stop = ivalue(arg2);
+        step = ivalue(arg3);
+      }
+      range = aqlR_new(L, start, stop, step);
+      if (range == NULL)
+        setnilvalue(s2v(ra));
+      else
+        setrangevalue(L, s2v(ra), range);
+      aqlB_finishresults(L, ra, 1, nresults);
+      break;
+    }
+    case AQL_BUILTIN_SELECT: {
+      aqlV_builtin_select(L, ra, args_base, nparams, nresults);
+      break;
+    }
+    case AQL_BUILTIN_STRING_LEN: {
+      aql_Integer len = 0;
+      if (nparams >= 1 && nresults != 0 && aqlB_strlen_arg(L, s2v(args_base), &len)) {
+        setivalue(s2v(ra), len);
+        aqlB_finishresults(L, ra, 1, nresults);
+      }
+      else {
+        aqlB_finishresults(L, ra, 0, nresults);
+      }
+      break;
+    }
+    default: {
+      aqlB_finishresults(L, ra, 0, nresults);
+      break;
+    }
+  }
 }
 
 /*
@@ -910,7 +1118,7 @@ void aqlV_objlen (aql_State *L, StkId ra, const TValue *rb) {
       break;
     }
   }
-  aqlT_callTMres(L, tm, rb, aqlO_nilobject, ra);
+  aqlT_callTMres(L, tm, rb, rb, ra);
 }
 
 /*
@@ -1453,131 +1661,7 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
         int nresults = GETARG_C(i) - 1;
         StkId args_base = ra + 1;
 
-        switch (builtin_id) {
-          case 0: {  /* print */
-            for (int j = 0; j < nparams; j++) {
-              TValue *arg = s2v(args_base + j);
-              if (j > 0)
-                printf("\t");
-              if (ttisstring(arg))
-                printf("%s", getstr(tsvalue(arg)));
-              else if (ttisinteger(arg))
-                printf("%lld", (long long)ivalue(arg));
-              else if (ttisfloat(arg))
-                printf("%.14g", fltvalue(arg));
-              else if (ttisboolean(arg))
-                printf("%s", bvalue(arg) ? "true" : "false");
-              else if (ttisnil(arg))
-                printf("nil");
-              else
-                printf("(unknown type %d)", ttype(arg));
-            }
-            if (nparams > 0)
-              printf("\n");
-            if (nresults != 0)
-              setnilvalue(s2v(ra));
-            if (nresults < 0)
-              L->top.p = ra;
-            break;
-          }
-          case 2: {  /* len */
-            if (nparams == 1 && nresults != 0) {
-              aqlV_objlen(L, ra, s2v(args_base));
-              if (nresults < 0)
-                L->top.p = ra + 1;
-            }
-            else if (nresults != 0)
-              setnilvalue(s2v(ra));
-            break;
-          }
-          case 3: {  /* tostring */
-            if (nparams != 1 || nresults == 0) {
-              if (nresults != 0)
-                setnilvalue(s2v(ra));
-              break;
-            }
-            TValue *arg = s2v(args_base);
-            if (ttisstring(arg)) {
-              setobj(L, s2v(ra), arg);
-            } else if (ttisinteger(arg)) {
-              char buffer[32];
-              snprintf(buffer, sizeof(buffer), "%lld", (long long)ivalue(arg));
-              setsvalue(L, s2v(ra), aqlStr_new(L, buffer));
-            } else if (ttisfloat(arg)) {
-              char buffer[32];
-              snprintf(buffer, sizeof(buffer), "%.14g", fltvalue(arg));
-              setsvalue(L, s2v(ra), aqlStr_new(L, buffer));
-            } else if (ttisboolean(arg)) {
-              setsvalue(L, s2v(ra), aqlStr_new(L, bvalue(arg) ? "true" : "false"));
-            } else if (ttisnil(arg)) {
-              setsvalue(L, s2v(ra), aqlStr_new(L, "nil"));
-            } else {
-              char buffer[32];
-              snprintf(buffer, sizeof(buffer), "(type %d)", ttype(arg));
-              setsvalue(L, s2v(ra), aqlStr_new(L, buffer));
-            }
-            if (nresults < 0)
-              L->top.p = ra + 1;
-            break;
-          }
-          case 5: {  /* range */
-            aql_Integer start = 0;
-            aql_Integer stop = 0;
-            aql_Integer step = 1;
-            RangeObject *range;
-            if (nresults == 0)
-              break;
-            if (nparams < 1 || nparams > 3) {
-              setnilvalue(s2v(ra));
-              break;
-            }
-            if (nparams == 1) {
-              TValue *arg = s2v(args_base);
-              if (!ttisinteger(arg)) {
-                setnilvalue(s2v(ra));
-                break;
-              }
-              stop = ivalue(arg);
-            } else if (nparams == 2) {
-              TValue *arg1 = s2v(args_base);
-              TValue *arg2 = s2v(args_base + 1);
-              if (!ttisinteger(arg1) || !ttisinteger(arg2)) {
-                setnilvalue(s2v(ra));
-                break;
-              }
-              start = ivalue(arg1);
-              stop = ivalue(arg2);
-              step = aqlR_infer_step(start, stop);
-            } else {
-              TValue *arg1 = s2v(args_base);
-              TValue *arg2 = s2v(args_base + 1);
-              TValue *arg3 = s2v(args_base + 2);
-              if (!ttisinteger(arg1) || !ttisinteger(arg2) || !ttisinteger(arg3)) {
-                setnilvalue(s2v(ra));
-                break;
-              }
-              start = ivalue(arg1);
-              stop = ivalue(arg2);
-              step = ivalue(arg3);
-            }
-            range = aqlR_new(L, start, stop, step);
-            if (range == NULL)
-              setnilvalue(s2v(ra));
-            else
-              setrangevalue(L, s2v(ra), range);
-            if (nresults < 0)
-              L->top.p = ra + 1;
-            break;
-          }
-          case 6: {  /* select */
-            aqlV_builtin_select(L, ra, args_base, nparams, nresults);
-            break;
-          }
-          default:
-            if (nresults != 0)
-              setnilvalue(s2v(ra));
-            break;
-        }
+        aqlB_callbuiltin(L, builtin_id, ra, args_base, nparams, nresults);
         vmbreak;
       }
       
@@ -1969,142 +2053,7 @@ void aqlV_execute2 (aql_State *L, CallInfo *ci) {
 
           aql_debug("🔍 [CALL] builtin function: id=%d, nparams=%d\n", builtin_id, nparams);
 
-          switch (builtin_id) {
-            case 0: {  /* print */
-              for (int j = 0; j < nparams; j++) {
-                TValue *arg = s2v(args_base + j);
-
-                if (j > 0)
-                  printf("\t");
-
-                if (ttisstring(arg)) {
-                  printf("%s", getstr(tsvalue(arg)));
-                } else if (ttisinteger(arg)) {
-                  printf("%lld", (long long)ivalue(arg));
-                } else if (ttisfloat(arg)) {
-                  printf("%.14g", fltvalue(arg));
-                } else if (ttisboolean(arg)) {
-                  printf("%s", bvalue(arg) ? "true" : "false");
-                } else if (ttisnil(arg)) {
-                  printf("nil");
-                } else if (ttisrange(arg)) {
-                  RangeObject *range = rangevalue(arg);
-                  printf("range(%lld, %lld, %lld)",
-                         (long long)range->start,
-                         (long long)range->stop,
-                         (long long)range->step);
-                } else {
-                  printf("(unknown type %d)", ttype(arg));
-                }
-              }
-              if (nparams > 0)
-                printf("\n");
-              setnilvalue(s2v(func));
-              if (nresults < 0)
-                L->top.p = func;
-              break;
-            }
-            case 2: {  /* len */
-              if (nparams != 1) {
-                setnilvalue(s2v(func));
-                break;
-              }
-              aqlV_objlen(L, func, s2v(args_base));
-              if (nresults < 0)
-                L->top.p = func + 1;
-              break;
-            }
-            case 3: {  /* string/tostring */
-              if (nparams != 1) {
-                setnilvalue(s2v(func));
-                break;
-              }
-
-              TValue *arg = s2v(args_base);
-              TValue *result = s2v(func);
-
-              if (ttisstring(arg)) {
-                setobj(L, result, arg);
-              } else if (ttisinteger(arg)) {
-                char buffer[32];
-                snprintf(buffer, sizeof(buffer), "%lld", (long long)ivalue(arg));
-                setsvalue(L, result, aqlStr_new(L, buffer));
-              } else if (ttisfloat(arg)) {
-                char buffer[32];
-                snprintf(buffer, sizeof(buffer), "%.14g", fltvalue(arg));
-                setsvalue(L, result, aqlStr_new(L, buffer));
-              } else if (ttisboolean(arg)) {
-                setsvalue(L, result, aqlStr_new(L, bvalue(arg) ? "true" : "false"));
-              } else if (ttisnil(arg)) {
-                setsvalue(L, result, aqlStr_new(L, "nil"));
-              } else {
-                char buffer[32];
-                snprintf(buffer, sizeof(buffer), "(type %d)", ttype(arg));
-                setsvalue(L, result, aqlStr_new(L, buffer));
-              }
-              if (nresults < 0)
-                L->top.p = func + 1;
-              break;
-            }
-            case 5: {  /* range */
-              aql_Integer start = 0;
-              aql_Integer stop = 0;
-              aql_Integer step = 1;
-              RangeObject *range;
-
-              if (nparams < 1 || nparams > 3) {
-                setnilvalue(s2v(func));
-                break;
-              }
-
-              if (nparams == 1) {
-                TValue *arg = s2v(args_base);
-                if (!ttisinteger(arg)) {
-                  setnilvalue(s2v(func));
-                  break;
-                }
-                stop = ivalue(arg);
-              } else if (nparams == 2) {
-                TValue *arg1 = s2v(args_base);
-                TValue *arg2 = s2v(args_base + 1);
-                if (!ttisinteger(arg1) || !ttisinteger(arg2)) {
-                  setnilvalue(s2v(func));
-                  break;
-                }
-                start = ivalue(arg1);
-                stop = ivalue(arg2);
-                step = aqlR_infer_step(start, stop);
-              } else {
-                TValue *arg1 = s2v(args_base);
-                TValue *arg2 = s2v(args_base + 1);
-                TValue *arg3 = s2v(args_base + 2);
-                if (!ttisinteger(arg1) || !ttisinteger(arg2) || !ttisinteger(arg3)) {
-                  setnilvalue(s2v(func));
-                  break;
-                }
-                start = ivalue(arg1);
-                stop = ivalue(arg2);
-                step = ivalue(arg3);
-              }
-
-              range = aqlR_new(L, start, stop, step);
-              if (range == NULL) {
-                setnilvalue(s2v(func));
-              } else {
-                setrangevalue(L, s2v(func), range);
-              }
-              if (nresults < 0)
-                L->top.p = func + 1;
-              break;
-            }
-            case 6: {  /* select */
-              aqlV_builtin_select(L, func, args_base, nparams, nresults);
-              break;
-            }
-            default:
-              setnilvalue(s2v(func));
-              break;
-          }
+          aqlB_callbuiltin(L, builtin_id, func, args_base, nparams, nresults);
 
           if (nresults >= 0)
             L->top.p = ci->top.p;

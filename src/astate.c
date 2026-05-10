@@ -16,12 +16,14 @@
 #include <stdio.h>
 
 #include "aql.h"
+#include "abuiltin.h"
 #include "astate.h"
 #include "aobject.h"
 #include "amem.h"
 #include "afunc.h"
 #include "astring.h"
 #include "adict.h"
+#include "atable.h"
 #include "adatatype.h"
 #include "astack_config.h"
 #include "adebug.h"
@@ -294,6 +296,67 @@ static void init_registry (aql_State *L, global_State *g) {
     fflush(stdout);
 }
 
+static void set_table_builtin(aql_State *L, Table *t, const char *name,
+                              int builtin_id) {
+    TValue key;
+    TValue value;
+    setsvalue(L, &key, aqlStr_new(L, name));
+    setbuiltinvalue(&value, builtin_id);
+    aqlH_set(L, t, &key, &value);
+}
+
+static void set_global_value(aql_State *L, const char *name,
+                             const TValue *value) {
+    Dict *globals = get_globals_dict(L);
+    TValue key;
+    if (globals == NULL)
+        return;
+    setsvalue(L, &key, aqlStr_new(L, name));
+    aqlD_set(L, globals, &key, value);
+}
+
+static void set_global_builtin(aql_State *L, const char *name,
+                               int builtin_id) {
+    TValue value;
+    setbuiltinvalue(&value, builtin_id);
+    set_global_value(L, name, &value);
+}
+
+static Table *create_string_library(aql_State *L) {
+    Table *strlib = aqlH_new(L);
+    set_table_builtin(L, strlib, "len", AQL_BUILTIN_STRING_LEN);
+    return strlib;
+}
+
+static void install_string_metatable(aql_State *L, Table *strlib) {
+    Table *mt = aqlH_new(L);
+    TValue key;
+    TValue value;
+
+    setsvalue(L, &key, G(L)->tmname[TM_INDEX]);
+    sethvalue(L, &value, strlib);
+    aqlH_set(L, mt, &key, &value);
+    mt->flags = 0;
+    G(L)->mt[AQL_TSTRING] = mt;
+}
+
+static void open_minlibs(aql_State *L) {
+    TValue string_value;
+    Table *strlib = create_string_library(L);
+
+    set_global_builtin(L, "print", AQL_BUILTIN_PRINT);
+    set_global_builtin(L, "type", AQL_BUILTIN_TYPE);
+    set_global_builtin(L, "len", AQL_BUILTIN_LEN);
+    set_global_builtin(L, "tostring", AQL_BUILTIN_TOSTRING);
+    set_global_builtin(L, "tonumber", AQL_BUILTIN_TONUMBER);
+    set_global_builtin(L, "range", AQL_BUILTIN_RANGE);
+    set_global_builtin(L, "select", AQL_BUILTIN_SELECT);
+
+    sethvalue(L, &string_value, strlib);
+    set_global_value(L, "string", &string_value);
+    install_string_metatable(L, strlib);
+}
+
 /*
 ** open parts of the state that may cause memory-allocation errors.
 */
@@ -304,6 +367,7 @@ static int f_aqlopen (aql_State *L, void *ud) {
     init_registry(L, g);
     aqlStr_init(L);  /* init string system */
     aqlT_initmetamethods(L);  /* init metamethod names and builtin metatables */
+    open_minlibs(L);
     /* Skip subsystem initialization for MVP */
     g->gcemergency = 0;  /* allow gc */
     setnilvalue(&g->nilvalue);  /* now state is complete */

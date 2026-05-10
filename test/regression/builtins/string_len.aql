@@ -1,0 +1,3 @@
+print(type(string))
+print(string.len("abcd"))
+print(("abcde"):len())

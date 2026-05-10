@@ -19,6 +19,7 @@
 
 #include "aql.h"
 #include "aapi.h"
+#include "abuiltin.h"
 #include "acode.h"
 #include "acodegen.h"
 #include "adebug.h"
@@ -258,6 +259,10 @@ static void init_exp (expdesc *e, expkind k, int i) {
 static void codestring (expdesc *e, TString *s) {
   init_exp(e, VKSTR, 0);
   e->u.strval = s;
+}
+
+static void codename (LexState *ls, expdesc *e) {
+  codestring(e, str_checkname(ls));
 }
 
 
@@ -817,6 +822,69 @@ static void freereg_if_top (FuncState *fs, int reg) {
     fs->freereg--;
 }
 
+static void fieldsel (LexState *ls, expdesc *v) {
+  FuncState *fs = ls->fs;
+  expdesc key;
+  aqlK_exp2anyregup(fs, v);
+  aqlX_next(ls);  /* skip '.' */
+  codename(ls, &key);
+  aqlK_indexed(fs, v, &key);
+}
+
+static void index_suffix (LexState *ls, expdesc *v) {
+  FuncState *fs = ls->fs;
+  int line = ls->linenumber;
+
+  aqlK_exp2nextreg(fs, v);
+  int obj_reg = v->u.info;
+
+  aqlX_next(ls);  /* skip '[' */
+
+  expdesc index;
+  expr(ls, &index);
+  aqlK_exp2nextreg(fs, &index);
+  int index_reg = index.u.info;
+
+  check_match(ls, ']', '[', line);
+
+  int pc = aqlK_codeABC(fs, OP_GETPROP, 0, obj_reg, index_reg);
+  freereg_if_top(fs, index_reg);
+  freereg_if_top(fs, obj_reg);
+  init_exp(v, VRELOC, pc);
+}
+
+static void suffixedexp_tail (LexState *ls, expdesc *v) {
+  FuncState *fs = ls->fs;
+
+  for (;;) {
+    switch (ls->t.token) {
+      case TK_DOT: {
+        fieldsel(ls, v);
+        break;
+      }
+      case '[': {
+        index_suffix(ls, v);
+        break;
+      }
+      case TK_COLON: {
+        expdesc key;
+        aqlX_next(ls);
+        codename(ls, &key);
+        aqlK_self(fs, v, &key);
+        funcargs(ls, v);
+        break;
+      }
+      case TK_LPAREN: {
+        aqlK_exp2nextreg(fs, v);
+        funcargs(ls, v);
+        break;
+      }
+      default:
+        return;
+    }
+  }
+}
+
 static void simpleexp (LexState *ls, expdesc *v) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | NAME | '(' expr ')' */
   switch (ls->t.token) {
@@ -862,46 +930,12 @@ static void simpleexp (LexState *ls, expdesc *v) {
       /* Function expression: function() { ... } */
       aqlX_next(ls);  /* skip 'function' */
       body(ls, v, 0, ls->linenumber);
-      return;
+      break;
     }
     case TK_NAME: {
       /* Use unified variable lookup that works for all execution modes */
       singlevar_unified(ls, v);
-      
-      /* Check for postfix operations: function calls or array indexing */
-      while (ls->t.token == TK_LPAREN || ls->t.token == '[') {
-      if (ls->t.token == TK_LPAREN) {
-        /* Function call detected - use unified funcargs */
-        aqlK_exp2nextreg(ls->fs, v);  /* ensure function is in a register */
-        funcargs(ls, v);  /* handle function call with Lua-style approach */
-        } else if (ls->t.token == '[') {
-          /* Array indexing: obj[index] */
-          int line = ls->linenumber;
-          
-          /* Ensure object is in a register */
-          aqlK_exp2nextreg(ls->fs, v);
-          int obj_reg = v->u.info;
-          
-          aqlX_next(ls);  /* skip '[' */
-          
-          /* Parse index expression */
-          expdesc index;
-          expr(ls, &index);
-          aqlK_exp2nextreg(ls->fs, &index);
-          int index_reg = index.u.info;
-          
-          check_match(ls, ']', '[', line);
-          
-          /* Generate relocatable GETPROP and release object/index temporaries. */
-          int pc = aqlK_codeABC(ls->fs, OP_GETPROP, 0, obj_reg, index_reg);
-          freereg_if_top(ls->fs, index_reg);
-          freereg_if_top(ls->fs, obj_reg);
-          init_exp(v, VRELOC, pc);
-          
-        }
-      }
-      
-      return;
+      break;
     }
     case '[': {  /* Array literal: [expr, expr, ...] */
       int line = ls->linenumber;
@@ -944,15 +978,14 @@ static void simpleexp (LexState *ls, expdesc *v) {
       }
       
       init_exp(v, VNONRELOC, array_reg);
-      return;
+      break;
     }
     case TK_LPAREN: {
       int line = ls->linenumber;
       aqlX_next(ls);
       expr(ls, v);
       check_match(ls, TK_RPAREN, TK_LPAREN, line);
-      /* TODO: discharge variables */
-      return;
+      break;
     }
     case TK_DOTS: {
       /* Variadic arguments access: Lua-style multi-result expression. */
@@ -967,12 +1000,13 @@ static void simpleexp (LexState *ls, expdesc *v) {
       
       init_exp(v, VVARARG,
                aqlK_codeABC(fs, OP_VARARG, 0, fs->f->numparams, 1));
-      return;
+      break;
     }
     default: {
       aqlX_syntaxerror(ls, "unexpected symbol");
     }
   }
+  suffixedexp_tail(ls, v);
 }
 
 static UnOpr getunopr (int op) {
@@ -1369,16 +1403,19 @@ static void funcargs (LexState *ls, expdesc *f) {
   expdesc args;
   int base, nparams = 0, nargs = 0;
   int line = ls->linenumber;
+  int fixed_args;
 
   aql_assert(f->k == VNONRELOC);
   base = f->u.info;  /* base register for call */
+  fixed_args = (fs->freereg > base + 1) ? fs->freereg - (base + 1) : 0;
   /*
   ** Keep function and arguments contiguous, like Lua does. Without this,
   ** nested calls such as print(hello(41)) can leave a hole between the
-  ** callee and its first argument, which later turns into spurious nil
-  ** arguments for open calls.
+  ** callee and its first argument. Preserve arguments already installed by
+  ** OP_SELF, where R[base + 1] is the implicit receiver.
   */
-  fs->freereg = base + 1;
+  fs->freereg = base + 1 + fixed_args;
+  nargs = fixed_args;
 
   switch (ls->t.token) {
     case TK_LPAREN: {  /* funcargs -> '(' [ explist ] ')' */
@@ -1386,7 +1423,7 @@ static void funcargs (LexState *ls, expdesc *f) {
       if (ls->t.token == TK_RPAREN)  /* arg list is empty? */
         args.k = VVOID;
       else {
-        int target = base + 1;
+        int target = base + 1 + fixed_args;
         for (;;) {
           expr(ls, &args);
           if (testnext(ls, ',')) {
@@ -1422,7 +1459,7 @@ static void funcargs (LexState *ls, expdesc *f) {
   aql_debug("[DEBUG] funcargs: base=%d, args.k=%d, hasmultret=%d, freereg=%d\n", 
                base, args.k, hasmultret(args.k), fs->freereg);
   if (args.k == VVOID)
-    nparams = 0;
+    nparams = nargs;
   else if (hasmultret(args.k))
     nparams = AQL_MULTRET;  /* open call */
   else {
@@ -2310,13 +2347,26 @@ static void close_func (LexState *ls) {
   /* Apply post-pass return fixups (e.g. close upvalues on return). */
   aqlK_finish(fs);
   
-  /* Finish code generation - the bytecode is already in f->code */
-  /* Just update the size, the code was generated directly into f->code */
+  /* Shrink prototype arrays from allocation capacity to actual counts.
+  ** Runtime and chunk tooling treat these fields as lengths. */
+  f->code = aqlM_reallocvector(L, f->code, f->sizecode, fs->pc, Instruction);
   f->sizecode = fs->pc;
-  
-  /* Constants are already in f->k, just update the size */
+  f->lineinfo = aqlM_reallocvector(L, f->lineinfo, f->sizelineinfo,
+                                   fs->pc, aql_byte);
+  f->sizelineinfo = fs->pc;
+  f->k = aqlM_reallocvector(L, f->k, f->sizek, fs->nk, TValue);
   f->sizek = fs->nk;
-  
+  f->p = aqlM_reallocvector(L, f->p, f->sizep, fs->np, Proto *);
+  f->sizep = fs->np;
+  f->upvalues = aqlM_reallocvector(L, f->upvalues, f->sizeupvalues,
+                                   fs->nups, Upvaldesc);
+  f->sizeupvalues = fs->nups;
+  f->locvars = aqlM_reallocvector(L, f->locvars, f->sizelocvars,
+                                  fs->ndebugvars, LocVar);
+  f->sizelocvars = fs->ndebugvars;
+  f->abslineinfo = aqlM_reallocvector(L, f->abslineinfo, f->sizeabslineinfo,
+                                      fs->nabslineinfo, AbsLineInfo);
+  f->sizeabslineinfo = fs->nabslineinfo;
   
   ls->fs = fs->prev;
 }
@@ -2515,15 +2565,15 @@ static const struct {
   const char *name;
   int id;
 } builtin_functions[] = {
-  {"print", 0},
-  {"type", 1},
-  {"len", 2},
-  {"tostring", 3},
-  {"string", 3},    /* alias for tostring */
-  {"tonumber", 4},
-  {"range", 5},
-  {"select", 6},
-  {"print2", 99},   /* experimental Lua-style parameter access */
+  {"print", AQL_BUILTIN_PRINT},
+  {"type", AQL_BUILTIN_TYPE},
+  {"len", AQL_BUILTIN_LEN},
+  {"tostring", AQL_BUILTIN_TOSTRING},
+  {"string", AQL_BUILTIN_TOSTRING},  /* AQL cast extension when called */
+  {"tonumber", AQL_BUILTIN_TONUMBER},
+  {"range", AQL_BUILTIN_RANGE},
+  {"select", AQL_BUILTIN_SELECT},
+  {"print2", AQL_BUILTIN_PRINT2},   /* experimental Lua-style parameter access */
   {NULL, -1}  /* sentinel */
 };
 

@@ -147,6 +147,9 @@ void aqlK_setoneret (FuncState *fs, expdesc *e) {
 ** Ensure that expression 'e' is not a variable (nor a <const>).
 ** (Expression still may have jump lists.)
 */
+static void freereg(FuncState *fs, int reg);
+static void freeregs(FuncState *fs, int r1, int r2);
+
 void aqlK_dischargevars (FuncState *fs, expdesc *e) {
   //aql_debug("[DEBUG] aqlK_dischargevars: entering, e->k=%d\n", e->k);
   
@@ -178,6 +181,7 @@ void aqlK_dischargevars (FuncState *fs, expdesc *e) {
       break;
     }
     case VINDEXED: {
+      freeregs(fs, e->u.ind.t, e->u.ind.idx);
       aqlK_codeABC(fs, OP_GETTABLE, 0, e->u.ind.t, e->u.ind.idx);
       e->u.info = fs->pc - 1;
       e->k = VRELOC;
@@ -185,6 +189,7 @@ void aqlK_dischargevars (FuncState *fs, expdesc *e) {
     }
     case VINDEXI: {
       /* Integer-key indexing follows Lua's GETI layout. */
+      freereg(fs, e->u.ind.t);
       aqlK_codeABC(fs, OP_GETI, 0, e->u.ind.t, e->u.ind.idx);
       e->u.info = fs->pc - 1;
       e->k = VRELOC;
@@ -192,6 +197,7 @@ void aqlK_dischargevars (FuncState *fs, expdesc *e) {
     }
     case VINDEXSTR: {
       /* Literal string-key indexing follows Lua's GETFIELD layout. */
+      freereg(fs, e->u.ind.t);
       aqlK_codeABC(fs, OP_GETFIELD, 0, e->u.ind.t, e->u.ind.idx);
       e->u.info = fs->pc - 1;
       e->k = VRELOC;
@@ -647,6 +653,17 @@ static void freereg (FuncState *fs, int reg) {
   if (reg >= fs->nactvar) {
     fs->freereg--;
     aql_assert(reg == fs->freereg);
+  }
+}
+
+static void freeregs (FuncState *fs, int r1, int r2) {
+  if (r1 > r2) {
+    freereg(fs, r1);
+    freereg(fs, r2);
+  }
+  else {
+    freereg(fs, r2);
+    freereg(fs, r1);
   }
 }
 
@@ -1202,7 +1219,6 @@ static void codenot (FuncState *fs, expdesc *e) {
 ** a pseudo-local, whose index is >= 'fs->nactvar').
 */
 void aqlK_indexed (FuncState *fs, expdesc *t, expdesc *k) {
-  int reg;
   int table;
   int key;
   if (k->k == VKSTR)
@@ -1210,27 +1226,27 @@ void aqlK_indexed (FuncState *fs, expdesc *t, expdesc *k) {
   aql_assert(!hasjumps(t) &&
              (vkisinreg(t->k) || t->k == VUPVAL));
   if (t->k == VUPVAL && k->k == VK) {
-    reg = fs->freereg++;
-    aql_debug("[DEBUG] aqlK_indexed: using register %d (freereg was %d)\n", reg, fs->freereg - 1);
-    aqlK_codeABC(fs, OP_GETTABUP, reg, t->u.info, k->u.info);
+    t->u.ind.t = cast_byte(t->u.info);
+    t->u.ind.idx = cast(short, k->u.info);
+    t->k = VINDEXUP;
   }
   else {
     table = aqlK_exp2anyreg(fs, t);
-    reg = fs->freereg++;
-    aql_debug("[DEBUG] aqlK_indexed: using register %d (freereg was %d)\n", reg, fs->freereg - 1);
+    t->u.ind.t = cast_byte(table);
     if (k->k == VK) {
-      aqlK_codeABC(fs, OP_GETFIELD, reg, table, k->u.info);
+      t->u.ind.idx = cast(short, k->u.info);
+      t->k = VINDEXSTR;
     }
     else if (k->k == VKINT && 0 <= k->u.ival && k->u.ival <= MAXARG_C) {
-      aqlK_codeABC(fs, OP_GETI, reg, table, cast_int(k->u.ival));
+      t->u.ind.idx = cast(short, k->u.ival);
+      t->k = VINDEXI;
     }
     else {
       key = aqlK_exp2anyreg(fs, k);
-      aqlK_codeABC(fs, OP_GETTABLE, reg, table, key);
+      t->u.ind.idx = cast(short, key);
+      t->k = VINDEXED;
     }
   }
-  t->k = VRELOC;
-  t->u.info = fs->pc - 1;  /* point to the emitted table-read instruction */
 }
 
 

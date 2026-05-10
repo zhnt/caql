@@ -1,0 +1,8 @@
+print(type(nil))
+print(type(false))
+print(type(true))
+print(type(12))
+print(type("abc"))
+print(tonumber("123"))
+print(tonumber("12.5"))
+print(tonumber("abc"))

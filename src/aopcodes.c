@@ -188,6 +188,13 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
                 return 1;
             }
             break;
+
+        case OP_LOADKX:
+            if (args >= 2) {
+                *result = CREATE_ABx(op, a, 0);
+                return 1;
+            }
+            break;
             
         // MMBIN 系列指令
         case OP_MMBIN:
@@ -213,9 +220,39 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
             
         case OP_MMBINK:
             if (args >= 4) {
-                b = atoi(arg2);  // 常量索引
+                b = parse_index_token(arg2);  // 常量索引
                 c = atoi(arg3);  // TM_* 编号
-                *result = CREATE_ABCk(op, a, b, c, 1);
+                k = (args >= 5) ? atoi(arg4) : 1;
+                *result = CREATE_ABCk(op, a, b, c, k);
+                return 1;
+            }
+            break;
+
+        case OP_EQ:
+        case OP_LT:
+        case OP_LE:
+            if (args >= 4) {
+                b = parse_index_token(arg2);
+                k = atoi(arg3);
+                *result = CREATE_ABCk(op, a, b, 0, k);
+                return 1;
+            }
+            break;
+
+        case OP_EQK:
+            if (args >= 4) {
+                b = parse_index_token(arg2);
+                k = atoi(arg3);
+                *result = CREATE_ABCk(op, a, b, 0, k);
+                return 1;
+            }
+            break;
+
+        case OP_TESTSET:
+            if (args >= 4) {
+                b = parse_index_token(arg2);
+                k = atoi(arg3);
+                *result = CREATE_ABCk(op, a, b, 0, k);
                 return 1;
             }
             break;
@@ -317,8 +354,9 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
             // TAILCALL R0, nargs, nresults  -> 尾调用R0
             if (args >= 3) {
                 b = atoi(arg2);  // 参数数量+1
-                c = atoi(arg3);  // 返回值数量+1
-                *result = CREATE_ABC(op, a, b, c);
+                c = (args >= 4) ? atoi(arg3) : 0;  // 返回值数量+1
+                k = (args >= 5) ? atoi(arg4) : 0;
+                *result = CREATE_ABCk(op, a, b, c, k);
                 return 1;
             }
             break;
@@ -447,7 +485,10 @@ int aql_parse_instruction(const char *opcode, const char *arg1,
                     if (args >= 4 && arg3) {
                         c = (arg3[0] == 'R') ? atoi(arg3 + 1) : atoi(arg3);
                     }
-                    *result = CREATE_ABC(op, a, b, c);
+                    if (args >= 5 && arg4) {
+                        k = atoi(arg4);
+                    }
+                    *result = CREATE_ABCk(op, a, b, c, k);
                     return 1;
 
                 case ivABC:

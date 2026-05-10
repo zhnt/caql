@@ -31,6 +31,8 @@ run_case "./test/regression/control_flow/for_numeric_negative.aql" "./test/regre
 run_case "./test/regression/control_flow/for_numeric_sum.aql" "./test/regression/control_flow/for_numeric_sum.expected"
 run_case "./test/regression/control_flow/for_range.aql" "./test/regression/control_flow/for_range.expected"
 run_case "./test/regression/control_flow/for_range_variables.aql" "./test/regression/control_flow/for_range_variables.expected"
+run_case "./test/regression/builtins/base_type_tonumber.aql" "./test/regression/builtins/base_type_tonumber.expected"
+run_case "./test/regression/builtins/string_len.aql" "./test/regression/builtins/string_len.expected"
 run_case "./test/regression/functions/func_varargs_sum.aql" "./test/regression/functions/func_varargs_sum.expected"
 
 echo "file regression smoke passed"

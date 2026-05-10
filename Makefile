@@ -26,6 +26,7 @@ TARGET_RELEASE = $(BIN_DIR)/aql
 TARGET_DEBUG = $(BIN_DIR)/aqld
 TARGET_VM = $(BIN_DIR)/aqlvm
 TARGET_VM_COMPAT = $(BIN_DIR)/aqlm
+TARGET_COMPILER = $(BIN_DIR)/aqlc
 
 # Test executables
 TEST_RUNNER = $(TEST_BIN_DIR)/test_runner
@@ -92,12 +93,12 @@ PROBLEM_SOURCES = \
 HEADERS = $(wildcard $(SRC_DIR)/*.h)
 
 # Default target
-.PHONY: all both debug release aqlvm aqlm clean dirs test test_metamethod_le_55 test_metamethod_missing_55 test_runtime_error_55 test_tbc_close_55 test_ivabc_55 test_phase1 test_phase2 test_phase3 test_phase4
+.PHONY: all both debug release aqlvm aqlm clean dirs test test_aqlc_chunk test_metamethod_le_55 test_metamethod_missing_55 test_metamethod_len_55 test_dict_robinhood test_runtime_error_55 test_tbc_close_55 test_ivabc_55 test_phase1 test_phase2 test_phase3 test_phase4
 
 all: both
 
 # Build both debug and release versions
-both: dirs $(TARGET_DEBUG) $(TARGET_RELEASE) $(TARGET_VM) $(TARGET_VM_COMPAT)
+both: dirs $(TARGET_DEBUG) $(TARGET_RELEASE) $(TARGET_VM) $(TARGET_VM_COMPAT) $(TARGET_COMPILER)
 
 # Build only debug version
 debug: dirs $(TARGET_DEBUG)
@@ -138,6 +139,11 @@ $(TARGET_VM_COMPAT): $(TARGET_VM) | dirs
 	@echo "Creating compatibility alias: $@ -> aqlvm"
 	@ln -sf aqlvm $@
 
+$(TARGET_COMPILER): $(SRC_DIR)/aqlc.c $(VM_SOURCES) $(HEADERS) | dirs
+	@echo "Building AQL compiler (aqlc)..."
+	$(CC) $(DEBUG_CFLAGS) $(SRC_DIR)/aqlc.c $(VM_SOURCES) -o $@ $(LDFLAGS)
+	@echo "✅ Successfully built AQL compiler: $@"
+
 # Compile debug version
 $(DEBUG_BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
 	@echo "Compiling $< (debug)..."
@@ -158,7 +164,7 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
 # Smart clean: remove main executables but keep object files (for faster rebuild)
 clean:
 	@echo "Smart cleaning: removing main executables but keeping object files..."
-	rm -f $(TARGET_DEBUG) $(TARGET_RELEASE) $(TARGET_VM) $(TARGET_VM_COMPAT)
+	rm -f $(TARGET_DEBUG) $(TARGET_RELEASE) $(TARGET_VM) $(TARGET_VM_COMPAT) $(TARGET_COMPILER)
 	@echo "✅ Smart clean complete (objects preserved for faster rebuild)"
 
 # Test target (run the executable)
@@ -166,8 +172,13 @@ test: debug
 	@echo "Running AQL debug test..."
 	./$(TARGET_DEBUG) --test
 
+test_aqlc_chunk: both
+	@bash test/aqlc_chunk_smoke.sh
+
 METAMETHOD_LE_55_TEST = $(BIN_DIR)/test/metamethod_le_55_test
 METAMETHOD_MISSING_55_TEST = $(BIN_DIR)/test/metamethod_missing_55_test
+METAMETHOD_LEN_55_TEST = $(BIN_DIR)/test/metamethod_len_55_test
+DICT_ROBINHOOD_TEST = $(BIN_DIR)/test/dict_robinhood_test
 RUNTIME_ERROR_55_TEST = $(BIN_DIR)/test/runtime_error_55_test
 TBC_CLOSE_55_TEST = $(BIN_DIR)/test/tbc_close_55_test
 IVABC_55_TEST = $(BIN_DIR)/test/ivabc_55_test
@@ -179,6 +190,14 @@ test_metamethod_le_55: $(METAMETHOD_LE_55_TEST)
 test_metamethod_missing_55: $(METAMETHOD_MISSING_55_TEST)
 	@echo "Running Lua 5.5 missing metamethod error test..."
 	@./$(METAMETHOD_MISSING_55_TEST)
+
+test_metamethod_len_55: $(METAMETHOD_LEN_55_TEST)
+	@echo "Running Lua 5.5 __len argument test..."
+	@./$(METAMETHOD_LEN_55_TEST)
+
+test_dict_robinhood: $(DICT_ROBINHOOD_TEST)
+	@echo "Running dict Robin Hood probe test..."
+	@./$(DICT_ROBINHOOD_TEST)
 
 test_runtime_error_55: $(RUNTIME_ERROR_55_TEST)
 	@echo "Running Lua 5.5 runtime error test..."
@@ -199,6 +218,16 @@ $(METAMETHOD_LE_55_TEST): $(TEST_DIR)/vm/metamethod_le_55_test.c $(VM_SOURCES) |
 
 $(METAMETHOD_MISSING_55_TEST): $(TEST_DIR)/vm/metamethod_missing_55_test.c $(VM_SOURCES) | dirs
 	@echo "Building Lua 5.5 missing metamethod error test..."
+	@mkdir -p $(BIN_DIR)/test
+	$(CC) $(DEBUG_CFLAGS) $< $(VM_SOURCES) -o $@ $(LDFLAGS)
+
+$(METAMETHOD_LEN_55_TEST): $(TEST_DIR)/vm/metamethod_len_55_test.c $(VM_SOURCES) | dirs
+	@echo "Building Lua 5.5 __len argument test..."
+	@mkdir -p $(BIN_DIR)/test
+	$(CC) $(DEBUG_CFLAGS) $< $(VM_SOURCES) -o $@ $(LDFLAGS)
+
+$(DICT_ROBINHOOD_TEST): $(TEST_DIR)/vm/dict_robinhood_test.c $(VM_SOURCES) | dirs
+	@echo "Building dict Robin Hood probe test..."
 	@mkdir -p $(BIN_DIR)/test
 	$(CC) $(DEBUG_CFLAGS) $< $(VM_SOURCES) -o $@ $(LDFLAGS)
 

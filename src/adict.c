@@ -276,7 +276,6 @@ AQL_API int aqlD_set(aql_State *L, Dict *dict, const TValue *key, const TValue *
   
   aql_Unsigned hash = aqlD_hash(key);
   size_t index = hash & dict->mask;
-  aql_byte distance = 0;
   
   if (ttisstring(key)) {
     TString *keystr = tsvalue(key);
@@ -287,7 +286,7 @@ AQL_API int aqlD_set(aql_State *L, Dict *dict, const TValue *key, const TValue *
   /* Create entry to insert */
   DictEntry to_insert;
   to_insert.hash = hash;
-  to_insert.distance = distance;
+  to_insert.distance = 0;
   aql_debug("[DEBUG] aqlD_set: before setobj, hash=%llu\n", (unsigned long long)to_insert.hash);
   setobj(L, &to_insert.key, key);
   setobj(L, &to_insert.value, value);
@@ -319,8 +318,6 @@ AQL_API int aqlD_set(aql_State *L, Dict *dict, const TValue *key, const TValue *
       DictEntry temp = *entry;
       *entry = to_insert;
       to_insert = temp;
-      /* Update distance for the displaced entry */
-      to_insert.distance = distance;
     }
     
     to_insert.distance++;

@@ -20,11 +20,13 @@
 #include "adebug.h"
 #include "adebug_user.h"
 #include "acontainer.h"
+#include "adict.h"
 #include "ado.h"
 #include "atable.h"
 
 // 声明 avm_core.c 中的函数
 extern void aqlV_execute2(aql_State *L, struct CallInfo *ci);
+extern Dict *get_globals_dict(aql_State *L);
 
 
 // 常量类型枚举
@@ -104,6 +106,27 @@ static void strip_inline_comment(char *line) {
             return;
         }
     }
+}
+
+static void unescape_string_literal(char *s) {
+    char *w = s;
+    for (char *r = s; *r != '\0'; r++) {
+        if (*r == '\\' && r[1] != '\0') {
+            r++;
+            switch (*r) {
+                case 'n': *w++ = '\n'; break;
+                case 'r': *w++ = '\r'; break;
+                case 't': *w++ = '\t'; break;
+                case '\\': *w++ = '\\'; break;
+                case '"': *w++ = '"'; break;
+                default: *w++ = *r; break;
+            }
+        }
+        else {
+            *w++ = *r;
+        }
+    }
+    *w = '\0';
 }
 
 /*
@@ -232,6 +255,7 @@ static int load_bytecode_text_file(const char *filename, Instruction **code, int
                     // 去掉引号
                     if (const_value[0] == '"' && const_value[strlen(const_value)-1] == '"') {
                         const_value[strlen(const_value)-1] = '\0';
+                        unescape_string_literal(const_value + 1);
                         constants_array[constants_count].type = CONST_STRING;
                         strcpy(constants_array[constants_count].value.string, const_value + 1);
                         aql_debug("[DEBUG] 解析字符串常量: %s = \"%s\"\n", const_name, constants_array[constants_count].value.string);
@@ -380,10 +404,32 @@ static int load_multi_function_bytecode(const char *filename, FunctionProto **fu
             if (strcmp(trimmed, ".main") == 0) {
                 // 开始主函数定义
                 current_func = 0;
+                func_array[current_func].num_params = 0;
+                func_array[current_func].is_vararg = 0;
                 in_constants_section = 0;
                 in_code_section = 0;
                 constants_count = 0;  // 重置常量计数
                 aql_debug("[DEBUG] 进入主函数定义\n");
+                continue;
+            } else if (strncmp(trimmed, ".main", 5) == 0) {
+                char vararg_flag[32] = "";
+                int params = 0;
+                current_func = 0;
+                if (sscanf(trimmed, ".main %d %31s", &params, vararg_flag) >= 1) {
+                    func_array[current_func].num_params = params;
+                    func_array[current_func].is_vararg =
+                        (strcmp(vararg_flag, "vararg") == 0 ||
+                         strcmp(vararg_flag, "...") == 0);
+                }
+                in_constants_section = 0;
+                in_code_section = 0;
+                constants_count = 0;
+                continue;
+            } else if (strncmp(trimmed, ".stack", 6) == 0) {
+                int stack_size = 0;
+                if (sscanf(trimmed, ".stack %d", &stack_size) == 1 && stack_size > 0) {
+                    func_array[current_func].stack_size = stack_size;
+                }
                 continue;
             } else if (strcmp(trimmed, ".constants") == 0) {
                 in_constants_section = 1;
@@ -473,20 +519,47 @@ static int load_multi_function_bytecode(const char *filename, FunctionProto **fu
                     }
                 }
                 continue;
+            } else if (strncmp(trimmed, ".upvalue_name", 13) == 0) {
+                /*
+                ** Debug metadata only. Runtime closure construction depends
+                ** exclusively on the preceding .upvalue structure rows.
+                */
+                continue;
             } else if (strncmp(trimmed, ".upvalue", 8) == 0) {
                 // 解析 .upvalue index "name" instack stack_idx
-                // 或者 .upvalue index "name" upval upval_idx
-                int index, stack_idx;
-                char name[64], type[16];
-                if (sscanf(trimmed, ".upvalue %d \"%[^\"]\" %s %d", &index, name, type, &stack_idx) == 4) {
+                // 或者 .upvalue index "name" upval upval_idx。name 可为空。
+                // v2格式: .upvalue index instack stack_idx kind kind_id
+                int index = -1, stack_idx = 0;
+                char type[16] = "";
+                int kind = 0;
+                int parsed = sscanf(trimmed, ".upvalue %d %15s %d kind %d",
+                                    &index, type, &stack_idx, &kind);
+                if (parsed >= 3 && strchr(type, '"') == NULL) {
                     if (index >= 0 && index < func_array[current_func].num_upvalues) {
                         Upvaldesc *uv = &func_array[current_func].upvalues[index];
-                        uv->name = NULL; // 暂时不设置名称，避免内存管理复杂性
+                        uv->name = NULL;
                         uv->instack = (strcmp(type, "instack") == 0) ? 1 : 0;
                         uv->idx = stack_idx;
-                        uv->kind = 0; // 默认类型
-                        aql_debug("[DEBUG] 函数 %d upvalue[%d]: %s=%s, idx=%d\n", 
-                                   current_func, index, name, type, stack_idx);
+                        uv->kind = cast_byte(kind);
+                        aql_debug("[DEBUG] 函数 %d upvalue[%d]: %s, idx=%d, kind=%d\n",
+                                   current_func, index, type, stack_idx, kind);
+                    }
+                } else {
+                    char *name_start;
+                    char *name_end;
+                    if (sscanf(trimmed, ".upvalue %d", &index) == 1 &&
+                        (name_start = strchr(trimmed, '"')) != NULL &&
+                        (name_end = strchr(name_start + 1, '"')) != NULL &&
+                        sscanf(name_end + 1, "%15s %d", type, &stack_idx) == 2) {
+                        if (index >= 0 && index < func_array[current_func].num_upvalues) {
+                            Upvaldesc *uv = &func_array[current_func].upvalues[index];
+                            uv->name = NULL; // 暂时不设置名称，避免内存管理复杂性
+                            uv->instack = (strcmp(type, "instack") == 0) ? 1 : 0;
+                            uv->idx = stack_idx;
+                            uv->kind = 0; // 旧格式没有kind字段
+                            aql_debug("[DEBUG] 函数 %d upvalue[%d]: %s, idx=%d\n",
+                                       current_func, index, type, stack_idx);
+                        }
                     }
                 }
                 continue;
@@ -518,6 +591,7 @@ static int load_multi_function_bytecode(const char *filename, FunctionProto **fu
                 if (strcmp(const_type, "STRING") == 0) {
                     if (const_value[0] == '"' && const_value[strlen(const_value)-1] == '"') {
                         const_value[strlen(const_value)-1] = '\0';
+                        unescape_string_literal(const_value + 1);
                         constants_array[constants_count].type = CONST_STRING;
                         strcpy(constants_array[constants_count].value.string, const_value + 1);
                         aql_debug("[DEBUG] 解析字符串常量: %s = \"%s\"\n", const_name, constants_array[constants_count].value.string);
@@ -609,7 +683,8 @@ static int execute_bytecode(const char *filename) {
     while (fgets(line, sizeof(line), f)) {
         char *trimmed = line;
         while (*trimmed && isspace(*trimmed)) trimmed++;
-        if (strncmp(trimmed, ".function", 9) == 0) {
+        if (strncmp(trimmed, ".function", 9) == 0 ||
+            strncmp(trimmed, ".main", 5) == 0) {
             has_multiple_functions = 1;
             break;
         }
@@ -866,10 +941,11 @@ static int execute_multi_function_bytecode(FunctionProto *functions, int functio
         // 对于全局环境(_ENV)，需要特殊处理
         // 在Lua中，_ENV指向全局表
         if (main_proto->sizeupvalues >= 1) {
-            // 创建全局环境表并设置为第一个upvalue
-            Table *global_env = aqlH_new(L);
-            sethvalue(L, cl->upvals[0]->v.p, global_env);
-            aql_debug("📝 [VM] 设置全局环境表到upvalue[0]: %p\n", (void*)global_env);
+            Dict *globals_dict = get_globals_dict(L);
+            if (globals_dict != NULL) {
+                setobj(L, cl->upvals[0]->v.p, &G(L)->l_globals);
+                aql_debug("📝 [VM] 设置全局环境dict到upvalue[0]: %p\n", (void*)globals_dict);
+            }
         }
     }
     
@@ -878,10 +954,19 @@ static int execute_multi_function_bytecode(FunctionProto *functions, int functio
     
     aql_debug("📝 [VM] 主函数闭包创建完成，准备调用\n");
     
-    // 调用主函数 - 这里会触发VM执行，包括CLOSURE和CALL指令
-    aqlD_call(L, L->top.p - 1, AQL_MULTRET);
+    /*
+    ** aqlc-generated source chunks mark main as vararg, matching parser
+    ** chunk semantics: execute for side effects and discard top-level returns.
+    ** Hand-written VM fixtures keep main non-vararg and use RETURN as output.
+    */
+    int entry_results = main_proto->is_vararg ? 0 : AQL_MULTRET;
+    aqlD_call(L, L->top.p - 1, entry_results);
     
     aql_debug("📝 [VM] 主函数执行完成\n");
+
+    if (entry_results == 0) {
+        goto cleanup;
+    }
     
     // 获取返回值
     if (L->top.p > L->stack.p) {
@@ -907,6 +992,7 @@ static int execute_multi_function_bytecode(FunctionProto *functions, int functio
         printf("(no result)\n");
     }
     
+cleanup:
     // 清理内存
     for (int i = 0; i < function_count; i++) {
         free(functions[i].code);
